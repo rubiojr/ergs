@@ -152,27 +152,39 @@ func (t *ThreadBlock) Messages() []Message {
 }
 
 func (t *ThreadBlock) MessageCount() int {
-	return len(t.messages)
+	if len(t.messages) > 0 {
+		return len(t.messages)
+	}
+	// Fall back to metadata when messages are not loaded (e.g., from database)
+	return getIntFromMetadata(t.metadata, "message_count", 0)
 }
 
 func (t *ThreadBlock) UserMessageCount() int {
-	count := 0
-	for _, msg := range t.messages {
-		if !msg.IsHidden && msg.Role == "user" {
-			count++
+	if len(t.messages) > 0 {
+		count := 0
+		for _, msg := range t.messages {
+			if !msg.IsHidden && msg.Role == "user" {
+				count++
+			}
 		}
+		return count
 	}
-	return count
+	// Fall back to metadata when messages are not loaded (e.g., from database)
+	return getIntFromMetadata(t.metadata, "user_messages", 0)
 }
 
 func (t *ThreadBlock) AssistantMessageCount() int {
-	count := 0
-	for _, msg := range t.messages {
-		if !msg.IsHidden && msg.Role == "assistant" {
-			count++
+	if len(t.messages) > 0 {
+		count := 0
+		for _, msg := range t.messages {
+			if !msg.IsHidden && msg.Role == "assistant" {
+				count++
+			}
 		}
+		return count
 	}
-	return count
+	// Fall back to metadata when messages are not loaded (e.g., from database)
+	return getIntFromMetadata(t.metadata, "assistant_messages", 0)
 }
 
 func (t *ThreadBlock) FirstUserMessage() string {
