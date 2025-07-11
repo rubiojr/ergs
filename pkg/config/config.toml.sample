@@ -1,0 +1,64 @@
+# Ergs Configuration File
+# Edit this file to configure your datasources
+
+storage_dir = '/home/user/.local/share/ergs'
+
+[datasources]
+
+# GitHub - Fetch your GitHub activity, starred repos, and interactions
+[datasources.github]
+type = 'github'
+# interval = '30m0s'  # Optional: custom fetch interval
+[datasources.github.config]
+token = ''  # Required: Your GitHub personal access token
+
+# Uncomment and configure additional datasources as needed:
+
+# # Codeberg - Fetch Codeberg activity and repository events
+# [datasources.codeberg]
+# type = 'codeberg'
+# # interval = '45m0s'
+# [datasources.codeberg.config]
+# token = ''  # Required: Your Codeberg access token
+
+# # Firefox - Extract browsing history from Firefox's places.sqlite
+# [datasources.firefox]
+# type = 'firefox'
+# [datasources.firefox.config]
+# database_path = '/path/to/firefox/profile/places.sqlite'  # Required: Path to places.sqlite
+
+# # Zed Threads - Chat history from Zed editor
+# [datasources.zed]
+# type = 'zedthreads'
+# # interval = '1h0m0s'
+# [datasources.zed.config]
+# # Uses default path: ~/.local/share/zed/threads/threads.db
+
+# # Gas Stations - Local gas station prices and information
+# [datasources.gas_stations]
+# type = 'gasstations'
+# # interval = '2h0m0s'
+# [datasources.gas_stations.config]
+# latitude = 41.4847   # Required: Your latitude
+# longitude = 2.3199   # Required: Your longitude
+# radius = 10000       # Required: Search radius in meters
+
+# # HackerNews - Fetch stories, comments, and other items from Hacker News
+# [datasources.hackernews]
+# type = 'hackernews'
+# # interval = '1h0m0s'
+# [datasources.hackernews.config]
+# fetch_top = true        # Fetch top stories (default: true)
+# fetch_new = false       # Fetch new stories (default: false)
+# fetch_ask = false       # Fetch Ask HN stories (default: false)
+# fetch_show = false      # Fetch Show HN stories (default: false)
+# fetch_jobs = false      # Fetch job postings (default: false)
+# max_items = 100         # Maximum items to fetch (default: 100, max: 500)
+# fetch_comments = false  # Also fetch top-level comments (default: false)
+
+# # Timestamp - Simple timestamp logging (useful for testing)
+# [datasources.timestamp]
+# type = 'timestamp'
+# # interval = '5m0s'
+# [datasources.timestamp.config]
+# interval_seconds = 60  # Generate timestamp every N seconds during fetch
