@@ -42,6 +42,7 @@ make build
 
 - **GitHub** - Your GitHub activity, starred repos, and interactions
 - **HackerNews** - Stories, comments, jobs, and polls from Hacker News
+- **RSS** - Articles from RSS/Atom feeds (blogs, news sites, etc.)
 - **Firefox** - Complete browsing history with full-text search
 - **Codeberg** - Codeberg activity and repository events
 - **Zed Threads** - Chat history from Zed editor

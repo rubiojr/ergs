@@ -56,6 +56,18 @@ token = ''  # Required: Your GitHub personal access token
 # max_items = 100         # Maximum items to fetch (default: 100, max: 500)
 # fetch_comments = false  # Also fetch top-level comments (default: false)
 
+# # RSS - Fetch articles from RSS/Atom feeds
+# [datasources.rss]
+# type = 'rss'
+# # interval = '2h0m0s'
+# [datasources.rss.config]
+# urls = [
+#     'https://feeds.arstechnica.com/arstechnica/index',
+#     'https://www.phoronix.com/rss.php',
+#     'https://www.theguardian.com/world/rss'
+# ]
+# max_items = 50  # Maximum items to fetch across all feeds (default: 50, max: 200)
+
 # # Timestamp - Simple timestamp logging (useful for testing)
 # [datasources.timestamp]
 # type = 'timestamp'
