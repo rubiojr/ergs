@@ -45,16 +45,28 @@ func fetchData(ctx context.Context, configPath string, stream bool, datasourceNa
 	if err := createDatasourcesFromConfig(registry, cfg); err != nil {
 		return fmt.Errorf("creating datasources: %w", err)
 	}
-	defer registry.Close()
+	defer func() {
+		if err := registry.Close(); err != nil {
+			fmt.Printf("Warning: failed to close registry: %v\n", err)
+		}
+	}()
 
 	storageManager := storage.NewManager(cfg.StorageDir)
-	defer storageManager.Close()
+	defer func() {
+		if err := storageManager.Close(); err != nil {
+			fmt.Printf("Warning: failed to close storage manager: %v\n", err)
+		}
+	}()
 
 	warehouseConfig := warehouse.Config{
 		OptimizeInterval: 0, // No optimization for one-time fetch
 	}
 	wh := warehouse.NewWarehouse(warehouseConfig, storageManager)
-	defer wh.Close()
+	defer func() {
+		if err := wh.Close(); err != nil {
+			fmt.Printf("Warning: failed to close warehouse: %v\n", err)
+		}
+	}()
 
 	datasources := registry.GetAllDatasources()
 

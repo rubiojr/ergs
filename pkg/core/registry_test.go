@@ -90,12 +90,6 @@ func (m *mockTestDatasource) Factory(instanceName string, config interface{}) (D
 	return &mockTestDatasource{instanceName: instanceName}, nil
 }
 
-type mockTestBlockFactory struct{}
-
-func (f *mockTestBlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, source string, metadata map[string]interface{}) Block {
-	return &mockTestBlock{}
-}
-
 type mockTestBlock struct{}
 
 func (b *mockTestBlock) ID() string                       { return "test-id" }

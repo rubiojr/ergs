@@ -77,7 +77,9 @@ func (r *Registry) CreateDatasource(instanceName string, factoryType string, con
 	}
 
 	if existingDS, exists := r.datasources[instanceName]; exists {
-		existingDS.Close()
+		if err := existingDS.Close(); err != nil {
+			return fmt.Errorf("closing existing datasource %s: %w", instanceName, err)
+		}
 	}
 
 	r.datasources[instanceName] = datasource

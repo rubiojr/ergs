@@ -47,7 +47,11 @@ func TestMultipleDatasourceIsolation(t *testing.T) {
 
 	// Create registry and datasources
 	registry := core.GetGlobalRegistry()
-	defer registry.Close()
+	defer func() {
+		if err := registry.Close(); err != nil {
+			t.Logf("Warning: failed to close registry: %v", err)
+		}
+	}()
 
 	// Create datasources from config
 	for name, dsConfig := range testConfig.Datasources {
@@ -93,13 +97,21 @@ func TestMultipleDatasourceIsolation(t *testing.T) {
 
 	// Create storage manager and warehouse
 	storageManager := storage.NewManager(testConfig.StorageDir)
-	defer storageManager.Close()
+	defer func() {
+		if err := storageManager.Close(); err != nil {
+			t.Logf("Warning: failed to close storage manager: %v", err)
+		}
+	}()
 
 	warehouseConfig := warehouse.Config{
 		OptimizeInterval: 0, // No optimization for test
 	}
 	wh := warehouse.NewWarehouse(warehouseConfig, storageManager)
-	defer wh.Close()
+	defer func() {
+		if err := wh.Close(); err != nil {
+			t.Logf("Warning: failed to close warehouse: %v", err)
+		}
+	}()
 
 	// Initialize datasource storage
 	datasources := registry.GetAllDatasources()
@@ -281,7 +293,11 @@ func TestMultipleDatasourceIsolation(t *testing.T) {
 				t.Errorf("Failed to query tables for %s: %v", test.Name, err)
 				continue
 			}
-			defer rows.Close()
+			defer func() {
+				if err := rows.Close(); err != nil {
+					t.Logf("Warning: failed to close rows: %v", err)
+				}
+			}()
 
 			tables := []string{}
 			for rows.Next() {
@@ -319,7 +335,11 @@ func TestMultipleDatasourceIsolation(t *testing.T) {
 // return the correct values for datasource instances
 func TestDatasourceTypeVsInstanceName(t *testing.T) {
 	registry := core.GetGlobalRegistry()
-	defer registry.Close()
+	defer func() {
+		if err := registry.Close(); err != nil {
+			t.Logf("Warning: failed to close registry: %v", err)
+		}
+	}()
 
 	// Test case: multiple gas station instances
 	testCases := []struct {
@@ -401,7 +421,11 @@ func TestBlockSourceMatching(t *testing.T) {
 	_ = t.TempDir()
 
 	registry := core.GetGlobalRegistry()
-	defer registry.Close()
+	defer func() {
+		if err := registry.Close(); err != nil {
+			t.Logf("Warning: failed to close registry: %v", err)
+		}
+	}()
 
 	instanceName := "test_block_source_gas"
 	dsType := "gasstations"

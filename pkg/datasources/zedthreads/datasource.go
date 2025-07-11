@@ -177,13 +177,21 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 	if err != nil {
 		return fmt.Errorf("creating temp directory: %w", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			fmt.Printf("Warning: failed to remove temp directory: %v\n", err)
+		}
+	}()
 
 	db, err := d.openDB(d.config.DatabasePath, tempDir)
 	if err != nil {
 		return fmt.Errorf("opening database: %w", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			fmt.Printf("Warning: failed to close database: %v\n", err)
+		}
+	}()
 
 	if err := db.PingContext(ctx); err != nil {
 		return fmt.Errorf("verifying database connection: %w", err)
@@ -205,7 +213,11 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 	if err != nil {
 		return fmt.Errorf("querying database: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			fmt.Printf("Warning: failed to close rows: %v\n", err)
+		}
+	}()
 
 	threadCount := 0
 	for rows.Next() {
@@ -291,7 +303,11 @@ func (d *Datasource) checkSchema(ctx context.Context, db *sql.DB) (bool, error) 
 	if err != nil {
 		return false, fmt.Errorf("getting table info: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			fmt.Printf("Warning: failed to close rows: %v\n", err)
+		}
+	}()
 
 	expectedColumns := map[string]bool{
 		"id":         false,
@@ -332,13 +348,21 @@ func (d *Datasource) openDB(src, tempDir string) (*sql.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("opening source file: %w", err)
 	}
-	defer sourceFile.Close()
+	defer func() {
+		if err := sourceFile.Close(); err != nil {
+			fmt.Printf("Warning: failed to close source file: %v\n", err)
+		}
+	}()
 
 	destFile, err := os.Create(tmpDB)
 	if err != nil {
 		return nil, fmt.Errorf("creating destination file: %w", err)
 	}
-	defer destFile.Close()
+	defer func() {
+		if err := destFile.Close(); err != nil {
+			fmt.Printf("Warning: failed to close destination file: %v\n", err)
+		}
+	}()
 
 	if _, err = io.Copy(destFile, sourceFile); err != nil {
 		return nil, fmt.Errorf("copying file contents from %s to %s: %w", src, tmpDB, err)

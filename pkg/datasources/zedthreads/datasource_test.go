@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
@@ -50,7 +51,11 @@ func TestZedThreadsDatasourceBasicFunctionality(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create datasource: %v", err)
 	}
-	defer ds.Close()
+	defer func() {
+		if err := ds.Close(); err != nil {
+			t.Logf("Warning: failed to close datasource: %v", err)
+		}
+	}()
 
 	// Test datasource properties
 	if ds.Name() != "test-zedthreads" {
@@ -91,7 +96,11 @@ func TestZedThreadsDataFetching(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create datasource: %v", err)
 	}
-	defer ds.Close()
+	defer func() {
+		if err := ds.Close(); err != nil {
+			t.Logf("Warning: failed to close datasource: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 	blockCh := make(chan core.Block, 10)
@@ -250,7 +259,11 @@ func createTestDatabase(dbPath string) error {
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			fmt.Printf("Warning: failed to close database: %v\n", err)
+		}
+	}()
 
 	// Create the threads table
 	createTableSQL := `
@@ -334,7 +347,11 @@ func createTestDatabase(dbPath string) error {
 	if err != nil {
 		return err
 	}
-	defer encoder.Close()
+	defer func() {
+		if err := encoder.Close(); err != nil {
+			fmt.Printf("Warning: failed to close encoder: %v\n", err)
+		}
+	}()
 
 	// Insert test data
 	for _, thread := range testThreads {

@@ -5,6 +5,7 @@ import (
 	"html"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/rubiojr/ergs/pkg/core"
 )
@@ -135,7 +136,7 @@ func (i *ItemBlock) PrettyText() string {
 	}
 
 	// Main title line
-	mainLine := fmt.Sprintf("%s HackerNews %s", emoji, strings.Title(i.itemType))
+	mainLine := fmt.Sprintf("%s HackerNews %s", emoji, title(i.itemType))
 	if i.author != "" {
 		mainLine += fmt.Sprintf(" by %s", i.author)
 	}
@@ -262,6 +263,16 @@ func getStringFromMetadata(metadata map[string]interface{}, key, defaultValue st
 		}
 	}
 	return defaultValue
+}
+
+// title capitalizes the first letter of a string (replacement for deprecated strings.Title)
+func title(s string) string {
+	if s == "" {
+		return s
+	}
+	r := []rune(s)
+	r[0] = unicode.ToUpper(r[0])
+	return string(r)
 }
 
 func getIntFromMetadata(metadata map[string]interface{}, key string, defaultValue int) int {

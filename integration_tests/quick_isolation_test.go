@@ -25,7 +25,11 @@ func TestQuickDatasourceIsolation(t *testing.T) {
 
 	// Create registry and datasources
 	registry := core.GetGlobalRegistry()
-	defer registry.Close()
+	defer func() {
+		if err := registry.Close(); err != nil {
+			t.Logf("Warning: failed to close registry: %v", err)
+		}
+	}()
 
 	// Create datasources from config
 	for name, dsConfig := range testConfig.Datasources {
@@ -71,13 +75,21 @@ func TestQuickDatasourceIsolation(t *testing.T) {
 
 	// Create storage manager and warehouse
 	storageManager := storage.NewManager(testConfig.StorageDir)
-	defer storageManager.Close()
+	defer func() {
+		if err := storageManager.Close(); err != nil {
+			t.Logf("Warning: failed to close storage manager: %v", err)
+		}
+	}()
 
 	warehouseConfig := warehouse.Config{
 		OptimizeInterval: 0, // No optimization for test
 	}
 	wh := warehouse.NewWarehouse(warehouseConfig, storageManager)
-	defer wh.Close()
+	defer func() {
+		if err := wh.Close(); err != nil {
+			t.Logf("Warning: failed to close warehouse: %v", err)
+		}
+	}()
 
 	// Initialize datasource storage
 	datasources := registry.GetAllDatasources()
@@ -187,7 +199,11 @@ func TestQuickDatasourceIsolation(t *testing.T) {
 // TestDatasourceFactoryInstanceName tests that datasource factories receive and use instance names correctly
 func TestDatasourceFactoryInstanceName(t *testing.T) {
 	registry := core.GetGlobalRegistry()
-	defer registry.Close()
+	defer func() {
+		if err := registry.Close(); err != nil {
+			t.Logf("Warning: failed to close registry: %v", err)
+		}
+	}()
 
 	testCases := []struct {
 		instanceName string

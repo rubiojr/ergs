@@ -3,6 +3,7 @@ package firefox
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
@@ -156,7 +157,11 @@ func createTestDatabase(dbPath string) error {
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			fmt.Printf("Warning: failed to close database: %v\n", err)
+		}
+	}()
 
 	// Create tables
 	createTables := []string{

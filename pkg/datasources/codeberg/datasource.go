@@ -174,10 +174,14 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		if err != nil {
 			return fmt.Errorf("making request: %w", err)
 		}
-		defer resp.Body.Close()
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				fmt.Printf("Warning: failed to close response body: %v\n", err)
+			}
+		}()
 
 		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("Codeberg API returned status %d", resp.StatusCode)
+			return fmt.Errorf("codeberg API returned status %d", resp.StatusCode)
 		}
 
 		var searchResp SearchResponse

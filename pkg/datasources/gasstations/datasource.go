@@ -157,13 +157,13 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 
 func (d *Datasource) convertStationToBlock(station api.GasStation, createdAt time.Time) (core.Block, error) {
 	// Parse latitude and longitude (replace Spanish comma decimal separator with dot)
-	latStr := strings.Replace(station.Latitud, ",", ".", -1)
+	latStr := strings.ReplaceAll(station.Latitud, ",", ".")
 	latitude, err := strconv.ParseFloat(latStr, 64)
 	if err != nil {
 		latitude = 0.0
 	}
 
-	lngStr := strings.Replace(station.Longitud, ",", ".", -1)
+	lngStr := strings.ReplaceAll(station.Longitud, ",", ".")
 	longitude, err := strconv.ParseFloat(lngStr, 64)
 	if err != nil {
 		longitude = 0.0

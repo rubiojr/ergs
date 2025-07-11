@@ -65,18 +65,6 @@ func (m *mockDatasource) BlockPrototype() core.Block {
 	return &mockBlock{}
 }
 
-type mockBlockFactory struct{}
-
-func (f *mockBlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, source string, metadata map[string]interface{}) core.Block {
-	return &mockBlock{
-		id:        id,
-		text:      text,
-		createdAt: createdAt,
-		source:    source,
-		metadata:  metadata,
-	}
-}
-
 type mockConfig struct{}
 
 func (c *mockConfig) Validate() error {
@@ -109,13 +97,21 @@ func (b *mockBlock) Factory(genericBlock *core.GenericBlock, source string) core
 
 func TestWarehouseStreaming(t *testing.T) {
 	storageManager := storage.NewManager(t.TempDir())
-	defer storageManager.Close()
+	defer func() {
+		if err := storageManager.Close(); err != nil {
+			t.Logf("Warning: failed to close storage manager: %v", err)
+		}
+	}()
 
 	config := Config{
 		OptimizeInterval: 0,
 	}
 	wh := NewWarehouse(config, storageManager)
-	defer wh.Close()
+	defer func() {
+		if err := wh.Close(); err != nil {
+			t.Logf("Warning: failed to close warehouse: %v", err)
+		}
+	}()
 
 	now := time.Now()
 	testBlocks := []core.Block{

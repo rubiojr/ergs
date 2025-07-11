@@ -25,7 +25,7 @@ type Duration struct {
 }
 
 func (d Duration) MarshalText() ([]byte, error) {
-	return []byte(d.Duration.String()), nil
+	return []byte(d.String()), nil
 }
 
 func (d *Duration) UnmarshalText(text []byte) error {
@@ -207,7 +207,9 @@ func GetConfigDir() string {
 	ergsConfigDir := filepath.Join(configDir, "ergs")
 
 	// Create the directory if it doesn't exist
-	os.MkdirAll(ergsConfigDir, 0755)
+	if err := os.MkdirAll(ergsConfigDir, 0755); err != nil {
+		return "."
+	}
 
 	return ergsConfigDir
 }

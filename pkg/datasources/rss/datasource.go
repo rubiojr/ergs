@@ -230,7 +230,11 @@ func (d *Datasource) fetchFeed(ctx context.Context, feedURL string) ([]FeedItem,
 	if err != nil {
 		return nil, "", err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			fmt.Printf("Warning: failed to close response body: %v\n", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, "", fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
@@ -241,7 +245,9 @@ func (d *Datasource) fetchFeed(ctx context.Context, feedURL string) ([]FeedItem,
 	var rss RSS
 	if err := decoder.Decode(&rss); err != nil {
 		// Reset and try Atom
-		resp.Body.Close()
+		if err := resp.Body.Close(); err != nil {
+			fmt.Printf("Warning: failed to close response body: %v\n", err)
+		}
 		req, err = http.NewRequestWithContext(ctx, "GET", feedURL, nil)
 		if err != nil {
 			return nil, "", err
@@ -252,7 +258,11 @@ func (d *Datasource) fetchFeed(ctx context.Context, feedURL string) ([]FeedItem,
 		if err != nil {
 			return nil, "", err
 		}
-		defer resp.Body.Close()
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				fmt.Printf("Warning: failed to close response body: %v\n", err)
+			}
+		}()
 
 		decoder = xml.NewDecoder(resp.Body)
 		var atom Atom

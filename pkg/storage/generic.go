@@ -105,7 +105,11 @@ func (s *GenericStorage) StoreBlocks(blocks []core.Block, datasourceType string)
 	if err != nil {
 		return fmt.Errorf("beginning transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err := tx.Rollback(); err != nil {
+			fmt.Printf("Warning: failed to rollback transaction: %v\n", err)
+		}
+	}()
 
 	stmt, err := tx.Prepare(`
 		INSERT OR REPLACE INTO blocks (id, text, created_at, source, datasource, metadata)
@@ -114,7 +118,11 @@ func (s *GenericStorage) StoreBlocks(blocks []core.Block, datasourceType string)
 	if err != nil {
 		return fmt.Errorf("preparing statement: %w", err)
 	}
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			fmt.Printf("Warning: failed to close statement: %v\n", err)
+		}
+	}()
 
 	ftsStmt, err := tx.Prepare(`
 		INSERT OR REPLACE INTO blocks_fts (rowid, text, source, datasource, metadata)
@@ -123,7 +131,11 @@ func (s *GenericStorage) StoreBlocks(blocks []core.Block, datasourceType string)
 	if err != nil {
 		return fmt.Errorf("preparing FTS statement: %w", err)
 	}
-	defer ftsStmt.Close()
+	defer func() {
+		if err := ftsStmt.Close(); err != nil {
+			fmt.Printf("Warning: failed to close FTS statement: %v\n", err)
+		}
+	}()
 
 	for _, block := range blocks {
 		metadataJSON, err := json.Marshal(block.Metadata())
@@ -188,7 +200,11 @@ func (s *GenericStorage) SearchBlocks(query string, limit int) ([]core.Block, er
 	if err != nil {
 		return nil, fmt.Errorf("querying blocks: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			fmt.Printf("Warning: failed to close rows: %v\n", err)
+		}
+	}()
 
 	var blocks []core.Block
 	for rows.Next() {
@@ -224,7 +240,11 @@ func (s *GenericStorage) GetBlocksSince(since time.Time) ([]core.Block, error) {
 	if err != nil {
 		return nil, fmt.Errorf("querying blocks: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			fmt.Printf("Warning: failed to close rows: %v\n", err)
+		}
+	}()
 
 	var blocks []core.Block
 	for rows.Next() {
