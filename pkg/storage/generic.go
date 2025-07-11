@@ -105,9 +105,13 @@ func (s *GenericStorage) StoreBlocks(blocks []core.Block, datasourceType string)
 	if err != nil {
 		return fmt.Errorf("beginning transaction: %w", err)
 	}
+
+	committed := false
 	defer func() {
-		if err := tx.Rollback(); err != nil {
-			fmt.Printf("Warning: failed to rollback transaction: %v\n", err)
+		if !committed {
+			if err := tx.Rollback(); err != nil {
+				fmt.Printf("Warning: failed to rollback transaction: %v\n", err)
+			}
 		}
 	}()
 
@@ -169,7 +173,11 @@ func (s *GenericStorage) StoreBlocks(blocks []core.Block, datasourceType string)
 		}
 	}
 
-	return tx.Commit()
+	err = tx.Commit()
+	if err == nil {
+		committed = true
+	}
+	return err
 }
 
 func (s *GenericStorage) SearchBlocks(query string, limit int) ([]core.Block, error) {

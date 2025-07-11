@@ -42,17 +42,21 @@ type DatasourceInfo struct {
 	Config   interface{} `toml:"config"`
 }
 
-func GetDefaultConfig() *Config {
+func GetDefaultConfig() (*Config, error) {
+	storageDir, err := GetDefaultStorageDir()
+	if err != nil {
+		return nil, fmt.Errorf("getting default storage directory: %w", err)
+	}
 	return &Config{
-		StorageDir:    GetDefaultStorageDir(),
+		StorageDir:    storageDir,
 		FetchInterval: Duration{30 * time.Minute},
 		Datasources:   make(map[string]DatasourceInfo),
-	}
+	}, nil
 }
 
 func LoadConfig(configPath string) (*Config, error) {
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return GetDefaultConfig(), nil
+		return GetDefaultConfig()
 	}
 
 	data, err := os.ReadFile(configPath)
@@ -66,7 +70,11 @@ func LoadConfig(configPath string) (*Config, error) {
 	}
 
 	if config.StorageDir == "" {
-		config.StorageDir = GetDefaultStorageDir()
+		storageDir, err := GetDefaultStorageDir()
+		if err != nil {
+			return nil, fmt.Errorf("getting default storage directory: %w", err)
+		}
+		config.StorageDir = storageDir
 	}
 
 	if config.FetchInterval.Duration == 0 {
@@ -98,19 +106,26 @@ func (c *Config) SaveTemplateConfig(configPath string) error {
 		return fmt.Errorf("creating config directory: %w", err)
 	}
 
-	template := c.generateConfigTemplate()
+	template, err := c.generateConfigTemplate()
+	if err != nil {
+		return fmt.Errorf("generating config template: %w", err)
+	}
 	return os.WriteFile(configPath, []byte(template), 0644)
 }
 
-func (c *Config) generateConfigTemplate() string {
+func (c *Config) generateConfigTemplate() (string, error) {
 	storageDir := c.StorageDir
 	if storageDir == "" {
-		storageDir = GetDefaultStorageDir()
+		var err error
+		storageDir, err = GetDefaultStorageDir()
+		if err != nil {
+			return "", fmt.Errorf("getting default storage directory: %w", err)
+		}
 	}
 
 	// Replace the placeholder storage_dir with the actual path
 	template := strings.Replace(configTemplate, "/home/user/.local/share/ergs", storageDir, 1)
-	return template
+	return template, nil
 }
 
 func (c *Config) AddDatasource(name, dsType string, dsConfig interface{}) error {
@@ -164,14 +179,13 @@ func (c *Config) RemoveDatasource(name string) {
 }
 
 // GetDefaultStorageDir returns the default storage directory for databases
-func GetDefaultStorageDir() string {
+func GetDefaultStorageDir() (string, error) {
 	// Use XDG_DATA_HOME if set, otherwise use ~/.local/share
 	dataDir := os.Getenv("XDG_DATA_HOME")
 	if dataDir == "" {
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
-			// Fallback to current directory if we can't get home dir
-			return "./data"
+			return "", fmt.Errorf("getting user home directory: %w", err)
 		}
 		dataDir = filepath.Join(homeDir, ".local", "share")
 	}
@@ -180,26 +194,29 @@ func GetDefaultStorageDir() string {
 
 	// Create the directory if it doesn't exist
 	if err := os.MkdirAll(ergsDir, 0755); err != nil {
-		// Fallback to current directory if we can't create the data dir
-		return "./data"
+		return "", fmt.Errorf("creating storage directory %s: %w", ergsDir, err)
 	}
 
-	return ergsDir
+	return ergsDir, nil
 }
 
 // GetDefaultDBPath returns the default database path in the user's data directory
-func GetDefaultDBPath() string {
-	return filepath.Join(GetDefaultStorageDir(), "ergs.db")
+func GetDefaultDBPath() (string, error) {
+	storageDir, err := GetDefaultStorageDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(storageDir, "ergs.db"), nil
 }
 
 // GetConfigDir returns the configuration directory for ergs
-func GetConfigDir() string {
+func GetConfigDir() (string, error) {
 	// Use XDG_CONFIG_HOME if set, otherwise use ~/.config
 	configDir := os.Getenv("XDG_CONFIG_HOME")
 	if configDir == "" {
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
-			return "."
+			return "", fmt.Errorf("getting user home directory: %w", err)
 		}
 		configDir = filepath.Join(homeDir, ".config")
 	}
@@ -208,13 +225,17 @@ func GetConfigDir() string {
 
 	// Create the directory if it doesn't exist
 	if err := os.MkdirAll(ergsConfigDir, 0755); err != nil {
-		return "."
+		return "", fmt.Errorf("creating config directory %s: %w", ergsConfigDir, err)
 	}
 
-	return ergsConfigDir
+	return ergsConfigDir, nil
 }
 
 // GetDefaultConfigPath returns the default configuration file path
-func GetDefaultConfigPath() string {
-	return filepath.Join(GetConfigDir(), "config.toml")
+func GetDefaultConfigPath() (string, error) {
+	configDir, err := GetConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(configDir, "config.toml"), nil
 }

@@ -21,7 +21,10 @@ func InitCommand() *cli.Command {
 
 // initConfig initializes the configuration file
 func initConfig(configPath string) error {
-	cfg := config.GetDefaultConfig()
+	cfg, err := config.GetDefaultConfig()
+	if err != nil {
+		return fmt.Errorf("getting default config: %w", err)
+	}
 	if err := cfg.SaveTemplateConfig(configPath); err != nil {
 		return fmt.Errorf("saving config: %w", err)
 	}

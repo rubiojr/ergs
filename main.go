@@ -23,7 +23,7 @@ func main() {
 			&cli.StringFlag{
 				Name:  "config",
 				Usage: "Configuration file path",
-				Value: config.GetDefaultConfigPath(),
+				Value: getDefaultConfigPathOrExit(),
 			},
 		},
 		Commands: []*cli.Command{
@@ -42,4 +42,12 @@ func main() {
 	if err := app.Run(context.Background(), os.Args); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func getDefaultConfigPathOrExit() string {
+	path, err := config.GetDefaultConfigPath()
+	if err != nil {
+		log.Fatalf("Failed to get default config path: %v", err)
+	}
+	return path
 }
