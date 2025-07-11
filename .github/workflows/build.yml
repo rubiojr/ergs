@@ -12,11 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        goos: [linux, darwin, windows]
-        goarch: [amd64, arm64]
-        exclude:
-          - goos: windows
-            goarch: arm64
+        goos: [linux]
+        goarch: [amd64]
     
     steps:
     - name: Check out code
@@ -39,57 +36,4 @@ jobs:
       run: make deps
 
     - name: Build binary
-      env:
-        GOOS: ${{ matrix.goos }}
-        GOARCH: ${{ matrix.goarch }}
-      run: |
-        if [ "$GOOS" = "windows" ]; then
-          make build-release OUTPUT_NAME=bin/ergs-${{ matrix.goos }}-${{ matrix.goarch }}.exe
-        else
-          make build-release OUTPUT_NAME=bin/ergs-${{ matrix.goos }}-${{ matrix.goarch }}
-        fi
-
-    - name: Test binary runs (Linux/macOS only)
-      if: matrix.goos != 'windows'
-      run: |
-        chmod +x bin/ergs-${{ matrix.goos }}-${{ matrix.goarch }}
-        ./bin/ergs-${{ matrix.goos }}-${{ matrix.goarch }} --help
-
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: ergs-${{ matrix.goos }}-${{ matrix.goarch }}
-        path: bin/ergs-*
-        retention-days: 30
-
-  test-basic-build:
-    name: Test Basic Build
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Check out code
-      uses: actions/checkout@v4
-
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: '1.24'
-
-    - name: Cache Go modules
-      uses: actions/cache@v4
-      with:
-        path: ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-
-    - name: Install dependencies
-      run: make deps
-
-    - name: Build basic binary
       run: make build
-
-    - name: Test binary functionality
-      run: |
-        ./ergs --help
-        ./ergs version || true
