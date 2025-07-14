@@ -114,6 +114,11 @@ func (b *TimestampBlock) PrettyText() string {
 		metadataInfo)
 }
 
+// Summary returns a concise one-line summary of the timestamp.
+func (b *TimestampBlock) Summary() string {
+	return fmt.Sprintf("🕒 %s", b.timestamp.Format("2006-01-02 15:04:05"))
+}
+
 // Domain-specific accessor methods - these provide type-safe access to block data
 
 // Timestamp returns the time value this block represents

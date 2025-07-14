@@ -151,6 +151,15 @@ func (e *EventBlock) PrettyText() string {
 		e.eventType, e.actorLogin, e.id, e.createdAt.Format("2006-01-02 15:04:05"), repoInfo, metadataInfo)
 }
 
+// Summary returns a concise one-line summary of the Codeberg event.
+func (e *EventBlock) Summary() string {
+	repoInfo := ""
+	if e.repoName != "" {
+		repoInfo = fmt.Sprintf(" on %s", e.repoName)
+	}
+	return fmt.Sprintf("🌲 %s by %s%s", e.eventType, e.actorLogin, repoInfo)
+}
+
 // Factory creates a new EventBlock from a GenericBlock and source.
 // This method is part of the core.Block interface and enables reconstruction
 // from database data without requiring separate factory objects.

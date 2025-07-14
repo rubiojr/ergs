@@ -219,6 +219,32 @@ func (i *ItemBlock) PrettyText() string {
 	return strings.Join(parts, "\n")
 }
 
+// Summary returns a concise one-line summary of the HackerNews item.
+func (i *ItemBlock) Summary() string {
+	var emoji string
+	switch i.itemType {
+	case "story":
+		emoji = "📰"
+	case "comment":
+		emoji = "💬"
+	case "job":
+		emoji = "💼"
+	case "poll":
+		emoji = "📊"
+	case "pollopt":
+		emoji = "☑️"
+	default:
+		emoji = "📄"
+	}
+
+	title := i.title
+	if title == "" {
+		title = "Untitled"
+	}
+
+	return fmt.Sprintf("%s %s", emoji, title)
+}
+
 // Factory creates a new ItemBlock from a GenericBlock and source.
 // This method is part of the core.Block interface and enables reconstruction
 // from database data without requiring separate factory objects.

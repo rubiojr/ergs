@@ -154,6 +154,26 @@ func (b *GasStationBlock) PrettyText() string {
 		metadataInfo)
 }
 
+// Summary returns a concise one-line summary of the gas station.
+func (b *GasStationBlock) Summary() string {
+	name := b.name
+
+	var prices []string
+	if b.gasoline95 != "" && b.gasoline95 != "0" {
+		prices = append(prices, fmt.Sprintf("95: %s€", b.gasoline95))
+	}
+	if b.diesel != "" && b.diesel != "0" {
+		prices = append(prices, fmt.Sprintf("D: %s€", b.diesel))
+	}
+
+	priceInfo := ""
+	if len(prices) > 0 {
+		priceInfo = fmt.Sprintf(" (%s)", strings.Join(prices, ", "))
+	}
+
+	return fmt.Sprintf("⛽ %s%s", name, priceInfo)
+}
+
 // Custom accessor methods
 func (b *GasStationBlock) StationID() string  { return b.stationID }
 func (b *GasStationBlock) Name() string       { return b.name }

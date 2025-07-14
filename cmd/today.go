@@ -23,16 +23,12 @@ var (
 			Foreground(lipgloss.Color("86")).
 			Background(lipgloss.Color("235")).
 			Padding(0, 1).
-			Margin(1, 0)
+			Margin(0, 0, 1, 0)
 
 	headerStyle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(lipgloss.Color("39")).
-			BorderStyle(lipgloss.NormalBorder()).
-			BorderBottom(true).
-			BorderForeground(lipgloss.Color("240")).
-			Margin(1, 0, 0, 0).
-			Padding(0, 0, 1, 0)
+			Foreground(lipgloss.Color("214")).
+			Margin(1, 0, 1, 0)
 
 	datasourceStyle = lipgloss.NewStyle().
 			Bold(true).
@@ -55,12 +51,16 @@ var (
 			Border(lipgloss.ThickBorder()).
 			BorderForeground(lipgloss.Color("32")).
 			Padding(0, 1).
-			Margin(1, 0)
+			Margin(0, 0, 1, 0)
 
 	noDataStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("240")).
 			Italic(true).
 			Margin(1, 0)
+
+	urlStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("33")).
+			Margin(1, 0, 0, 0)
 )
 
 // TodayCommand creates the today command
@@ -199,7 +199,7 @@ func formatTodayOutput(results map[string][]core.Block, startOfDay time.Time, da
 	today := startOfDay.Format("Monday, January 2, 2006")
 	title := fmt.Sprintf("📅 Today's Blocks - %s", today)
 	output.WriteString(titleStyle.Render(title))
-	output.WriteString("\n\n")
+	output.WriteString("\n")
 
 	if len(results) == 0 {
 		message := "No blocks found for today"
@@ -237,7 +237,7 @@ func formatTodayOutput(results map[string][]core.Block, startOfDay time.Time, da
 		}
 	}
 	output.WriteString(summaryStyle.Render(summary))
-	output.WriteString("\n\n")
+	output.WriteString("\n")
 
 	// Sort types for consistent output
 	var sortedTypes []string
@@ -247,15 +247,17 @@ func formatTodayOutput(results map[string][]core.Block, startOfDay time.Time, da
 	sort.Strings(sortedTypes)
 
 	// Output each datasource type
-	for i, dsType := range sortedTypes {
-		if i > 0 {
-			output.WriteString("\n")
-		}
-
+	for _, dsType := range sortedTypes {
 		datasources := typeGroups[dsType]
 
+		// Calculate total blocks for this type
+		totalBlocksForType := 0
+		for _, blocks := range datasources {
+			totalBlocksForType += len(blocks)
+		}
+
 		// Type header
-		typeHeader := fmt.Sprintf("🔧 %s (%d datasources)", strings.Title(dsType), len(datasources))
+		typeHeader := fmt.Sprintf("🔧 %s (%d blocks)", strings.Title(dsType), totalBlocksForType)
 		output.WriteString(headerStyle.Render(typeHeader))
 		output.WriteString("\n")
 
@@ -270,15 +272,10 @@ func formatTodayOutput(results map[string][]core.Block, startOfDay time.Time, da
 		for _, name := range sortedNames {
 			blocks := datasources[name]
 
-			// Datasource header
-			dsHeader := fmt.Sprintf("📁 %s (%d blocks)", name, len(blocks))
-			output.WriteString(datasourceStyle.Render(dsHeader))
-			output.WriteString("\n")
-
 			// Output blocks for this datasource
 			for j, block := range blocks {
 				blockContent := formatBlock(block, j+1)
-				output.WriteString(blockStyle.Render(blockContent))
+				output.WriteString(blockContent)
 				output.WriteString("\n")
 			}
 		}
@@ -324,19 +321,46 @@ func formatBlock(block core.Block, index int) string {
 	content.WriteString(lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("33")).Render(header))
 	content.WriteString("\n\n")
 
-	// Use the block's PrettyText method for main content
-	prettyText := block.PrettyText()
-	content.WriteString(prettyText)
+	// Use the block's Summary method for compact display
+	summary := block.Summary()
+
+	// Clean up summary by removing "title=" prefixes
+	summary = strings.ReplaceAll(summary, "title=", "")
+
+	content.WriteString(summary)
+
+	// Extract and add URL with proper spacing if available
+	metadata := block.Metadata()
+	url := extractURL(metadata)
+	if url != "" {
+		urlText := fmt.Sprintf("🔗 %s", url)
+		content.WriteString("\n" + urlStyle.Render(urlText))
+	}
 
 	// Add metadata footer
-	metadata := block.Metadata()
 	if len(metadata) > 0 {
 		content.WriteString("\n\n")
 		metaInfo := fmt.Sprintf("ID: %s | Source: %s", block.ID(), block.Source())
 		content.WriteString(metaStyle.Render(metaInfo))
 	}
 
-	return content.String()
+	return blockStyle.Render(content.String())
+}
+
+// extractURL extracts URL from block metadata
+func extractURL(metadata map[string]interface{}) string {
+	// Check common URL field names
+	urlFields := []string{"url", "link", "repo_url"}
+
+	for _, field := range urlFields {
+		if value, exists := metadata[field]; exists {
+			if urlStr, ok := value.(string); ok && urlStr != "" {
+				return urlStr
+			}
+		}
+	}
+
+	return ""
 }
 
 // isTerminal checks if stdout is a terminal

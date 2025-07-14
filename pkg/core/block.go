@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -72,6 +73,12 @@ type Block interface {
 	// Include the most important information but keep it scannable.
 	PrettyText() string
 
+	// Summary returns a concise one-line summary of the block for compact display.
+	// Should include the most important identifying information in a brief format.
+	// Examples: "GitHub Issue #123: Fix login bug", "Firefox bookmark: Go documentation"
+	// Keep it under 80 characters when possible for better readability.
+	Summary() string
+
 	// Factory creates a new instance of this block type from database data.
 	// Called when loading blocks from storage to restore full functionality.
 	// The core system automatically provides the source parameter - datasource
@@ -133,6 +140,41 @@ func (b *GenericBlock) PrettyText() string {
 	metadataInfo := FormatMetadata(b.metadata)
 	return fmt.Sprintf("📄 %s\n  ID: %s\n  Time: %s\n  Source: %s\n  Type: %s%s",
 		b.text, b.id, b.createdAt.Format("2006-01-02 15:04:05"), b.source, b.dsType, metadataInfo)
+}
+
+// Summary returns a concise one-line summary for this generic block.
+func (b *GenericBlock) Summary() string {
+	// Try to extract clean title from metadata first
+	if title, exists := b.metadata["title"]; exists {
+		if titleStr, ok := title.(string); ok && titleStr != "" {
+			return fmt.Sprintf("📄 %s", titleStr)
+		}
+	}
+
+	// Try other common title fields
+	titleFields := []string{"name", "summary", "repo_name"}
+	for _, field := range titleFields {
+		if value, exists := b.metadata[field]; exists {
+			if valueStr, ok := value.(string); ok && valueStr != "" {
+				return fmt.Sprintf("📄 %s", valueStr)
+			}
+		}
+	}
+
+	// Fall back to truncated text without metadata noise
+	text := b.text
+	// Remove common metadata patterns
+	if idx := strings.Index(text, " url="); idx != -1 {
+		text = text[:idx]
+	}
+	if idx := strings.Index(text, " author="); idx != -1 {
+		text = text[:idx]
+	}
+	if idx := strings.Index(text, " type="); idx != -1 {
+		text = text[:idx]
+	}
+
+	return fmt.Sprintf("📄 %s", text)
 }
 
 // Factory creates a new GenericBlock from a GenericBlock and source.

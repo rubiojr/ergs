@@ -164,6 +164,16 @@ func (i *ItemBlock) PrettyText() string {
 	return strings.Join(parts, "\n")
 }
 
+// Summary returns a concise one-line summary of the RSS item.
+func (i *ItemBlock) Summary() string {
+	title := i.title
+	if title == "" {
+		title = "Untitled"
+	}
+
+	return fmt.Sprintf("📰 %s", title)
+}
+
 // Factory creates a new ItemBlock from a GenericBlock and source.
 // This method is part of the core.Block interface and enables reconstruction
 // from database data without requiring separate factory objects.

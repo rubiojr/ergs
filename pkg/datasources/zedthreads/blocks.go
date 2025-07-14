@@ -135,8 +135,19 @@ func (t *ThreadBlock) Metadata() map[string]interface{} {
 	return t.metadata
 }
 
-func (t *ThreadBlock) Summary() string {
+func (t *ThreadBlock) ThreadSummary() string {
 	return t.summary
+}
+
+// Summary returns a concise one-line summary of the Zed thread.
+func (t *ThreadBlock) Summary() string {
+	summary := t.summary
+	if summary == "" {
+		summary = "Untitled thread"
+	}
+
+	messageCount := t.MessageCount()
+	return fmt.Sprintf("💬 %s (%d msgs)", summary, messageCount)
 }
 
 func (t *ThreadBlock) UpdatedAt() time.Time {

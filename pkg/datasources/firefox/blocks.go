@@ -120,6 +120,15 @@ func (v *VisitBlock) PrettyText() string {
 		v.id, v.visitDate.Format("2006-01-02 15:04:05"), v.url, titleInfo, descInfo, metadataInfo)
 }
 
+// Summary returns a concise one-line summary of the Firefox visit.
+func (v *VisitBlock) Summary() string {
+	title := v.title
+	if title == "" {
+		title = v.url
+	}
+	return fmt.Sprintf("🦊 %s", title)
+}
+
 // Factory creates a new VisitBlock from a GenericBlock and source.
 // This method is part of the core.Block interface and enables reconstruction
 // from database data without requiring separate factory objects.
