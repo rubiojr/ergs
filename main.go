@@ -32,6 +32,7 @@ func main() {
 			cmd.FetchCommand(),
 			cmd.SearchCommand(),
 			cmd.ListCommand(),
+			cmd.TodayCommand(),
 			cmd.ServeCommand(),
 			cmd.StatsCommand(),
 			cmd.OptimizeCommand(),
