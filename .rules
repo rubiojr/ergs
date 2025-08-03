@@ -1,4 +1,4 @@
-* Project documentation available in the docs/ directory.
+* Project documentation available in the docs/ directory. ALWAYS read it first before making changes.
 * Use --tags fts5 when building or running tests
 * When adding new datasources, update config.toml.sample and add documentation to docs/datasources
 * Don't use the default storage_dir when testing, use a temp dir
