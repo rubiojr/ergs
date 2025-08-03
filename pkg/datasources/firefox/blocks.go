@@ -87,6 +87,10 @@ func (v *VisitBlock) Metadata() map[string]interface{} {
 	return v.metadata
 }
 
+func (v *VisitBlock) Type() string {
+	return "firefox"
+}
+
 func (v *VisitBlock) URL() string {
 	return v.url
 }

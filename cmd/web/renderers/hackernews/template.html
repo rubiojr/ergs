@@ -1,0 +1,270 @@
+<div class="block-hackernews">
+    {{$itemType := index .Metadata "item_type" | default "story"}}
+    {{$title := index .Metadata "title"}}
+    {{$url := index .Metadata "url"}}
+    {{$score := index .Metadata "score"}}
+    {{$descendants := index .Metadata "descendants"}}
+    {{$author := index .Metadata "author"}}
+    {{$parentID := index .Metadata "parent_id"}}
+    {{$itemText := index .Metadata "item_text"}}
+
+    <div class="hn-header">
+        <div class="hn-votes">
+            {{if and $score (gt $score 0)}}
+                <div class="vote-score">{{$score}}</div>
+                <div class="vote-label">points</div>
+            {{else}}
+                <div class="vote-placeholder">•</div>
+            {{end}}
+        </div>
+
+        <div class="hn-content">
+            {{if $title}}
+                <div class="hn-title">
+                    {{if $url}}
+                        <a href="{{$url}}" target="_blank" class="hn-link">{{$title}}</a>
+                        <span class="hn-domain">{{$url}}</span>
+                    {{else}}
+                        <span class="hn-title-text">{{$title}}</span>
+                    {{end}}
+                </div>
+            {{end}}
+
+            <div class="hn-meta">
+                {{if $author}}
+                    <span class="hn-author">by {{$author}}</span>
+                {{end}}
+                <span class="hn-time">{{formatTime .Block.CreatedAt}}</span>
+                {{if and $descendants (gt $descendants 0)}}
+                    <span class="hn-separator">|</span>
+                    <a href="https://news.ycombinator.com/item?id={{replace .Block.ID "hn-" ""}}" target="_blank" class="hn-comments">
+                        {{$descendants}} comment{{if ne $descendants 1}}s{{end}}
+                    </a>
+                {{end}}
+                <span class="hn-separator">|</span>
+                <a href="https://news.ycombinator.com/item?id={{replace .Block.ID "hn-" ""}}" target="_blank" class="hn-discuss">discuss</a>
+            </div>
+        </div>
+    </div>
+
+    {{if $itemText}}
+    <div class="hn-text">
+        <details class="hn-details">
+            <summary>Show text</summary>
+            <div class="hn-text-content">
+                {{truncate $itemText 800}}
+            </div>
+        </details>
+    </div>
+    {{end}}
+
+    {{if and $parentID (gt $parentID 0)}}
+    <div class="hn-reply-info">
+        ↳ Reply to item {{$parentID}}
+    </div>
+    {{end}}
+</div>
+
+<style>
+.block-hackernews {
+    margin-bottom: 1.5rem;
+    padding: 0;
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    background: #f6f6ef;
+    font-family: Verdana, Geneva, sans-serif;
+    font-size: 13px;
+    line-height: 1.3;
+}
+
+.hn-header {
+    display: flex;
+    gap: 8px;
+    padding: 6px 8px;
+    background: white;
+}
+
+.hn-votes {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 35px;
+    padding-top: 2px;
+}
+
+.vote-score {
+    font-size: 12px;
+    font-weight: bold;
+    color: #ff6600;
+    line-height: 1;
+}
+
+.vote-label {
+    font-size: 8px;
+    color: #828282;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1;
+    margin-top: 1px;
+}
+
+.vote-placeholder {
+    color: #d0d0d0;
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.hn-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.hn-title {
+    margin-bottom: 4px;
+    line-height: 1.2;
+}
+
+.hn-link {
+    color: #000000;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: normal;
+}
+
+.hn-link:visited {
+    color: #828282;
+}
+
+.hn-link:hover {
+    text-decoration: underline;
+}
+
+.hn-title-text {
+    color: #000000;
+    font-size: 14px;
+}
+
+.hn-domain {
+    color: #828282;
+    font-size: 11px;
+    margin-left: 4px;
+}
+
+.hn-domain:before {
+    content: "(";
+}
+
+.hn-domain:after {
+    content: ")";
+}
+
+.hn-meta {
+    color: #828282;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.hn-author {
+    font-weight: normal;
+}
+
+.hn-time {
+    font-variant-numeric: tabular-nums;
+}
+
+.hn-separator {
+    color: #d0d0d0;
+    margin: 0 2px;
+}
+
+.hn-comments, .hn-discuss {
+    color: #828282;
+    text-decoration: none;
+}
+
+.hn-comments:hover, .hn-discuss:hover {
+    text-decoration: underline;
+}
+
+.hn-text {
+    background: #f6f6ef;
+    padding: 8px;
+    border-top: 1px solid #e6e6e6;
+}
+
+.hn-details {
+    font-size: 12px;
+}
+
+.hn-details summary {
+    color: #828282;
+    cursor: pointer;
+    padding: 4px 0;
+    font-weight: normal;
+}
+
+.hn-details summary:hover {
+    color: #000000;
+}
+
+.hn-details[open] summary {
+    margin-bottom: 8px;
+    border-bottom: 1px solid #e6e6e6;
+    padding-bottom: 8px;
+}
+
+.hn-text-content {
+    background: white;
+    padding: 12px;
+    border: 1px solid #e6e6e6;
+    border-radius: 2px;
+    color: #000000;
+    font-size: 13px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.hn-reply-info {
+    background: #f0f0f0;
+    padding: 6px 8px;
+    border-top: 1px solid #e6e6e6;
+    color: #828282;
+    font-size: 11px;
+    font-style: italic;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .hn-header {
+        padding: 8px 6px;
+    }
+
+    .hn-votes {
+        min-width: 30px;
+    }
+
+    .hn-meta {
+        font-size: 10px;
+    }
+
+    .hn-domain {
+        display: none;
+    }
+}
+
+/* Better spacing for long titles */
+.hn-title {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* HN-style hover states */
+.hn-header:hover {
+    background: #f6f6ef;
+}
+</style>

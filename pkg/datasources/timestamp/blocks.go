@@ -97,6 +97,10 @@ func (b *TimestampBlock) Source() string { return b.source }
 // Metadata returns structured data for database storage and reconstruction
 func (b *TimestampBlock) Metadata() map[string]interface{} { return b.metadata }
 
+func (b *TimestampBlock) Type() string {
+	return "timestamp"
+}
+
 // PrettyText returns a human-readable formatted version of the block.
 // This is what users see when browsing or displaying search results.
 //

@@ -1,0 +1,288 @@
+package components
+
+import (
+	"github.com/rubiojr/ergs/cmd/web/components/types"
+	"strconv"
+)
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+templ Datasources(data types.PageData) {
+	@Layout(data) {
+		<div class="datasources-page">
+			<div class="page-header">
+				<h2>
+					<svg class="header-icon" viewBox="0 0 24 24" fill="currentColor">
+						<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"></path>
+					</svg>
+					Data Sources
+				</h2>
+				<p>{ strconv.Itoa(len(data.Datasources)) } configured sources ready for browsing</p>
+			</div>
+			if len(data.Datasources) > 0 {
+				<div class="datasources-container">
+					for _, ds := range data.Datasources {
+						<a href={ templ.URL("/datasource/" + ds.Name) } class="datasource-card">
+							<div class="card-icon">
+								<span class="icon-text">{ ds.Name[:min(2, len(ds.Name))] }</span>
+							</div>
+							<div class="card-content">
+								<h3 class="datasource-name">{ ds.Name }</h3>
+								<span class="datasource-type">{ ds.Type }</span>
+								if ds.Stats != nil {
+									if totalBlocks, ok := ds.Stats["total_blocks"].(int); ok && totalBlocks > 0 {
+										<div class="stats-info">
+											<span class="block-count">{ strconv.Itoa(totalBlocks) } blocks</span>
+										</div>
+									} else {
+										<div class="stats-info">
+											<span class="no-data">No data yet</span>
+										</div>
+									}
+								} else {
+									<div class="stats-info">
+										<span class="no-data">No data yet</span>
+									</div>
+								}
+							</div>
+							<div class="card-arrow">
+								<svg viewBox="0 0 24 24" fill="currentColor">
+									<path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"></path>
+								</svg>
+							</div>
+						</a>
+					}
+				</div>
+			} else {
+				<div class="empty-state">
+					<div class="empty-icon">
+						<svg viewBox="0 0 24 24" fill="currentColor">
+							<path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"></path>
+						</svg>
+					</div>
+					<h3>No datasources configured</h3>
+					<p>Add some datasources to get started with data collection and browsing.</p>
+					<div class="help-link">
+						<code>ergs datasource add --name my-source --type github</code>
+					</div>
+				</div>
+			}
+		</div>
+		<style>
+			.datasources-page {
+				max-width: 900px;
+				margin: 0 auto;
+				padding: 1rem;
+			}
+
+			.page-header {
+				margin-bottom: 2rem;
+				text-align: center;
+			}
+
+			.page-header h2 {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				gap: 0.75rem;
+				color: #2c3e50;
+				margin-bottom: 0.5rem;
+				font-size: 1.75rem;
+				font-weight: 600;
+			}
+
+			.header-icon {
+				width: 28px;
+				height: 28px;
+				color: #007bff;
+			}
+
+			.page-header p {
+				color: #6c757d;
+				margin: 0;
+				font-size: 1rem;
+			}
+
+			.datasources-container {
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+				gap: 1rem;
+			}
+
+			.datasource-card {
+				display: flex;
+				align-items: center;
+				gap: 1rem;
+				background: white;
+				border: 1px solid #e9ecef;
+				border-radius: 12px;
+				padding: 1.25rem;
+				text-decoration: none;
+				color: inherit;
+				transition: all 0.2s ease;
+				box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+			}
+
+			.datasource-card:hover {
+				transform: translateY(-1px);
+				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+				border-color: #007bff;
+			}
+
+			.card-icon {
+				flex-shrink: 0;
+				width: 48px;
+				height: 48px;
+				background: linear-gradient(135deg, #007bff, #0056b3);
+				border-radius: 10px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+			}
+
+			.icon-text {
+				color: white;
+				font-weight: 700;
+				font-size: 0.9rem;
+				text-transform: uppercase;
+			}
+
+			.card-content {
+				flex: 1;
+				min-width: 0;
+			}
+
+			.datasource-name {
+				margin: 0 0 0.25rem 0;
+				font-size: 1.1rem;
+				font-weight: 600;
+				color: #2c3e50;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+
+			.datasource-type {
+				background: #f8f9fa;
+				color: #6c757d;
+				padding: 0.125rem 0.5rem;
+				border-radius: 8px;
+				font-size: 0.75rem;
+				font-weight: 500;
+				text-transform: uppercase;
+				letter-spacing: 0.5px;
+				display: inline-block;
+				margin-bottom: 0.5rem;
+			}
+
+			.stats-info {
+				font-size: 0.85rem;
+			}
+
+			.block-count {
+				color: #28a745;
+				font-weight: 500;
+			}
+
+			.no-data {
+				color: #dc3545;
+				font-weight: 500;
+			}
+
+			.card-arrow {
+				flex-shrink: 0;
+				width: 24px;
+				height: 24px;
+				color: #6c757d;
+				transition: transform 0.2s ease;
+			}
+
+			.datasource-card:hover .card-arrow {
+				transform: translateX(3px);
+				color: #007bff;
+			}
+
+			.card-arrow svg {
+				width: 100%;
+				height: 100%;
+			}
+
+			.empty-state {
+				text-align: center;
+				padding: 3rem 2rem;
+				background: white;
+				border: 2px dashed #dee2e6;
+				border-radius: 12px;
+				color: #6c757d;
+			}
+
+			.empty-icon {
+				width: 64px;
+				height: 64px;
+				margin: 0 auto 1.5rem;
+				color: #dee2e6;
+			}
+
+			.empty-icon svg {
+				width: 100%;
+				height: 100%;
+			}
+
+			.empty-state h3 {
+				color: #495057;
+				margin-bottom: 0.75rem;
+				font-size: 1.25rem;
+				font-weight: 600;
+			}
+
+			.empty-state p {
+				margin: 0 0 1.5rem 0;
+				font-size: 1rem;
+			}
+
+			.help-link {
+				background: #f8f9fa;
+				border: 1px solid #e9ecef;
+				border-radius: 8px;
+				padding: 0.75rem;
+				font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+				font-size: 0.85rem;
+				color: #495057;
+				max-width: fit-content;
+				margin: 0 auto;
+			}
+
+			@media (max-width: 768px) {
+				.datasources-container {
+					grid-template-columns: 1fr;
+				}
+
+				.datasource-card {
+					padding: 1rem;
+				}
+
+				.page-header h2 {
+					font-size: 1.5rem;
+				}
+
+				.card-icon {
+					width: 40px;
+					height: 40px;
+				}
+
+				.icon-text {
+					font-size: 0.8rem;
+				}
+
+				.datasource-name {
+					font-size: 1rem;
+				}
+			}
+		</style>
+	}
+}

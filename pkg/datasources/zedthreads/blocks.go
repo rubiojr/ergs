@@ -135,6 +135,10 @@ func (t *ThreadBlock) Metadata() map[string]interface{} {
 	return t.metadata
 }
 
+func (t *ThreadBlock) Type() string {
+	return "zedthreads"
+}
+
 func (t *ThreadBlock) ThreadSummary() string {
 	return t.summary
 }

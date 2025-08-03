@@ -189,6 +189,8 @@ func (b *GasStationBlock) Gasoline98() string { return b.gasoline98 }
 func (b *GasStationBlock) Biodiesel() string  { return b.biodiesel }
 func (b *GasStationBlock) Distance() float64  { return b.distance }
 
+func (b *GasStationBlock) Type() string { return "gasstations" }
+
 // Factory creates a new GasStationBlock from a GenericBlock and source.
 // This method is part of the core.Block interface and enables reconstruction
 // from database data without requiring separate factory objects.

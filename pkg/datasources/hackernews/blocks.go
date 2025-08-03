@@ -71,6 +71,10 @@ func (i *ItemBlock) Metadata() map[string]interface{} {
 	return i.metadata
 }
 
+func (i *ItemBlock) Type() string {
+	return "hackernews"
+}
+
 func (i *ItemBlock) ItemType() string {
 	return i.itemType
 }
@@ -116,7 +120,7 @@ func (i *ItemBlock) IsDead() bool {
 }
 
 func (i *ItemBlock) PrettyText() string {
-	var parts []string
+	var lines []string
 
 	// Item type emoji
 	var emoji string
@@ -135,88 +139,150 @@ func (i *ItemBlock) PrettyText() string {
 		emoji = "📄"
 	}
 
-	// Main title line
-	mainLine := fmt.Sprintf("%s HackerNews %s", emoji, title(i.itemType))
-	if i.author != "" {
-		mainLine += fmt.Sprintf(" by %s", i.author)
-	}
-	parts = append(parts, mainLine)
-
-	// ID and time
-	parts = append(parts, fmt.Sprintf("  ID: %s", i.id))
-	parts = append(parts, fmt.Sprintf("  Time: %s", i.createdAt.Format("2006-01-02 15:04:05")))
-
-	// Title (for stories, jobs, polls)
+	// Main title line with item type
+	var titleLine string
 	if i.title != "" {
-		parts = append(parts, fmt.Sprintf("  Title: %s", i.title))
+		titleLine = fmt.Sprintf("%s %s", emoji, i.title)
+	} else {
+		titleLine = fmt.Sprintf("%s HackerNews %s", emoji, title(i.itemType))
 	}
+	lines = append(lines, titleLine)
 
-	// URL (for stories with links)
+	// URL line (for stories with links)
 	if i.url != "" {
-		parts = append(parts, fmt.Sprintf("  URL: %s", i.url))
+		lines = append(lines, fmt.Sprintf("   🔗 %s", i.url))
 	}
 
-	// Text content (HTML decoded and truncated for readability)
-	if i.itemText != "" {
-		decodedText := html.UnescapeString(i.itemText)
-		// Remove HTML tags for display
-		decodedText = strings.ReplaceAll(decodedText, "<p>", "\n")
-		decodedText = strings.ReplaceAll(decodedText, "</p>", "")
-		decodedText = strings.ReplaceAll(decodedText, "<br>", "\n")
-		decodedText = strings.ReplaceAll(decodedText, "<i>", "")
-		decodedText = strings.ReplaceAll(decodedText, "</i>", "")
-		decodedText = strings.ReplaceAll(decodedText, "<pre>", "\n")
-		decodedText = strings.ReplaceAll(decodedText, "</pre>", "\n")
-		decodedText = strings.ReplaceAll(decodedText, "<code>", "")
-		decodedText = strings.ReplaceAll(decodedText, "</code>", "")
-
-		// Truncate long text
-		if len(decodedText) > 200 {
-			decodedText = decodedText[:200] + "..."
-		}
-
-		// Clean up whitespace
-		decodedText = strings.TrimSpace(decodedText)
-		lines := strings.Split(decodedText, "\n")
-		var cleanLines []string
-		for _, line := range lines {
-			line = strings.TrimSpace(line)
-			if line != "" {
-				cleanLines = append(cleanLines, "    "+line)
-			}
-		}
-		if len(cleanLines) > 0 {
-			parts = append(parts, "  Text:")
-			parts = append(parts, cleanLines...)
-		}
+	// Build metadata line
+	var metaLine []string
+	if i.author != "" {
+		metaLine = append(metaLine, fmt.Sprintf("by %s", i.author))
 	}
 
-	// Score and comments (for stories and polls)
+	// Add score and comments for stories/polls
 	if i.itemType == "story" || i.itemType == "poll" {
-		scoreLine := fmt.Sprintf("  Score: %d", i.score)
-		if i.descendants > 0 {
-			scoreLine += fmt.Sprintf(", Comments: %d", i.descendants)
+		if i.score > 0 {
+			metaLine = append(metaLine, fmt.Sprintf("⬆️ %d", i.score))
 		}
-		parts = append(parts, scoreLine)
+		if i.descendants > 0 {
+			metaLine = append(metaLine, fmt.Sprintf("💬 %d", i.descendants))
+		}
+	}
+
+	// Add timestamp
+	timeStr := i.createdAt.Format("2006-01-02 15:04")
+	metaLine = append(metaLine, timeStr)
+
+	if len(metaLine) > 0 {
+		lines = append(lines, fmt.Sprintf("   %s", strings.Join(metaLine, " • ")))
 	}
 
 	// Parent reference (for comments and poll options)
 	if i.parentID > 0 {
-		parts = append(parts, fmt.Sprintf("  Parent: hn-%d", i.parentID))
+		lines = append(lines, fmt.Sprintf("   ↳ Reply to hn-%d", i.parentID))
 	}
 
-	// Poll reference (for poll options)
-	if i.pollID > 0 {
-		parts = append(parts, fmt.Sprintf("  Poll: hn-%d", i.pollID))
+	// Item text content with better formatting
+	if i.itemText != "" {
+		decodedText := i.cleanHTML(i.itemText)
+
+		// Truncate if too long
+		if len(decodedText) > 300 {
+			decodedText = decodedText[:300] + "..."
+		}
+
+		decodedText = strings.TrimSpace(decodedText)
+		if decodedText != "" {
+			lines = append(lines, "") // Add spacing
+
+			// Split into paragraphs and indent
+			paragraphs := strings.Split(decodedText, "\n\n")
+			for _, para := range paragraphs {
+				para = strings.TrimSpace(para)
+				if para != "" {
+					// Wrap long lines
+					wrapped := i.wrapText(para, 80)
+					for _, line := range wrapped {
+						lines = append(lines, fmt.Sprintf("   %s", line))
+					}
+				}
+			}
+		}
 	}
 
-	// Format metadata using utility function
-	metadataInfo := core.FormatMetadata(i.metadata)
-	if metadataInfo != "" {
-		parts = append(parts, metadataInfo)
+	// Add ID as footer
+	lines = append(lines, "")
+	lines = append(lines, fmt.Sprintf("   ID: %s", i.id))
+
+	return strings.Join(lines, "\n")
+}
+
+// cleanHTML removes HTML tags and decodes entities
+func (i *ItemBlock) cleanHTML(text string) string {
+	// Decode HTML entities
+	decoded := html.UnescapeString(text)
+
+	// Replace common HTML tags with formatting
+	decoded = strings.ReplaceAll(decoded, "<p>", "\n\n")
+	decoded = strings.ReplaceAll(decoded, "</p>", "")
+	decoded = strings.ReplaceAll(decoded, "<br>", "\n")
+	decoded = strings.ReplaceAll(decoded, "<br/>", "\n")
+	decoded = strings.ReplaceAll(decoded, "<br />", "\n")
+	decoded = strings.ReplaceAll(decoded, "<i>", "_")
+	decoded = strings.ReplaceAll(decoded, "</i>", "_")
+	decoded = strings.ReplaceAll(decoded, "<em>", "_")
+	decoded = strings.ReplaceAll(decoded, "</em>", "_")
+	decoded = strings.ReplaceAll(decoded, "<b>", "**")
+	decoded = strings.ReplaceAll(decoded, "</b>", "**")
+	decoded = strings.ReplaceAll(decoded, "<strong>", "**")
+	decoded = strings.ReplaceAll(decoded, "</strong>", "**")
+	decoded = strings.ReplaceAll(decoded, "<pre>", "\n```\n")
+	decoded = strings.ReplaceAll(decoded, "</pre>", "\n```\n")
+	decoded = strings.ReplaceAll(decoded, "<code>", "`")
+	decoded = strings.ReplaceAll(decoded, "</code>", "`")
+
+	// Remove any remaining HTML tags
+	for strings.Contains(decoded, "<") && strings.Contains(decoded, ">") {
+		start := strings.Index(decoded, "<")
+		end := strings.Index(decoded[start:], ">")
+		if end > 0 {
+			decoded = decoded[:start] + decoded[start+end+1:]
+		} else {
+			break
+		}
 	}
 
-	return strings.Join(parts, "\n")
+	return decoded
+}
+
+// wrapText wraps text to specified width
+func (i *ItemBlock) wrapText(text string, width int) []string {
+	words := strings.Fields(text)
+	if len(words) == 0 {
+		return []string{}
+	}
+
+	var lines []string
+	var currentLine strings.Builder
+
+	for _, word := range words {
+		// If adding this word would exceed width, start new line
+		if currentLine.Len() > 0 && currentLine.Len()+len(word)+1 > width {
+			lines = append(lines, currentLine.String())
+			currentLine.Reset()
+		}
+
+		if currentLine.Len() > 0 {
+			currentLine.WriteString(" ")
+		}
+		currentLine.WriteString(word)
+	}
+
+	if currentLine.Len() > 0 {
+		lines = append(lines, currentLine.String())
+	}
+
+	return lines
 }
 
 // Summary returns a concise one-line summary of the HackerNews item.

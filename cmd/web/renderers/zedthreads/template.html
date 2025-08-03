@@ -1,0 +1,342 @@
+<div class="block-zedthreads">
+    {{$summary := index .Metadata "summary"}} {{$model := index .Metadata
+    "model"}} {{$messageCount := index .Metadata "message_count"}}
+    {{$userMessages := index .Metadata "user_messages"}} {{$assistantMessages :=
+    index .Metadata "assistant_messages"}} {{$tokenTotal := index .Metadata
+    "token_total"}} {{$tokenInput := index .Metadata "token_input"}}
+    {{$tokenOutput := index .Metadata "token_output"}}
+
+    <div class="zed-header">
+        <div class="zed-icon">
+            <div class="icon-badge">💬</div>
+        </div>
+
+        <div class="zed-content">
+            {{if $summary}}
+            <div class="zed-title">
+                <span class="zed-title-text">{{$summary}}</span>
+            </div>
+            {{else}}
+            <div class="zed-title">
+                <span class="zed-title-text">AI Conversation Thread</span>
+            </div>
+            {{end}}
+
+            <div class="zed-meta">
+                <span class="zed-time">{{formatTime .Block.CreatedAt}}</span>
+                {{if and $messageCount (gt $messageCount 0)}}
+                <span class="zed-separator">|</span>
+                <span class="zed-messages"
+                    >{{$messageCount}} message{{if ne $messageCount
+                    1}}s{{end}}</span
+                >
+                {{end}} {{if $model}}
+                <span class="zed-separator">|</span>
+                <span class="zed-model">{{$model}}</span>
+                {{end}} {{if and $tokenTotal (gt $tokenTotal 0)}}
+                <span class="zed-separator">|</span>
+                <span class="zed-tokens">{{$tokenTotal}} tokens</span>
+                {{end}}
+            </div>
+        </div>
+    </div>
+
+    {{if or $userMessages $assistantMessages (and $tokenInput $tokenOutput)}}
+    <div class="zed-stats">
+        <details class="zed-details">
+            <summary>Show statistics</summary>
+            <div class="zed-stats-content">
+                <div class="stats-grid">
+                    {{if and $userMessages (gt $userMessages 0)}}
+                    <div class="stat-item">
+                        <span class="stat-icon">👤</span>
+                        <span class="stat-label">User:</span>
+                        <span class="stat-value">{{$userMessages}}</span>
+                    </div>
+                    {{end}} {{if and $assistantMessages (gt $assistantMessages
+                    0)}}
+                    <div class="stat-item">
+                        <span class="stat-icon">🤖</span>
+                        <span class="stat-label">Assistant:</span>
+                        <span class="stat-value">{{$assistantMessages}}</span>
+                    </div>
+                    {{end}} {{if and $tokenInput (gt $tokenInput 0)}}
+                    <div class="stat-item">
+                        <span class="stat-icon">📥</span>
+                        <span class="stat-label">Input tokens:</span>
+                        <span class="stat-value">{{$tokenInput}}</span>
+                    </div>
+                    {{end}} {{if and $tokenOutput (gt $tokenOutput 0)}}
+                    <div class="stat-item">
+                        <span class="stat-icon">📤</span>
+                        <span class="stat-label">Output tokens:</span>
+                        <span class="stat-value">{{$tokenOutput}}</span>
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+        </details>
+    </div>
+    {{end}} {{if .Block.Text}}
+    <div class="zed-content-preview">
+        <details class="zed-details">
+            <summary>Show thread content</summary>
+            <div class="zed-text-content">{{truncate .Block.Text 800}}</div>
+        </details>
+    </div>
+    {{end}} {{$excludes := slice "summary" "model" "message_count"
+    "user_messages" "assistant_messages" "token_total" "token_input"
+    "token_output" "source" "dstype"}} {{$filteredMetadata := filterMetadata
+    .Metadata $excludes}} {{if $filteredMetadata}}
+    <div class="zed-metadata">
+        <details class="zed-details">
+            <summary>Show metadata</summary>
+            <div class="zed-metadata-content">
+                <dl class="metadata-list">
+                    {{range $key, $value := $filteredMetadata}}
+                    <dt>{{$key}}</dt>
+                    <dd>{{$value}}</dd>
+                    {{end}}
+                </dl>
+            </div>
+        </details>
+    </div>
+    {{end}}
+</div>
+
+<style>
+    .block-zedthreads {
+        margin-bottom: 1.5rem;
+        padding: 0;
+        border: 1px solid #e6e6e6;
+        border-radius: 3px;
+        background: #fdfcff;
+        font-family:
+            -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 13px;
+        line-height: 1.3;
+    }
+
+    .zed-header {
+        display: flex;
+        gap: 8px;
+        padding: 6px 8px;
+        background: white;
+    }
+
+    .zed-icon {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 35px;
+        padding-top: 2px;
+    }
+
+    .icon-badge {
+        font-size: 16px;
+        color: #8b5cf6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        background: linear-gradient(135deg, #f3f0ff, #e9d5ff);
+        border-radius: 6px;
+        border: 1px solid #c4b5fd;
+    }
+
+    .zed-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .zed-title {
+        margin-bottom: 4px;
+        line-height: 1.2;
+    }
+
+    .zed-title-text {
+        color: #1f2937;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .zed-meta {
+        color: #6b7280;
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .zed-time {
+        font-variant-numeric: tabular-nums;
+    }
+
+    .zed-separator {
+        color: #d1d5db;
+        margin: 0 2px;
+    }
+
+    .zed-messages,
+    .zed-model,
+    .zed-tokens {
+        color: #6b7280;
+    }
+
+    .zed-model {
+        font-family:
+            "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas,
+            "Courier New", monospace;
+        background: #f3f4f6;
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-size: 10px;
+    }
+
+    .zed-stats,
+    .zed-content-preview,
+    .zed-metadata {
+        background: #fdfcff;
+        padding: 8px;
+        border-top: 1px solid #e6e6e6;
+    }
+
+    .zed-details {
+        font-size: 12px;
+    }
+
+    .zed-details summary {
+        color: #6b7280;
+        cursor: pointer;
+        padding: 4px 0;
+        font-weight: normal;
+    }
+
+    .zed-details summary:hover {
+        color: #374151;
+    }
+
+    .zed-details[open] summary {
+        margin-bottom: 8px;
+        border-bottom: 1px solid #e6e6e6;
+        padding-bottom: 8px;
+    }
+
+    .zed-stats-content {
+        background: white;
+        padding: 12px;
+        border: 1px solid #e6e6e6;
+        border-radius: 6px;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 8px;
+    }
+
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 6px 8px;
+        background: #f9fafb;
+        border-radius: 4px;
+        font-size: 11px;
+    }
+
+    .stat-icon {
+        font-size: 12px;
+    }
+
+    .stat-label {
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    .stat-value {
+        color: #374151;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        margin-left: auto;
+    }
+
+    .zed-text-content,
+    .zed-metadata-content {
+        background: white;
+        padding: 12px;
+        border: 1px solid #e6e6e6;
+        border-radius: 6px;
+        color: #374151;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    .zed-text-content {
+        white-space: pre-wrap;
+        max-height: 300px;
+        overflow-y: auto;
+        font-family:
+            "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas,
+            "Courier New", monospace;
+    }
+
+    .metadata-list {
+        margin: 0;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0.25rem 0.75rem;
+    }
+
+    .metadata-list dt {
+        font-weight: 500;
+        color: #6b7280;
+        margin: 0;
+        font-size: 11px;
+    }
+
+    .metadata-list dd {
+        margin: 0;
+        color: #374151;
+        word-break: break-word;
+        font-size: 11px;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 600px) {
+        .zed-header {
+            padding: 8px 6px;
+        }
+
+        .zed-icon {
+            min-width: 30px;
+        }
+
+        .icon-badge {
+            width: 24px;
+            height: 24px;
+            font-size: 14px;
+        }
+
+        .zed-meta {
+            font-size: 10px;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Better spacing for long titles */
+    .zed-title {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
+    /* Hover states */
+    .zed-header:hover {
+        background: #fdfcff;
+    }
+</style>

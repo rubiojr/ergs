@@ -14,6 +14,8 @@ import (
 	"github.com/rubiojr/ergs/pkg/core"
 	"github.com/rubiojr/ergs/pkg/storage"
 	"github.com/urfave/cli/v3"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // Define styles using lipgloss
@@ -29,11 +31,6 @@ var (
 			Bold(true).
 			Foreground(lipgloss.Color("214")).
 			Margin(1, 0, 1, 0)
-
-	datasourceStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("214")).
-			Margin(1, 0, 0, 0)
 
 	blockStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
@@ -257,7 +254,7 @@ func formatTodayOutput(results map[string][]core.Block, startOfDay time.Time, da
 		}
 
 		// Type header
-		typeHeader := fmt.Sprintf("🔧 %s (%d blocks)", strings.Title(dsType), totalBlocksForType)
+		typeHeader := fmt.Sprintf("🔧 %s (%d blocks)", cases.Title(language.English).String(dsType), totalBlocksForType)
 		output.WriteString(headerStyle.Render(typeHeader))
 		output.WriteString("\n")
 

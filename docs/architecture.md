@@ -178,6 +178,25 @@ pkg/
         ├── datasource.go  # Codeberg streaming + block factory
         └── blocks.go      # Codeberg blocks with pretty formatting
 
+# Command line interface
+cmd/
+├── web/                   # Web interface & API
+│   ├── components/        # Templ components for UI
+│   │   ├── layout.templ   # Base layout template
+│   │   ├── search.templ   # Search interface
+│   │   ├── datasources.templ # Datasource listing
+│   │   └── types/         # Type definitions
+│   ├── renderers/         # Block renderers for web
+│   │   ├── github/        # GitHub-specific renderer
+│   │   ├── firefox/       # Firefox-specific renderer
+│   │   ├── hackernews/    # Hacker News renderer
+│   │   └── common/        # Shared template functions
+│   └── static/            # Static assets
+│       ├── style.css      # Modern responsive CSS
+│       └── script.js      # Minimal UI JavaScript
+├── api.go                 # REST API server
+└── web.go                 # Web interface server
+
 # Root level
 ├── datasources.go         # Import all datasources with _
 └── main.go               # Uses GetGlobalRegistry()
@@ -204,6 +223,38 @@ Query → FTS5 Escaping → Storage Search → Block Factory Reconstruction → 
 ```
 Import datasources.go → init() functions → RegisterDatasourcePrototype() → Global Registry
 ```
+
+### 5. Web Interface Flow
+```
+HTTP Request → Router → Handler → Storage Query → Renderer Selection → Templ Template → HTML Response
+```
+
+## Web Interface Architecture
+
+The web interface provides a modern, server-side rendered experience built on top of the core storage and registry systems.
+
+### Component Architecture
+
+- **Templ Templates**: Type-safe server-side templates with Go integration
+- **Block Renderers**: Specialized renderers for each datasource type (GitHub, Firefox, etc.)
+- **Responsive Design**: Mobile-first CSS with modern layouts
+- **Minimal JavaScript**: Only essential UI enhancements
+
+### Rendering Pipeline
+
+1. **Request Routing**: HTTP requests mapped to appropriate handlers
+2. **Data Retrieval**: Storage queries using the same interfaces as CLI
+3. **Renderer Selection**: Automatic selection based on block source/metadata
+4. **Template Rendering**: Server-side HTML generation with templ
+5. **Asset Serving**: Optimized CSS/JS with caching headers
+
+### Key Features
+
+- **Pagination**: 30 blocks per page with page number navigation
+- **Real-time Search**: Full-text search across all datasources
+- **Custom Styling**: Each datasource type has unique, compact styling
+- **Keyboard Navigation**: Ctrl+K for search focus, arrow keys for pagination
+- **Progressive Enhancement**: Works without JavaScript, enhanced with it
 
 ## Storage Architecture
 

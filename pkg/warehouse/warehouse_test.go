@@ -83,8 +83,10 @@ func (b *mockBlock) ID() string                       { return b.id }
 func (b *mockBlock) Text() string                     { return b.text }
 func (b *mockBlock) CreatedAt() time.Time             { return b.createdAt }
 func (b *mockBlock) Source() string                   { return b.source }
+func (b *mockBlock) Type() string                     { return "mock" }
 func (b *mockBlock) Metadata() map[string]interface{} { return b.metadata }
 func (b *mockBlock) PrettyText() string               { return b.text }
+func (b *mockBlock) Summary() string                  { return b.text }
 func (b *mockBlock) Factory(genericBlock *core.GenericBlock, source string) core.Block {
 	return &mockBlock{
 		id:        genericBlock.ID(),

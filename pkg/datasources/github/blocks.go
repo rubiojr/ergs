@@ -81,6 +81,10 @@ func (e *EventBlock) Metadata() map[string]interface{} {
 	return e.metadata
 }
 
+func (e *EventBlock) Type() string {
+	return "github"
+}
+
 func (e *EventBlock) EventType() string {
 	return e.eventType
 }

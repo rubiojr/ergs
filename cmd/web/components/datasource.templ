@@ -1,0 +1,438 @@
+package components
+
+import (
+	"fmt"
+	"github.com/rubiojr/ergs/cmd/web/components/types"
+	"strconv"
+	"time"
+)
+
+func FormatTime(t time.Time) string {
+	return t.Format("2006-01-02 15:04")
+}
+
+func Truncate(s string, length int) string {
+	if len(s) <= length {
+		return s
+	}
+	return s[:length] + "..."
+}
+
+templ Datasource(data types.PageData) {
+	@Layout(data) {
+		<div class="datasource-page">
+			<div class="page-header">
+				<div class="breadcrumb">
+					<a href="/datasources">← Back to Datasources</a>
+				</div>
+				<h2>{ data.Datasource }</h2>
+				<p>Browsing content - most recent blocks shown first</p>
+			</div>
+			if len(data.Results) > 0 {
+				for ds, blocks := range data.Results {
+					if ds == data.Datasource {
+						<div class="content-header">
+							<div class="content-info">
+								<span class="block-count">
+									Showing { strconv.Itoa(len(blocks)) } of { strconv.Itoa(data.TotalCount) } blocks (Page { strconv.Itoa(data.CurrentPage) } of { strconv.Itoa(data.TotalPages) })
+								</span>
+							</div>
+						</div>
+						if len(blocks) > 0 {
+							<div class="blocks-container">
+								for _, block := range blocks {
+									<div class="block">
+										<div class="block-header">
+											<div class="block-meta">
+												<span class="block-date">{ FormatTime(block.CreatedAt) }</span>
+												if block.Source != "" {
+													<span class="block-source">{ block.Source }</span>
+												}
+												if block.ID != "" {
+													<span class="block-id">{ Truncate(block.ID, 8) }</span>
+												}
+											</div>
+										</div>
+										<div class="block-content">
+											@templ.Raw(block.FormattedText)
+										</div>
+										if len(block.Links) > 0 {
+											<div class="block-links">
+												<div class="links-header">Links:</div>
+												<div class="links-list">
+													for _, link := range block.Links {
+														<a
+															href={ templ.URL(link) }
+															target="_blank"
+															rel="noopener"
+															class="block-link"
+														>
+															{ Truncate(link, 60) }
+														</a>
+													}
+												</div>
+											</div>
+										}
+										if len(block.Metadata) > 0 {
+											<details class="block-metadata">
+												<summary>Show metadata</summary>
+												<div class="metadata-content">
+													for key, value := range block.Metadata {
+														<div class="metadata-item">
+															<strong>{ key }:</strong> { fmt.Sprint(value) }
+														</div>
+													}
+												</div>
+											</details>
+										}
+									</div>
+								}
+							</div>
+						} else {
+							<div class="no-blocks">
+								<h3>No blocks found</h3>
+								<p>This datasource doesn't contain any blocks yet.</p>
+							</div>
+						}
+						if data.CurrentPage > 1 || data.HasNextPage {
+							<div class="pagination">
+								if data.CurrentPage > 1 {
+									<a
+										href={ templ.URL("/datasource/" + data.Datasource + "?page=" + strconv.Itoa(data.CurrentPage-1)) }
+										class="pagination-btn"
+									>← Previous</a>
+								}
+								<div class="page-numbers">
+									// Show first page if we're not near the beginning
+									if data.CurrentPage > 3 {
+										<a href={ templ.URL("/datasource/" + data.Datasource + "?page=1") } class="page-num">1</a>
+										if data.CurrentPage > 4 {
+											<span class="page-ellipsis">...</span>
+										}
+									}
+									// Show pages around current page
+									for i := 1; i <= data.TotalPages; i++ {
+										if i >= data.CurrentPage-2 && i <= data.CurrentPage+2 {
+											if i == data.CurrentPage {
+												<span class="page-num current">{ strconv.Itoa(i) }</span>
+											} else {
+												<a href={ templ.URL("/datasource/" + data.Datasource + "?page=" + strconv.Itoa(i)) } class="page-num">{ strconv.Itoa(i) }</a>
+											}
+										}
+									}
+									// Show last page if we're not near the end
+									if data.CurrentPage < data.TotalPages-2 {
+										if data.CurrentPage < data.TotalPages-3 {
+											<span class="page-ellipsis">...</span>
+										}
+										<a href={ templ.URL("/datasource/" + data.Datasource + "?page=" + strconv.Itoa(data.TotalPages)) } class="page-num">{ strconv.Itoa(data.TotalPages) }</a>
+									}
+								</div>
+								if data.HasNextPage {
+									<a
+										href={ templ.URL("/datasource/" + data.Datasource + "?page=" + strconv.Itoa(data.CurrentPage+1)) }
+										class="pagination-btn"
+									>Next →</a>
+								}
+							</div>
+						}
+					}
+				}
+			} else {
+				<div class="empty-state">
+					<h3>Browse { data.Datasource }</h3>
+					<p>
+						This datasource is ready to browse. Recent blocks will be shown
+						automatically.
+					</p>
+				</div>
+			}
+		</div>
+		<style>
+			.datasource-page {
+				max-width: 900px;
+				margin: 0 auto;
+			}
+
+			.page-header {
+				margin-bottom: 2rem;
+			}
+
+			.breadcrumb {
+				margin-bottom: 1rem;
+			}
+
+			.breadcrumb a {
+				color: #6c757d;
+				text-decoration: none;
+				font-size: 0.9rem;
+			}
+
+			.breadcrumb a:hover {
+				color: #007bff;
+				text-decoration: underline;
+			}
+
+			.page-header h2 {
+				color: #2c3e50;
+				margin-bottom: 0.5rem;
+				font-size: 1.8rem;
+			}
+
+			.page-header p {
+				color: #6c757d;
+				margin: 0;
+			}
+
+			.content-header {
+				margin-bottom: 1.5rem;
+			}
+
+			.content-info {
+				padding: 1rem 1.25rem;
+				background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+				border: 1px solid #dee2e6;
+				border-radius: 10px;
+			}
+
+			.block-count {
+				margin: 0;
+				color: #495057;
+				font-weight: 600;
+				font-size: 0.95rem;
+			}
+
+			.blocks-container {
+				margin-bottom: 2rem;
+			}
+
+			.block {
+				margin-bottom: 2rem;
+				padding: 1.5rem;
+				border: 1px solid #e9ecef;
+				border-radius: 8px;
+				background: white;
+				transition: box-shadow 0.2s ease;
+			}
+
+			.block:hover {
+				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+			}
+
+			.block-header {
+				margin-bottom: 1rem;
+			}
+
+			.block-meta {
+				display: flex;
+				gap: 1rem;
+				font-size: 0.85rem;
+				color: #6c757d;
+				flex-wrap: wrap;
+			}
+
+			.block-date {
+				font-weight: 500;
+			}
+
+			.block-source,
+			.block-id {
+				background: #f8f9fa;
+				padding: 0.2rem 0.5rem;
+				border-radius: 4px;
+			}
+
+			.block-content {
+				line-height: 1.7;
+				color: #495057;
+				margin-bottom: 1rem;
+			}
+
+			.block-links {
+				margin-top: 1rem;
+				padding-top: 1rem;
+				border-top: 1px solid #f1f3f4;
+			}
+
+			.links-header {
+				font-size: 0.9rem;
+				color: #6c757d;
+				margin-bottom: 0.5rem;
+				font-weight: 500;
+			}
+
+			.links-list {
+				display: flex;
+				flex-direction: column;
+				gap: 0.3rem;
+			}
+
+			.block-link {
+				color: #007bff;
+				text-decoration: none;
+				font-size: 0.9rem;
+				word-break: break-all;
+			}
+
+			.block-link:hover {
+				text-decoration: underline;
+			}
+
+			.block-metadata {
+				margin-top: 1rem;
+				border: 1px solid #e9ecef;
+				border-radius: 4px;
+			}
+
+			.block-metadata summary {
+				padding: 0.5rem 0.75rem;
+				background: #f8f9fa;
+				cursor: pointer;
+				font-size: 0.9rem;
+				color: #6c757d;
+			}
+
+			.metadata-content {
+				padding: 0.75rem;
+				font-size: 0.85rem;
+			}
+
+			.metadata-item {
+				margin-bottom: 0.5rem;
+				padding-bottom: 0.5rem;
+				border-bottom: 1px solid #f1f3f4;
+			}
+
+			.metadata-item:last-child {
+				margin-bottom: 0;
+				border-bottom: none;
+			}
+
+			.no-blocks,
+			.empty-state {
+				text-align: center;
+				padding: 3rem;
+				background: #f8f9fa;
+				border-radius: 8px;
+				color: #6c757d;
+			}
+
+			.no-blocks h3,
+			.empty-state h3 {
+				color: #495057;
+				margin-bottom: 1rem;
+			}
+
+			.pagination {
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				gap: 1rem;
+				margin-top: 2rem;
+				padding: 1.5rem;
+				background: white;
+				border-radius: 12px;
+				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+			}
+
+			.pagination-btn {
+				padding: 0.75rem 1.25rem;
+				background: linear-gradient(135deg, #6c757d, #495057);
+				color: white;
+				text-decoration: none;
+				border-radius: 8px;
+				transition: all 0.2s ease;
+				font-weight: 500;
+			}
+
+			.pagination-btn:hover {
+				background: linear-gradient(135deg, #495057, #343a40);
+				transform: translateY(-1px);
+				box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+			}
+
+			.page-numbers {
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+			}
+
+			.page-num {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				width: 40px;
+				height: 40px;
+				border: 1px solid #dee2e6;
+				border-radius: 6px;
+				color: #6c757d;
+				text-decoration: none;
+				font-weight: 500;
+				transition: all 0.2s ease;
+				background: white;
+			}
+
+			.page-num:hover {
+				border-color: #007bff;
+				color: #007bff;
+				background: #f8f9fa;
+			}
+
+			.page-num.current {
+				background: #007bff;
+				color: white;
+				border-color: #007bff;
+				cursor: default;
+			}
+
+			.page-ellipsis {
+				color: #6c757d;
+				padding: 0 0.5rem;
+				font-weight: 500;
+			}
+
+			@media (max-width: 768px) {
+				.content-header {
+					flex-direction: column;
+					align-items: flex-start;
+					gap: 1rem;
+				}
+
+				.block {
+					padding: 1rem;
+				}
+
+				.block-meta {
+					flex-direction: column;
+					gap: 0.5rem;
+				}
+
+				.pagination {
+					flex-direction: column;
+					gap: 0.75rem;
+					padding: 1rem;
+				}
+
+				.pagination-btn {
+					width: 100%;
+					min-width: auto;
+					justify-content: center;
+					display: flex;
+					align-items: center;
+				}
+
+				.page-numbers {
+					order: -1;
+					justify-content: center;
+					flex-wrap: wrap;
+				}
+
+				.page-num {
+					width: 36px;
+					height: 36px;
+					font-size: 0.9rem;
+				}
+			}
+		</style>
+	}
+}

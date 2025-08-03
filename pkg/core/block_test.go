@@ -18,13 +18,25 @@ func (m *mockBlock) ID() string                       { return m.id }
 func (m *mockBlock) Text() string                     { return m.text }
 func (m *mockBlock) CreatedAt() time.Time             { return m.createdAt }
 func (m *mockBlock) Source() string                   { return m.source }
+func (m *mockBlock) Type() string                     { return "mock" }
 func (m *mockBlock) Metadata() map[string]interface{} { return m.metadata }
+func (m *mockBlock) Summary() string                  { return fmt.Sprintf("Mock: %s", m.text) }
 func (m *mockBlock) PrettyText() string {
 	// Format metadata using utility function
 	metadataInfo := FormatMetadata(m.metadata)
 
 	return fmt.Sprintf("🧪 Mock Block: %s\n  ID: %s\n  Time: %s\n  Source: %s%s",
 		m.text, m.id, m.createdAt.Format("2006-01-02 15:04:05"), m.source, metadataInfo)
+}
+
+func (m *mockBlock) Factory(genericBlock *GenericBlock, source string) Block {
+	return &mockBlock{
+		id:        genericBlock.ID(),
+		text:      genericBlock.Text(),
+		createdAt: genericBlock.CreatedAt(),
+		source:    source,
+		metadata:  genericBlock.Metadata(),
+	}
 }
 
 func TestBlockInterface(t *testing.T) {

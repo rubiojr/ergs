@@ -34,6 +34,7 @@ func main() {
 			cmd.ListCommand(),
 			cmd.TodayCommand(),
 			cmd.ServeCommand(),
+			cmd.WebCommand(),
 			cmd.StatsCommand(),
 			cmd.OptimizeCommand(),
 			cmd.VersionCommand(),

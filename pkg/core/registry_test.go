@@ -96,8 +96,10 @@ func (b *mockTestBlock) ID() string                       { return "test-id" }
 func (b *mockTestBlock) Text() string                     { return "test text" }
 func (b *mockTestBlock) CreatedAt() time.Time             { return time.Now() }
 func (b *mockTestBlock) Source() string                   { return "test" }
+func (b *mockTestBlock) Type() string                     { return "test" }
 func (b *mockTestBlock) Metadata() map[string]interface{} { return make(map[string]interface{}) }
 func (b *mockTestBlock) PrettyText() string               { return "test pretty text" }
+func (b *mockTestBlock) Summary() string                  { return "test summary" }
 func (b *mockTestBlock) Factory(genericBlock *GenericBlock, source string) Block {
 	return &mockTestBlock{}
 }

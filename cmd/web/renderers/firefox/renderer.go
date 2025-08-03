@@ -1,0 +1,65 @@
+package firefox
+
+import (
+	_ "embed"
+	"html/template"
+	"strings"
+
+	"github.com/rubiojr/ergs/cmd/web/renderers/common"
+	"github.com/rubiojr/ergs/pkg/core"
+)
+
+//go:embed template.html
+var firefoxTemplate string
+
+// FirefoxRenderer renders Firefox browsing history blocks in a compact style
+type FirefoxRenderer struct {
+	template *template.Template
+}
+
+// init function automatically registers this renderer with the global registry
+func init() {
+	renderer := NewFirefoxRenderer()
+	if renderer != nil {
+		common.RegisterRenderer(renderer)
+	}
+}
+
+// NewFirefoxRenderer creates a new Firefox renderer with compact styling
+func NewFirefoxRenderer() *FirefoxRenderer {
+	tmpl, err := template.New("firefox").Funcs(common.GetTemplateFuncs()).Parse(firefoxTemplate)
+	if err != nil {
+		return nil
+	}
+
+	return &FirefoxRenderer{
+		template: tmpl,
+	}
+}
+
+// Render creates a compact HTML representation of a Firefox visit block
+func (r *FirefoxRenderer) Render(block core.Block) template.HTML {
+	data := common.TemplateData{
+		Block:    block,
+		Metadata: block.Metadata(),
+		Links:    common.ExtractLinks(block.Text()),
+	}
+
+	var buf strings.Builder
+	err := r.template.Execute(&buf, data)
+	if err != nil {
+		return template.HTML("Error rendering Firefox template")
+	}
+
+	return template.HTML(buf.String())
+}
+
+// CanRender checks if this block is from Firefox datasource
+func (r *FirefoxRenderer) CanRender(block core.Block) bool {
+	return block.Type() == "firefox"
+}
+
+// GetDatasourceType returns the datasource type this renderer handles
+func (r *FirefoxRenderer) GetDatasourceType() string {
+	return "firefox"
+}

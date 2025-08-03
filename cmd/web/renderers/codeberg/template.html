@@ -1,0 +1,250 @@
+<div class="block-codeberg">
+    <div class="block-header">
+        <span class="block-icon">🌲</span>
+        <span class="block-title">
+            Codeberg {{index .Metadata "event_type" | default "Event"}} by
+            <strong>{{index .Metadata "actor_login" | default "unknown"}}</strong>
+        </span>
+        <span class="block-separator">•</span>
+        <time class="block-time" datetime="{{.Block.CreatedAt.Format "2006-01-02T15:04:05Z07:00"}}">
+            {{formatTime .Block.CreatedAt}}
+        </time>
+    </div>
+
+    {{$repoName := index .Metadata "repo_name"}}
+    {{$repoURL := index .Metadata "repo_url"}}
+    {{$repoDesc := index .Metadata "repo_desc"}}
+    {{$language := index .Metadata "language"}}
+    {{$stars := index .Metadata "stars"}}
+    {{$forks := index .Metadata "forks"}}
+    {{$public := index .Metadata "public"}}
+
+    {{if $repoName}}
+    <div class="repo-info">
+        <div class="repo-header">
+            {{if $repoURL}}
+                <a href="{{$repoURL}}" target="_blank" class="repo-name">{{$repoName}}</a>
+            {{else}}
+                <span class="repo-name">{{$repoName}}</span>
+            {{end}}
+            {{if $language}}
+                <span class="repo-language">{{$language}}</span>
+            {{end}}
+            <span class="repo-visibility">{{if $public}}public{{else}}private{{end}}</span>
+        </div>
+
+        {{if $repoDesc}}
+        <div class="repo-description">{{$repoDesc}}</div>
+        {{end}}
+
+        <div class="repo-stats">
+            {{if and $stars (ne (printf "%v" $stars) "0")}}
+                <span class="repo-stat">⭐ {{$stars}}</span>
+            {{end}}
+            {{if and $forks (ne (printf "%v" $forks) "0")}}
+                <span class="repo-stat">🍴 {{$forks}}</span>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
+
+    {{$payload := index .Metadata "payload"}}
+    {{if $payload}}
+    <div class="event-payload">
+        <details>
+            <summary>Event Details</summary>
+            <pre><code>{{$payload}}</code></pre>
+        </details>
+    </div>
+    {{end}}
+
+    {{if .Metadata}}
+    <div class="event-metadata">
+        <details class="metadata-details">
+            <summary>Metadata</summary>
+            <dl class="metadata-list">
+                {{range $key, $value := .Metadata}}
+                    {{if and (ne $key "event_type") (ne $key "actor_login") (ne $key "repo_name") (ne $key "repo_url") (ne $key "repo_desc") (ne $key "language") (ne $key "stars") (ne $key "forks") (ne $key "public") (ne $key "payload") (ne $key "source") $value}}
+                        <dt>{{$key}}</dt>
+                        <dd>{{$value}}</dd>
+                    {{end}}
+                {{end}}
+            </dl>
+        </details>
+    </div>
+    {{end}}
+</div>
+
+<style>
+.block-codeberg {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    border: 1px solid #e9ecef;
+    border-left: 4px solid #2da44e;
+    border-radius: 6px;
+    background: white;
+}
+
+.block-codeberg .block-header {
+    margin-bottom: 0.75rem;
+    font-size: 0.875rem;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.block-codeberg .block-icon {
+    font-size: 1rem;
+}
+
+.block-codeberg .block-title {
+    color: #2da44e;
+    font-weight: 500;
+}
+
+.block-codeberg .block-separator {
+    color: #dee2e6;
+}
+
+.block-codeberg .block-time {
+    font-variant-numeric: tabular-nums;
+}
+
+.repo-info {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.repo-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.repo-name {
+    font-weight: 600;
+    color: #2da44e;
+    text-decoration: none;
+    font-size: 0.95rem;
+}
+
+.repo-name:hover {
+    text-decoration: underline;
+}
+
+.repo-language {
+    background: #2da44e;
+    color: white;
+    padding: 0.125rem 0.375rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.repo-visibility {
+    background: #6f42c1;
+    color: white;
+    padding: 0.125rem 0.375rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.repo-description {
+    color: #656d76;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    margin-bottom: 0.5rem;
+}
+
+.repo-stats {
+    display: flex;
+    gap: 1rem;
+}
+
+.repo-stat {
+    color: #656d76;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.event-payload {
+    margin-top: 0.75rem;
+    border-top: 1px solid #e9ecef;
+    padding-top: 0.75rem;
+}
+
+.event-payload details {
+    font-size: 0.875rem;
+}
+
+.event-payload summary {
+    cursor: pointer;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.event-payload summary:hover {
+    color: #495057;
+}
+
+.event-payload pre {
+    margin: 0.5rem 0 0 0;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    padding: 0.75rem;
+    overflow-x: auto;
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.event-payload code {
+    color: #24292f;
+}
+
+.event-metadata {
+    margin-top: 0.75rem;
+    border-top: 1px solid #e9ecef;
+    padding-top: 0.75rem;
+}
+
+.metadata-details {
+    font-size: 0.875rem;
+}
+
+.metadata-details summary {
+    cursor: pointer;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.metadata-details summary:hover {
+    color: #495057;
+}
+
+.metadata-list {
+    margin: 0.5rem 0 0 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.25rem 0.75rem;
+}
+
+.metadata-list dt {
+    font-weight: 500;
+    color: #6c757d;
+    margin: 0;
+}
+
+.metadata-list dd {
+    margin: 0;
+    color: #495057;
+    word-break: break-word;
+}
+</style>

@@ -65,6 +65,10 @@ func (i *ItemBlock) Metadata() map[string]interface{} {
 	return i.metadata
 }
 
+func (i *ItemBlock) Type() string {
+	return "rss"
+}
+
 func (i *ItemBlock) FeedTitle() string {
 	return i.feedTitle
 }

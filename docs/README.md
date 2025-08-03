@@ -13,6 +13,11 @@ Welcome to the Ergs documentation! Ergs is a flexible, extensible data fetching 
 - **[Architecture Overview](architecture.md)** - System design and core concepts
 - **[System Components](../README.md#architecture-overview)** - Blocks, Datasources, Warehouse, and Registration
 
+## Web Interface
+
+- **[Web Interface Guide](web-interface.md)** - Complete guide to the web UI and API
+- **[API Documentation](api.md)** - REST API endpoints and usage examples
+
 ## Datasources
 
 - **[Available Datasources](datasources/)** - Complete list of supported datasources with configuration examples
@@ -43,6 +48,9 @@ ergs fetch
 # Search data
 ergs search --query "your search terms"
 
+# Start web interface with API
+ergs web --port 8080
+
 # Start daemon
 ergs serve --interval 30m
 ```
@@ -55,11 +63,18 @@ ergs serve --interval 30m
    - Run initial fetch with `ergs fetch`
 
 2. **Daily Usage**
-   - Search your data with `ergs search`
+   - Search your data with `ergs search` (CLI)
+   - Browse data with `ergs web` (Web Interface)
    - View recent activity with `ergs list`
    - Check statistics with `ergs stats`
 
-3. **Automated Collection**
+3. **Web Interface**
+   - Start with `ergs web --port 8080`
+   - Browse datasources at `http://localhost:8080/datasources`
+   - Search across all data at `http://localhost:8080/search`
+   - Access API endpoints at `http://localhost:8080/api/`
+
+4. **Automated Collection**
    - Run daemon with `ergs serve`
    - Configure fetch intervals
    - Monitor logs for issues
@@ -142,7 +157,13 @@ ergs/
 ├── docs/                    # Documentation
 │   ├── datasources/        # Datasource-specific docs
 │   ├── architecture.md     # System architecture
+│   ├── api.md              # Web API documentation
 │   └── datasource.md       # Development guide
+├── cmd/                     # Command implementations
+│   └── web/                # Web interface & API
+│       ├── components/     # Templ components
+│       ├── renderers/      # Block renderers
+│       └── static/         # CSS, JavaScript
 ├── pkg/                     # Go packages
 │   ├── core/               # Core interfaces
 │   ├── datasources/        # Datasource implementations

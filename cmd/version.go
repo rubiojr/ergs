@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/rubiojr/ergs/pkg/version"
 	"github.com/urfave/cli/v3"
 )
 
@@ -13,7 +14,7 @@ func VersionCommand() *cli.Command {
 		Name:  "version",
 		Usage: "Show version information",
 		Action: func(ctx context.Context, c *cli.Command) error {
-			fmt.Println("ergs version 1.0.0")
+			fmt.Println(version.BuildVersion())
 			return nil
 		},
 	}

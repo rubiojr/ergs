@@ -32,7 +32,15 @@ make build
 ./ergs search --datasource github --query "rust"
 ```
 
-### 6. Run Continuously
+### 6. Web Interface
+```bash
+# Start web interface with search and browsing
+./ergs web --port 8080
+
+# Then visit http://localhost:8080
+```
+
+### 7. Run Continuously
 ```bash
 # Fetches new data every 30 minutes by default
 ./ergs serve
@@ -60,6 +68,9 @@ make build
 
 # List recent items from a datasource
 ./ergs list --datasource github --limit 5
+
+# Start web interface for browsing and search
+./ergs web
 ```
 
 ## Configuration
@@ -69,6 +80,7 @@ Your config lives at `~/.config/ergs/config.toml`. You can edit it directly or u
 ## Need Help?
 
 - Check the [datasource documentation](docs/datasources/) for detailed setup instructions
+- See [docs/web-interface.md](docs/web-interface.md) for web interface and API documentation
 - See [docs/queries.md](docs/queries.md) for FTS5 search syntax and examples
 - See [docs/datasource.md](docs/datasource.md) if you want to create your own datasources
 - Run `./ergs --help` for all available commands

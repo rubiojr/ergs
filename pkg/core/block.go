@@ -62,6 +62,11 @@ type Block interface {
 	// developers don't need to store or manage this value.
 	Source() string
 
+	// Type returns the datasource type that created this block.
+	// This should return the datasource type (e.g., "github", "hackernews", "firefox")
+	// not the instance name. Used by renderers to match blocks to appropriate templates.
+	Type() string
+
 	// Metadata returns structured data for database storage and reconstruction.
 	// Should contain domain-specific data only - the core system automatically
 	// handles source metadata. Keys should use the same names as the datasource Schema().
@@ -131,6 +136,9 @@ func (b *GenericBlock) Metadata() map[string]interface{} { return b.metadata }
 
 // DSType returns the datasource type for this block
 func (b *GenericBlock) DSType() string { return b.dsType }
+
+// Type returns the datasource type for this block (implements Block interface)
+func (b *GenericBlock) Type() string { return b.dsType }
 
 // PrettyText returns a human-readable formatted version of this generic block.
 // Since this is a fallback implementation, it provides basic formatting

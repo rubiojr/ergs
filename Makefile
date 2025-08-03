@@ -1,22 +1,28 @@
-.PHONY: build clean test install uninstall deps fmt vet lint
+.PHONY: build clean test install uninstall deps fmt vet lint templ
 
 # Build variables
 BINARY_NAME=ergs
 BUILD_DIR=bin
-VERSION?=1.0.0
+VERSION?=1.3.0
 LDFLAGS=-ldflags "-X main.version=$(VERSION)"
 BUILD_TAGS=fts5
 
 # Default target
 all: build
 
+# Generate templ templates
+templ:
+	@echo "Generating templ templates..."
+	@which templ > /dev/null || (echo "Error: templ not found. Install with: go install github.com/a-h/templ/cmd/templ@latest" && exit 1)
+	templ generate
+
 # Build the binary
-build:
+build: templ
 	@mkdir -p $(BUILD_DIR)
 	go build -tags $(BUILD_TAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) .
 
 # Build for multiple platforms
-build-all:
+build-all: templ
 	@mkdir -p $(BUILD_DIR)
 	GOOS=linux GOARCH=amd64 go build -tags $(BUILD_TAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-amd64 .
 	GOOS=darwin GOARCH=amd64 go build -tags $(BUILD_TAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-amd64 .
@@ -82,12 +88,15 @@ clean:
 	rm -rf $(BUILD_DIR)
 	rm -f coverage.out coverage.html
 	rm -f ergs.db
+	@echo "Cleaning generated templ files..."
+	find . -name "*_templ.go" -type f -delete
 
 # Development setup
 dev-setup: deps
 	@echo "Installing development tools..."
 	go install golang.org/x/tools/cmd/goimports@latest
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	go install github.com/a-h/templ/cmd/templ@latest
 
 # Lint code
 lint:
@@ -109,6 +118,7 @@ help:
 	@echo "Available targets:"
 	@echo "  build        - Build the binary"
 	@echo "  build-all    - Build for multiple platforms"
+	@echo "  templ        - Generate templ templates"
 	@echo "  deps         - Install dependencies"
 	@echo "  fmt          - Format code"
 	@echo "  vet          - Vet code"

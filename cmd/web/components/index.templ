@@ -1,0 +1,188 @@
+package components
+
+import (
+	"github.com/rubiojr/ergs/cmd/web/components/types"
+	"strconv"
+)
+
+templ Index(data types.PageData) {
+	@Layout(data) {
+		<div class="home-page">
+			<div class="hero-section">
+				<img src="/static/ergs-logo.png" alt="Ergs Data Explorer" class="hero-logo"/>
+				<p>
+					Search across all your configured datasources to find the content
+					you need.
+				</p>
+			</div>
+			<div class="search-section">
+				<form action="/search" method="GET" class="search-form">
+					<input
+						type="text"
+						name="q"
+						class="search-input"
+						placeholder="Search across all datasources..."
+						value={ data.Query }
+						autocomplete="off"
+						autofocus
+					/>
+					<button type="submit" class="search-button">Search</button>
+				</form>
+				<div class="advanced-search-link">
+					<a href="/search">Advanced Search</a>
+				</div>
+			</div>
+			if len(data.Datasources) > 0 {
+				<div class="stats-section">
+					<h3>Quick Stats</h3>
+					<div class="stats-grid">
+						<div class="stat-item">
+							<span class="stat-number">{ strconv.Itoa(len(data.Datasources)) }</span>
+							<span class="stat-label">Datasources</span>
+						</div>
+						<div class="stat-item">
+							<span class="stat-number">{ strconv.Itoa(data.ActiveDatasources) }</span>
+							<span class="stat-label">Active</span>
+						</div>
+						<div class="stat-item">
+							<span class="stat-number">{ strconv.Itoa(data.TotalBlocks) }</span>
+							<span class="stat-label">Total Blocks</span>
+						</div>
+						if data.NewestBlock != nil {
+							<div class="stat-item">
+								<span class="stat-number">{ data.NewestBlock.Format("Jan 2") }</span>
+								<span class="stat-label">Latest Block</span>
+							</div>
+						}
+					</div>
+				</div>
+			}
+		</div>
+		<style>
+			.home-page {
+				max-width: 800px;
+				margin: 0 auto;
+				text-align: center;
+			}
+
+			.hero-section {
+				margin-bottom: 3rem;
+			}
+
+			.hero-logo {
+				width: 240px;
+				height: 240px;
+				margin-bottom: 1rem;
+			}
+
+			.hero-section p {
+				font-size: 1.2rem;
+				color: #6c757d;
+			}
+
+			.search-section {
+				margin-bottom: 1.5rem;
+			}
+
+			.search-form {
+				display: flex;
+				max-width: 600px;
+				margin: 0 auto;
+				gap: 0.5rem;
+				align-items: stretch;
+				background: none !important;
+				padding: 0 !important;
+				border-radius: 0 !important;
+				box-shadow: none !important;
+			}
+
+			.search-input {
+				flex: 1;
+				padding: 0.75rem 1rem;
+				border: 2px solid #e9ecef;
+				border-radius: 8px;
+				font-size: 1rem;
+				font-family: inherit;
+				line-height: 1.5;
+				box-sizing: border-box;
+				height: 48px;
+			}
+
+			.search-input:focus {
+				outline: none;
+				border-color: #007bff;
+			}
+
+			.search-button {
+				padding: 0.75rem 1.5rem;
+				background-color: #007bff;
+				color: white;
+				border: 2px solid #007bff;
+				border-radius: 8px;
+				font-size: 1rem;
+				font-family: inherit;
+				line-height: 1.5;
+				cursor: pointer;
+				transition: background-color 0.2s ease;
+				white-space: nowrap;
+				box-sizing: border-box;
+				height: 48px;
+			}
+
+			.search-button:hover {
+				background-color: #0056b3;
+			}
+
+			.advanced-search-link {
+				text-align: center;
+				margin-top: 0.75rem;
+			}
+
+			.advanced-search-link a {
+				color: #6c757d;
+				text-decoration: none;
+				font-size: 0.9rem;
+				border-bottom: 1px dotted #6c757d;
+			}
+
+			.advanced-search-link a:hover {
+				color: #007bff;
+				border-bottom-color: #007bff;
+			}
+
+			.stats-section {
+				text-align: center;
+				background: #f8f9fa;
+				padding: 2rem;
+				border-radius: 8px;
+			}
+
+			.stats-section h3 {
+				margin-bottom: 2rem;
+			}
+
+			.stats-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+				gap: 2rem;
+			}
+
+			.stat-item {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+			}
+
+			.stat-number {
+				font-size: 2rem;
+				font-weight: bold;
+				color: #007bff;
+			}
+
+			.stat-label {
+				color: #6c757d;
+				font-size: 0.9rem;
+			}
+		</style>
+	}
+}

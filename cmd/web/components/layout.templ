@@ -1,0 +1,67 @@
+package components
+
+import "github.com/rubiojr/ergs/cmd/web/components/types"
+
+templ Layout(data types.PageData) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ data.Title }</title>
+			<link rel="stylesheet" href="/static/style.css"/>
+		</head>
+		<body>
+			<header>
+				<div class="container">
+					<div class="header-content">
+						<h1>
+							<a href="/" style="text-decoration: none; color: inherit">
+								Ergs Data Explorer
+							</a>
+						</h1>
+						<nav>
+							<a href="/">Home</a>
+							<a href="/search">Search</a>
+							<a href="/datasources">Datasources</a>
+						</nav>
+					</div>
+				</div>
+			</header>
+			<main>
+				<div class="container">
+					if data.Error != "" {
+						<div class="alert alert-error">
+							<strong>Error:</strong> { data.Error }
+						</div>
+					}
+					if data.Success != "" {
+						<div class="alert alert-success">
+							<strong>Success:</strong> { data.Success }
+						</div>
+					}
+					{ children... }
+				</div>
+			</main>
+			<script>
+				// Add active navigation highlighting
+				document.addEventListener("DOMContentLoaded", function () {
+					const currentPath = window.location.pathname;
+					const navLinks = document.querySelectorAll("nav a");
+
+					navLinks.forEach((link) => {
+						if (
+							link.getAttribute("href") === currentPath ||
+							(currentPath.startsWith("/datasource/") &&
+								link.getAttribute("href") === "/datasources")
+						) {
+							link.style.fontWeight = "bold";
+							link.style.color = "#007bff";
+						}
+					});
+				});
+			</script>
+			<script src="/static/script.js"></script>
+		</body>
+	</html>
+}
