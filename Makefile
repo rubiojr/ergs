@@ -3,7 +3,7 @@
 # Build variables
 BINARY_NAME=ergs
 BUILD_DIR=bin
-VERSION?=1.3.0
+VERSION?=$(shell grep 'const Version' pkg/version/version.go | cut -d'"' -f2)
 LDFLAGS=-ldflags "-X main.version=$(VERSION)"
 BUILD_TAGS=fts5
 
