@@ -13,7 +13,7 @@ all: build
 # Generate templ templates
 templ:
 	@echo "Generating templ templates..."
-	@which templ > /dev/null || (echo "Error: templ not found. Install with: go install github.com/a-h/templ/cmd/templ@latest" && exit 1)
+	go install github.com/a-h/templ/cmd/templ@latest
 	templ generate
 
 # Build the binary
