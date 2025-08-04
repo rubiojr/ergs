@@ -13,6 +13,8 @@ cd ergs
 make build
 ```
 
+Or grab a binary release from https://github.com/rubiojr/ergs/releases.
+
 ### 2. Initialize
 ```bash
 ./ergs init
