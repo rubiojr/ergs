@@ -53,10 +53,18 @@ func TestTimeBasedOrderingIntegration(t *testing.T) {
 	// Setup test environment
 	tempDir := t.TempDir()
 	storageManager := storage.NewManager(tempDir)
-	defer storageManager.Close()
+	defer func() {
+		if err := storageManager.Close(); err != nil {
+			t.Logf("Warning: failed to close storage manager: %v", err)
+		}
+	}()
 
 	registry := core.GetGlobalRegistry()
-	defer registry.Close()
+	defer func() {
+		if err := registry.Close(); err != nil {
+			t.Logf("Warning: failed to close registry: %v", err)
+		}
+	}()
 
 	rendererRegistry := renderers.NewRendererRegistry()
 
@@ -382,7 +390,11 @@ func TestTimeBasedOrderingIntegration(t *testing.T) {
 // TestStorageManagerTimeOrdering tests the storage manager's time-based ordering directly
 func TestStorageManagerTimeOrdering(t *testing.T) {
 	manager := storage.NewManager(t.TempDir())
-	defer manager.Close()
+	defer func() {
+		if err := manager.Close(); err != nil {
+			t.Logf("Warning: failed to close manager: %v", err)
+		}
+	}()
 
 	// Create test data with known timestamps
 	baseTime := time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC)
@@ -414,14 +426,12 @@ func TestStorageManagerTimeOrdering(t *testing.T) {
 	// datasource_c has c2 (35min), datasource_a has a2 (30min), datasource_b has b2 (25min)
 	// So order should be: c, a, b
 
-	// Extract all blocks and their times
-	var allBlocks []core.Block
+	// Extract datasource order
 	var datasourceOrder []string
 	seenDatasources := make(map[string]bool)
 
 	for _, blocks := range results {
 		for _, block := range blocks {
-			allBlocks = append(allBlocks, block)
 			dsName := block.Source()
 			if !seenDatasources[dsName] {
 				datasourceOrder = append(datasourceOrder, dsName)
@@ -451,7 +461,11 @@ func TestStorageManagerTimeOrdering(t *testing.T) {
 // TestTimeOrderingPerformance tests that time-based ordering doesn't significantly impact performance
 func TestTimeOrderingPerformance(t *testing.T) {
 	manager := storage.NewManager(t.TempDir())
-	defer manager.Close()
+	defer func() {
+		if err := manager.Close(); err != nil {
+			t.Logf("Warning: failed to close manager: %v", err)
+		}
+	}()
 
 	// Create a larger dataset for performance testing
 	now := time.Now()

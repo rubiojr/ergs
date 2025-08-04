@@ -73,7 +73,11 @@ func setupTestData(t *testing.T, manager *Manager, datasources map[string][]core
 
 func TestManagerGetStorage(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer func() {
+		if err := manager.Close(); err != nil {
+			t.Logf("Warning: failed to close manager: %v", err)
+		}
+	}()
 
 	datasourceName := "test-datasource"
 
@@ -94,7 +98,11 @@ func TestManagerGetStorage(t *testing.T) {
 
 func TestManagerConcurrentGetStorage(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer func() {
+		if err := manager.Close(); err != nil {
+			t.Logf("Warning: failed to close manager: %v", err)
+		}
+	}()
 
 	datasourceName := "concurrent-test"
 	numGoroutines := 10
@@ -130,7 +138,11 @@ func TestManagerConcurrentGetStorage(t *testing.T) {
 
 func TestManagerSearchBlocks(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer func() {
+		if err := manager.Close(); err != nil {
+			t.Logf("Warning: failed to close manager: %v", err)
+		}
+	}()
 
 	now := time.Now()
 	testData := map[string][]core.Block{
@@ -179,7 +191,11 @@ func TestManagerSearchBlocks(t *testing.T) {
 
 func TestManagerSearchAllDatasources(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer func() {
+		if err := manager.Close(); err != nil {
+			t.Logf("Warning: failed to close manager: %v", err)
+		}
+	}()
 
 	now := time.Now()
 	testData := map[string][]core.Block{
@@ -260,7 +276,7 @@ func TestManagerSearchAllDatasources(t *testing.T) {
 
 func TestManagerSearchAllDatasourcesParallelization(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	numDatasources := 10
 	blocksPerDatasource := 5
@@ -313,7 +329,7 @@ func TestManagerSearchAllDatasourcesParallelization(t *testing.T) {
 
 func TestManagerSearchAllDatasourcesWithError(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	now := time.Now()
 	testData := map[string][]core.Block{
@@ -336,7 +352,9 @@ func TestManagerSearchAllDatasourcesWithError(t *testing.T) {
 	}
 
 	// Close the storage to make it unusable
-	badStorage.Close()
+	if err := badStorage.Close(); err != nil {
+		t.Logf("Warning: failed to close bad storage: %v", err)
+	}
 
 	manager.mu.Lock()
 	manager.storages["bad-datasource"] = badStorage
@@ -354,7 +372,7 @@ func TestManagerSearchAllDatasourcesWithError(t *testing.T) {
 
 func TestManagerSearchAllDatasourcesEmpty(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	results, err := manager.SearchAllDatasources("test", 10)
 	if err != nil {
@@ -368,7 +386,7 @@ func TestManagerSearchAllDatasourcesEmpty(t *testing.T) {
 
 func TestManagerSearchAllDatasourcesNoMatches(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	now := time.Now()
 	testData := map[string][]core.Block{
@@ -404,7 +422,7 @@ func TestManagerSearchAllDatasourcesNoMatches(t *testing.T) {
 
 func TestManagerSearchAllDatasourcesConcurrentAccess(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	now := time.Now()
 	testData := map[string][]core.Block{
@@ -460,7 +478,7 @@ func TestManagerSearchAllDatasourcesConcurrentAccess(t *testing.T) {
 
 func TestManagerGetStats(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	now := time.Now()
 	testData := map[string][]core.Block{
@@ -523,7 +541,7 @@ func TestManagerClose(t *testing.T) {
 
 func TestManagerOptimizeAll(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	now := time.Now()
 	testData := map[string][]core.Block{
@@ -542,7 +560,7 @@ func TestManagerOptimizeAll(t *testing.T) {
 
 func TestManagerAnalyzeAll(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	now := time.Now()
 	testData := map[string][]core.Block{
@@ -561,7 +579,7 @@ func TestManagerAnalyzeAll(t *testing.T) {
 
 func TestManagerWALCheckpointAll(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	now := time.Now()
 	testData := map[string][]core.Block{
@@ -580,7 +598,7 @@ func TestManagerWALCheckpointAll(t *testing.T) {
 
 func BenchmarkSearchAllDatasourcesParallel(b *testing.B) {
 	manager := createTestManager(&testing.T{})
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	numDatasources := 20
 	blocksPerDatasource := 100
@@ -615,7 +633,7 @@ func BenchmarkSearchAllDatasourcesParallel(b *testing.B) {
 
 func TestSearchAllDatasourcesParallelBenefit(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	numDatasources := 5
 	now := time.Now()
@@ -693,7 +711,7 @@ func TestSearchAllDatasourcesParallelBenefit(t *testing.T) {
 
 func TestSearchAllDatasourcesSequentialPaging(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	now := time.Now()
 	// Create test data with different amounts per datasource
@@ -786,7 +804,7 @@ func TestSearchAllDatasourcesSequentialPaging(t *testing.T) {
 
 func TestSearchAllDatasourcesAlphabeticalOrder(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	now := time.Now()
 	// Create datasources with names that will test alphabetical ordering
@@ -853,7 +871,7 @@ func TestSearchAllDatasourcesAlphabeticalOrder(t *testing.T) {
 
 func TestPaginationBehaviorDetailed(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	now := time.Now()
 	// Create test data with known total count across multiple datasources
@@ -961,7 +979,7 @@ func TestPaginationBehaviorDetailed(t *testing.T) {
 func TestBackendPaginationLogic(t *testing.T) {
 	// This test focuses on the backend pagination calculation only
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	now := time.Now()
 	// Create test data with exact known counts
@@ -1026,7 +1044,7 @@ func TestBackendPaginationLogic(t *testing.T) {
 
 func BenchmarkSearchAllDatasourcesSmall(b *testing.B) {
 	manager := createTestManager(&testing.T{})
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	numDatasources := 5
 	blocksPerDatasource := 50
@@ -1061,7 +1079,7 @@ func BenchmarkSearchAllDatasourcesSmall(b *testing.B) {
 
 func BenchmarkSearchAllDatasourcesLarge(b *testing.B) {
 	manager := createTestManager(&testing.T{})
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	numDatasources := 50
 	blocksPerDatasource := 200
@@ -1096,7 +1114,7 @@ func BenchmarkSearchAllDatasourcesLarge(b *testing.B) {
 
 func TestSearchDatasourcesPagedSpecificDatasources(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	now := time.Now()
 	testData := map[string][]core.Block{
@@ -1137,7 +1155,7 @@ func TestSearchDatasourcesPagedSpecificDatasources(t *testing.T) {
 
 func TestSearchDatasourcesPagedMultipleDatasources(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	now := time.Now()
 	testData := map[string][]core.Block{
@@ -1186,7 +1204,7 @@ func TestSearchDatasourcesPagedMultipleDatasources(t *testing.T) {
 
 func TestSearchDatasourcesPagedNonexistentDatasource(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	now := time.Now()
 	testData := map[string][]core.Block{
@@ -1210,7 +1228,7 @@ func TestSearchDatasourcesPagedNonexistentDatasource(t *testing.T) {
 
 func TestSearchDatasourcesPagedMixedExistingAndNonexistent(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	now := time.Now()
 	testData := map[string][]core.Block{
@@ -1247,7 +1265,7 @@ func TestSearchDatasourcesPagedMixedExistingAndNonexistent(t *testing.T) {
 
 func TestSearchDatasourcesPagedAlphabeticalOrdering(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	now := time.Now()
 	testData := map[string][]core.Block{
@@ -1301,7 +1319,7 @@ func TestSearchDatasourcesPagedAlphabeticalOrdering(t *testing.T) {
 
 func TestSearchDatasourcesPagedPagination(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	now := time.Now()
 	testData := map[string][]core.Block{
@@ -1368,7 +1386,7 @@ func TestSearchDatasourcesPagedPagination(t *testing.T) {
 
 func TestTimeBasedOrderingAcrossDatasources(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	// Create test data with specific timestamps across multiple datasources
 	baseTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
@@ -1447,7 +1465,7 @@ func TestTimeBasedOrderingAcrossDatasources(t *testing.T) {
 
 func TestTimeBasedOrderingWithFiltering(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	// Create test data with specific timestamps
 	baseTime := time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC)
@@ -1529,7 +1547,7 @@ func TestTimeBasedOrderingWithFiltering(t *testing.T) {
 
 func TestTimeBasedOrderingPagination(t *testing.T) {
 	manager := createTestManager(t)
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	// Create larger dataset for pagination testing
 	baseTime := time.Date(2024, 1, 1, 9, 0, 0, 0, time.UTC)
@@ -1617,7 +1635,7 @@ func TestTimeBasedOrderingPagination(t *testing.T) {
 
 func BenchmarkSearchSingleDatasource(b *testing.B) {
 	manager := createTestManager(&testing.T{})
-	defer manager.Close()
+	defer manager.Close() //nolint:errcheck
 
 	blocksPerDatasource := 500
 	now := time.Now()

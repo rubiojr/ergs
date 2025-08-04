@@ -125,8 +125,12 @@ func setupTestWebServer(t *testing.T) (*WebServer, func()) {
 	}
 
 	cleanup := func() {
-		storageManager.Close()
-		registry.Close()
+		if err := storageManager.Close(); err != nil {
+			t.Logf("Warning: failed to close storage manager: %v", err)
+		}
+		if err := registry.Close(); err != nil {
+			t.Logf("Warning: failed to close registry: %v", err)
+		}
 	}
 
 	return server, cleanup
@@ -699,7 +703,11 @@ func TestAPISearchDatasourceAlphabeticalOrder(t *testing.T) {
 	// Add a third datasource with a name that will test alphabetical ordering
 	tempDir := t.TempDir()
 	storageManager := storage.NewManager(tempDir)
-	defer storageManager.Close()
+	defer func() {
+		if err := storageManager.Close(); err != nil {
+			t.Logf("Warning: failed to close storage manager: %v", err)
+		}
+	}()
 
 	// Create test data with datasource names in non-alphabetical order
 	now := time.Now()
@@ -798,7 +806,11 @@ func TestAPISearchDatasourceAlphabeticalOrder(t *testing.T) {
 func TestAPIPaginationAccuracy(t *testing.T) {
 	tempDir := t.TempDir()
 	storageManager := storage.NewManager(tempDir)
-	defer storageManager.Close()
+	defer func() {
+		if err := storageManager.Close(); err != nil {
+			t.Logf("Warning: failed to close storage manager: %v", err)
+		}
+	}()
 
 	// Create test data with exact known counts
 	now := time.Now()

@@ -28,10 +28,18 @@ func TestDatasourceFilteringIntegration(t *testing.T) {
 	// Setup test environment
 	tempDir := t.TempDir()
 	storageManager := storage.NewManager(tempDir)
-	defer storageManager.Close()
+	defer func() {
+		if err := storageManager.Close(); err != nil {
+			t.Logf("Warning: failed to close storage manager: %v", err)
+		}
+	}()
 
 	registry := core.GetGlobalRegistry()
-	defer registry.Close()
+	defer func() {
+		if err := registry.Close(); err != nil {
+			t.Logf("Warning: failed to close registry: %v", err)
+		}
+	}()
 
 	rendererRegistry := renderers.NewRendererRegistry()
 
