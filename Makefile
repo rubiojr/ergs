@@ -7,6 +7,11 @@ VERSION?=$(shell grep 'const Version' pkg/version/version.go | cut -d'"' -f2)
 LDFLAGS=-ldflags "-X main.version=$(VERSION)"
 BUILD_TAGS=fts5
 
+# CGO Configuration
+# Set to 0 for CGO-free builds (default) using ncruces/go-sqlite3
+# Set to 1 to enable CGO if needed: make build CGO_ENABLED=1
+CGO_ENABLED?=0
+
 # Default target
 all: build
 
@@ -19,15 +24,15 @@ templ:
 # Build the binary
 build: templ
 	@mkdir -p $(BUILD_DIR)
-	go build -tags $(BUILD_TAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) .
+	CGO_ENABLED=$(CGO_ENABLED) go build -tags $(BUILD_TAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) .
 
 # Build for multiple platforms
 build-all: templ
 	@mkdir -p $(BUILD_DIR)
-	GOOS=linux GOARCH=amd64 go build -tags $(BUILD_TAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-amd64 .
-	GOOS=darwin GOARCH=amd64 go build -tags $(BUILD_TAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-amd64 .
-	GOOS=darwin GOARCH=arm64 go build -tags $(BUILD_TAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-arm64 .
-	GOOS=windows GOARCH=amd64 go build -tags $(BUILD_TAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe .
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=linux GOARCH=amd64 go build -tags $(BUILD_TAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-amd64 .
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=darwin GOARCH=amd64 go build -tags $(BUILD_TAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-amd64 .
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=darwin GOARCH=arm64 go build -tags $(BUILD_TAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-arm64 .
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=windows GOARCH=amd64 go build -tags $(BUILD_TAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe .
 
 # Install dependencies
 deps:
@@ -44,23 +49,23 @@ vet:
 
 # Run tests
 test:
-	go test -tags $(BUILD_TAGS) -v ./...
+	CGO_ENABLED=$(CGO_ENABLED) go test -tags $(BUILD_TAGS) -v ./...
 
 # Run unit tests only (exclude integration tests)
 test-unit:
-	go test -tags $(BUILD_TAGS) -v -short ./...
+	CGO_ENABLED=$(CGO_ENABLED) go test -tags $(BUILD_TAGS) -v -short ./...
 
 # Run integration tests
 test-integration:
-	go test -tags $(BUILD_TAGS) -v ./integration_tests/...
+	CGO_ENABLED=$(CGO_ENABLED) go test -tags $(BUILD_TAGS) -v ./integration_tests/...
 
 # Run quick integration tests (for CI/CD)
 test-integration-quick:
-	go test -tags $(BUILD_TAGS) -v -run "TestQuick.*|TestDatasourceFactory.*" ./integration_tests/...
+	CGO_ENABLED=$(CGO_ENABLED) go test -tags $(BUILD_TAGS) -v -run "TestQuick.*|TestDatasourceFactory.*" ./integration_tests/...
 
 # Run tests with coverage
 test-coverage:
-	go test -tags $(BUILD_TAGS) -v -coverprofile=coverage.out ./...
+	CGO_ENABLED=$(CGO_ENABLED) go test -tags $(BUILD_TAGS) -v -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out -o coverage.html
 
 # Run all tests including integration tests
@@ -104,7 +109,7 @@ lint:
 
 # Run development environment
 dev-run:
-	go run -tags $(BUILD_TAGS) . $(ARGS)
+	CGO_ENABLED=$(CGO_ENABLED) go run -tags $(BUILD_TAGS) . $(ARGS)
 
 # Example commands for testing
 example-fetch:
@@ -116,8 +121,8 @@ example-search:
 # Help
 help:
 	@echo "Available targets:"
-	@echo "  build        - Build the binary"
-	@echo "  build-all    - Build for multiple platforms"
+	@echo "  build        - Build the binary (CGO-free by default)"
+	@echo "  build-all    - Build for multiple platforms (CGO-free)"
 	@echo "  templ        - Generate templ templates"
 	@echo "  deps         - Install dependencies"
 	@echo "  fmt          - Format code"
@@ -135,3 +140,7 @@ help:
 	@echo "  lint         - Lint code"
 	@echo "  dev-run      - Run in development mode"
 	@echo "  help         - Show this help"
+	@echo ""
+	@echo "CGO Configuration:"
+	@echo "  Default: CGO_ENABLED=0 (CGO-free builds using ncruces/go-sqlite3)"
+	@echo "  To enable CGO: make build CGO_ENABLED=1"

@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/ncruces/go-sqlite3/driver"
+	_ "github.com/ncruces/go-sqlite3/embed"
 	"github.com/rubiojr/ergs/pkg/core"
 )
 
@@ -16,13 +17,15 @@ type GenericStorage struct {
 }
 
 func NewGenericStorage(dbPath, datasourceName string) (*GenericStorage, error) {
-	db, err := sql.Open("sqlite3", dbPath+"?_fts=1&_journal_mode=WAL&_synchronous=NORMAL&_cache_size=10000&_temp_store=memory&_mmap_size=268435456")
+	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("opening database: %w", err)
 	}
 
-	// Apply additional performance pragmas
+	// Apply performance pragmas
 	pragmas := []string{
+		"PRAGMA journal_mode = WAL",
+		"PRAGMA synchronous = NORMAL",
 		"PRAGMA busy_timeout = 30000",
 		"PRAGMA cache_size = -64000", // 64MB cache
 		"PRAGMA temp_store = memory",
