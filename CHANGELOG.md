@@ -2,6 +2,55 @@
 
 All notable changes to Ergs will be documented in this file.
 
+## [1.4.4] - 2025-08-04
+
+### ✨ New Features
+
+- **Web Interface Favicon**: Added favicon to web interface using the existing ergs logo
+  - Optimized favicon sizes (16x16, 32x32) for different display contexts
+  - Proper ICO file format with multiple embedded sizes for maximum browser compatibility
+  - Modern PNG fallbacks for high-DPI displays
+
+---
+
+## [1.4.3] - 2025-08-04
+
+### 🔧 Maintenance
+
+- Version bump for release stability
+
+---
+
+## [1.4.2] - 2025-08-04
+
+### 🔧 Improvements
+
+- **CGO-Free Builds**: Switched to ncruces/go-sqlite3 driver to eliminate CGO dependency
+  - Simplified build process and cross-compilation
+  - Improved portability across different platforms
+  - Better integration with Go toolchain
+
+### 📚 Documentation
+
+- Updated documentation to mention pre-built binaries availability
+
+---
+
+## [1.4.1] - 2025-08-04
+
+### 🚀 Release Infrastructure
+
+- **Automated Releases**: Added GoReleaser support for automated binary builds
+  - GitHub Actions workflow for cross-platform releases
+  - Automated binary generation for multiple architectures
+  - Streamlined release process
+
+### 📚 Documentation
+
+- Enhanced configuration reload documentation
+
+---
+
 ## [1.4.0] - 2025-01-04
 
 ### ✨ New Features
