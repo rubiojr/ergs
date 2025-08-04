@@ -708,6 +708,10 @@ func (s *WebServer) handleStatic(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/javascript")
 	} else if strings.HasSuffix(path, ".html") {
 		w.Header().Set("Content-Type", "text/html")
+	} else if strings.HasSuffix(path, ".ico") {
+		w.Header().Set("Content-Type", "image/x-icon")
+	} else if strings.HasSuffix(path, ".png") {
+		w.Header().Set("Content-Type", "image/png")
 	}
 
 	// Set cache headers for static assets
