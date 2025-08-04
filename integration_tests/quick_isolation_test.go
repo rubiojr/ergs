@@ -9,10 +9,9 @@ import (
 	"github.com/rubiojr/ergs/pkg/storage"
 	"github.com/rubiojr/ergs/pkg/warehouse"
 
-	// Import datasources to register their factories
-	_ "github.com/rubiojr/ergs/pkg/datasources/codeberg"
-	gasstations "github.com/rubiojr/ergs/pkg/datasources/gasstations"
-	_ "github.com/rubiojr/ergs/pkg/datasources/github"
+	// Import local datasources to register their factories (no network dependencies)
+	_ "github.com/rubiojr/ergs/pkg/datasources/testrand"
+	_ "github.com/rubiojr/ergs/pkg/datasources/timestamp"
 )
 
 // TestQuickDatasourceIsolation is a fast test to verify datasource isolation
@@ -33,43 +32,10 @@ func TestQuickDatasourceIsolation(t *testing.T) {
 
 	// Create datasources from config
 	for name, dsConfig := range testConfig.Datasources {
-		// Create with nil config first
-		err := registry.CreateDatasource(name, dsConfig.Type, nil)
+		// Create datasource with proper config using helper function
+		err := CreateDatasourceWithConfig(registry, name, dsConfig.Type, dsConfig.Config.(map[string]interface{}))
 		if err != nil {
 			t.Fatalf("Failed to create datasource %s: %v", name, err)
-		}
-
-		// Set config for gas stations with proper coordinates
-		if dsConfig.Type == "gasstations" {
-			ds, err := registry.GetDatasource(name)
-			if err != nil {
-				t.Fatalf("Failed to get datasource %s: %v", name, err)
-			}
-
-			// Create proper gas station config with test coordinates
-			gasConfig := &gasstations.Config{
-				Latitude:  41.7664, // Default to Soria coordinates for testing
-				Longitude: -2.4792,
-				Radius:    2000.0, // Small radius for fast tests
-			}
-
-			// Override with specific coordinates if available
-			if configMap, ok := dsConfig.Config.(map[string]interface{}); ok {
-				if lat, ok := configMap["latitude"].(float64); ok {
-					gasConfig.Latitude = lat
-				}
-				if lng, ok := configMap["longitude"].(float64); ok {
-					gasConfig.Longitude = lng
-				}
-				if radius, ok := configMap["radius"].(float64); ok {
-					gasConfig.Radius = radius
-				}
-			}
-
-			err = ds.SetConfig(gasConfig)
-			if err != nil {
-				t.Fatalf("Failed to set config for datasource %s: %v", name, err)
-			}
 		}
 	}
 
@@ -180,13 +146,14 @@ func TestQuickDatasourceIsolation(t *testing.T) {
 
 	// Test 3: Verify Type() vs Name() methods work correctly
 	t.Run("TypeVsNameMethods", func(t *testing.T) {
+		// Verify Type() and Name() consistency
 		for instanceName, ds := range datasources {
-			// All gas station datasources should have Type() = "gasstations"
-			if ds.Type() != "gasstations" {
-				t.Errorf("Expected Type() to return 'gasstations', got '%s' for %s", ds.Type(), instanceName)
+			// Verify Type() returns the expected datasource type
+			expectedType := "testrand" // Both test datasources use testrand
+			if ds.Type() != expectedType {
+				t.Errorf("Expected Type() to return '%s', got '%s' for %s", expectedType, ds.Type(), instanceName)
 			}
-
-			// Name() should return the instance name
+			// Each instance should have Name() = instance name
 			if ds.Name() != instanceName {
 				t.Errorf("Expected Name() to return '%s', got '%s'", instanceName, ds.Name())
 			}
@@ -209,42 +176,34 @@ func TestDatasourceFactoryInstanceName(t *testing.T) {
 		instanceName string
 		expectedType string
 	}{
-		{"test_instance_1", "gasstations"},
-		{"another_gas_instance", "gasstations"},
-		{"third_instance", "gasstations"},
+		{"test_instance_1", "testrand"},
+		{"another_gas_instance", "testrand"},
+		{"third_instance", "testrand"},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.instanceName, func(t *testing.T) {
-			// Create datasource instance with nil config
-			err := registry.CreateDatasource(tc.instanceName, tc.expectedType, nil)
+			// Create datasource with proper config
+			config := map[string]interface{}{
+				"count":  3,
+				"prefix": "TEST",
+				"seed":   12345,
+			}
+
+			err := CreateDatasourceWithConfig(registry, tc.instanceName, tc.expectedType, config)
 			if err != nil {
 				t.Fatalf("Failed to create datasource %s: %v", tc.instanceName, err)
 			}
 
-			// Set default config
 			ds, err := registry.GetDatasource(tc.instanceName)
 			if err != nil {
 				t.Fatalf("Failed to get datasource %s: %v", tc.instanceName, err)
 			}
 
-			// Create proper gas station config with test coordinates
-			gasConfig := &gasstations.Config{
-				Latitude:  41.7664, // Soria coordinates for testing
-				Longitude: -2.4792,
-				Radius:    1000.0, // Small radius for test
-			}
-
-			err = ds.SetConfig(gasConfig)
-			if err != nil {
-				t.Fatalf("Failed to set config for datasource %s: %v", tc.instanceName, err)
-			}
-
-			// Verify methods return correct values
+			// Verify the instance name and type are correct
 			if ds.Type() != tc.expectedType {
 				t.Errorf("Expected Type() to return %s, got %s", tc.expectedType, ds.Type())
 			}
-
 			if ds.Name() != tc.instanceName {
 				t.Errorf("Expected Name() to return %s, got %s", tc.instanceName, ds.Name())
 			}

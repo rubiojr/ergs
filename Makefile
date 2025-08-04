@@ -53,7 +53,7 @@ test:
 
 # Run unit tests only (exclude integration tests)
 test-unit:
-	CGO_ENABLED=$(CGO_ENABLED) go test -tags $(BUILD_TAGS) -v -short ./...
+	CGO_ENABLED=$(CGO_ENABLED) go test -tags $(BUILD_TAGS) -v ./pkg/... ./cmd/...
 
 # Run integration tests
 test-integration:

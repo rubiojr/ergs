@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/rubiojr/ergs/pkg/core"
+	_ "github.com/rubiojr/ergs/pkg/datasources/testrand"
+	_ "github.com/rubiojr/ergs/pkg/datasources/timestamp"
 )
 
 func TestDatasourceRegistration(t *testing.T) {
@@ -11,7 +13,7 @@ func TestDatasourceRegistration(t *testing.T) {
 	registry := core.GetGlobalRegistry()
 
 	// Check that expected datasources are registered
-	expectedDatasources := []string{"github", "codeberg"}
+	expectedDatasources := []string{"testrand", "timestamp"}
 
 	for _, dsName := range expectedDatasources {
 		t.Run("datasource_"+dsName, func(t *testing.T) {
@@ -74,7 +76,7 @@ func TestRegistryIsolation(t *testing.T) {
 	registry2 := core.GetGlobalRegistry()
 
 	// Create a datasource in one registry
-	err := registry1.CreateDatasource("test-isolation", "github", nil)
+	err := registry1.CreateDatasource("test-isolation", "timestamp", nil)
 	if err != nil {
 		t.Fatalf("Failed to create datasource in registry1: %v", err)
 	}
@@ -89,10 +91,10 @@ func TestRegistryIsolation(t *testing.T) {
 func TestDatasourceFactoriesAvailable(t *testing.T) {
 	registry := core.GetGlobalRegistry()
 
-	// Verify that both github and codeberg factories are available
+	// Verify that both testrand and timestamp factories are available
 	expectedFactories := map[string]bool{
-		"github":   false,
-		"codeberg": false,
+		"testrand":  false,
+		"timestamp": false,
 	}
 
 	// Try to create each datasource type

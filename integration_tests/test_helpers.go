@@ -7,35 +7,35 @@ import (
 
 	"github.com/rubiojr/ergs/pkg/config"
 	"github.com/rubiojr/ergs/pkg/core"
+	"github.com/rubiojr/ergs/pkg/datasources/testrand"
+	"github.com/rubiojr/ergs/pkg/datasources/timestamp"
 )
 
-// CreateTestConfig creates a test configuration with multiple gas station datasources
+// CreateTestConfig creates a test configuration with multiple local datasources
 func CreateTestConfig(tempDir string) *config.Config {
 	return &config.Config{
 		StorageDir: tempDir,
 		Datasources: map[string]config.DatasourceInfo{
 			"test_soria_gas": {
-				Type: "gasstations",
+				Type: "testrand",
 				Config: map[string]interface{}{
-					"latitude":  41.7664, // Soria coordinates
-					"longitude": -2.4792, // Soria coordinates
-					"radius":    5000.0,  // 5km radius
+					"count":  10,
+					"prefix": "SORIA",
+					"seed":   12345, // Fixed seed for reproducible tests
 				},
 			},
 			"test_madrid_gas": {
-				Type: "gasstations",
+				Type: "testrand",
 				Config: map[string]interface{}{
-					"latitude":  40.4168, // Madrid coordinates
-					"longitude": -3.7038, // Madrid coordinates
-					"radius":    5000.0,  // 5km radius
+					"count":  15,
+					"prefix": "MADRID",
+					"seed":   67890, // Different seed for different data
 				},
 			},
 			"test_zaragoza_gas": {
-				Type: "gasstations",
+				Type: "timestamp",
 				Config: map[string]interface{}{
-					"latitude":  41.6488, // Zaragoza coordinates
-					"longitude": -0.8891, // Zaragoza coordinates
-					"radius":    5000.0,  // 5km radius
+					"interval_seconds": 60,
 				},
 			},
 		},
@@ -48,19 +48,19 @@ func CreateTestConfigMinimal(tempDir string) *config.Config {
 		StorageDir: tempDir,
 		Datasources: map[string]config.DatasourceInfo{
 			"test_small_soria": {
-				Type: "gasstations",
+				Type: "testrand",
 				Config: map[string]interface{}{
-					"latitude":  41.7664, // Soria coordinates
-					"longitude": -2.4792, // Soria coordinates
-					"radius":    2000.0,  // Small 2km radius for fast tests
+					"count":  5,
+					"prefix": "SORIA",
+					"seed":   11111, // Fixed seed for reproducible tests
 				},
 			},
 			"test_small_madrid": {
-				Type: "gasstations",
+				Type: "testrand",
 				Config: map[string]interface{}{
-					"latitude":  40.4168, // Madrid coordinates
-					"longitude": -3.7038, // Madrid coordinates
-					"radius":    2000.0,  // Small 2km radius for fast tests
+					"count":  8,
+					"prefix": "MADRID",
+					"seed":   22222, // Different seed for different data
 				},
 			},
 		},
@@ -89,20 +89,20 @@ type DatasourceTestCase struct {
 	LocationKeyword  string
 }
 
-// GetStandardTestCases returns the standard set of test cases for gas station datasources
+// GetStandardTestCases returns the standard set of test cases for local test datasources
 func GetStandardTestCases() []DatasourceTestCase {
 	return []DatasourceTestCase{
-		{"test_soria_gas", 5, "SORIA"},        // Expect at least 5 stations in Soria area
-		{"test_madrid_gas", 30, "MADRID"},     // Expect at least 30 stations in Madrid area
-		{"test_zaragoza_gas", 20, "ZARAGOZA"}, // Expect at least 20 stations in Zaragoza area
+		{"test_soria_gas", 5, "SORIA"},    // Expect at least 5 blocks from testrand
+		{"test_madrid_gas", 10, "MADRID"}, // Expect at least 10 blocks from testrand
+		{"test_zaragoza_gas", 1, ""},      // Expect at least 1 block from timestamp (no location keyword)
 	}
 }
 
 // GetMinimalTestCases returns minimal test cases for faster testing
 func GetMinimalTestCases() []DatasourceTestCase {
 	return []DatasourceTestCase{
-		{"test_small_soria", 2, "SORIA"},    // Expect at least 2 stations in small Soria area
-		{"test_small_madrid", 10, "MADRID"}, // Expect at least 10 stations in small Madrid area
+		{"test_small_soria", 3, "SORIA"},   // Expect at least 3 blocks from testrand
+		{"test_small_madrid", 5, "MADRID"}, // Expect at least 5 blocks from testrand
 	}
 }
 
@@ -179,14 +179,20 @@ func CreateDatasourceWithConfig(registry *core.Registry, instanceName, dsType st
 		return err
 	}
 
-	// Convert config using the same method as main application
-	dsConfig, err := ConvertConfigToType(ds, configMap)
-	if err != nil {
-		return err
-	}
+	// For our test datasources, we need to use the actual config types from the datasources
+	// Get the proper config type from the datasource and populate it
+	configType := ds.ConfigType()
 
-	// Set the converted config
-	return ds.SetConfig(dsConfig)
+	// Use reflection-like approach to set the config fields
+	switch dsType {
+	case "testrand":
+		return setTestrandConfig(ds, configMap)
+	case "timestamp":
+		return setTimestampConfig(ds, configMap)
+	default:
+		// For other datasources, just set the default config
+		return ds.SetConfig(configType)
+	}
 }
 
 // ConvertConfigToType converts raw config to the proper datasource config type
@@ -205,26 +211,49 @@ func ConvertConfigToType(ds core.Datasource, rawConfig interface{}) (interface{}
 	return configType, nil
 }
 
-// convertMapToStruct converts a map[string]interface{} to a struct
-func convertMapToStruct(configMap map[string]interface{}, target interface{}) (interface{}, error) {
-	// For gas stations config, manually create the struct
-	if latitude, ok := configMap["latitude"].(float64); ok {
-		if longitude, ok := configMap["longitude"].(float64); ok {
-			if radius, ok := configMap["radius"].(float64); ok {
-				// Create gas station config struct
-				return &struct {
-					Latitude  float64 `toml:"latitude"`
-					Longitude float64 `toml:"longitude"`
-					Radius    float64 `toml:"radius"`
-				}{
-					Latitude:  latitude,
-					Longitude: longitude,
-					Radius:    radius,
-				}, nil
-			}
-		}
+// setTestrandConfig sets the testrand config using the actual Config type
+func setTestrandConfig(ds core.Datasource, configMap map[string]interface{}) error {
+	// Extract values with defaults
+	count := 5
+	prefix := "RAND"
+	seed := int64(12345)
+
+	if c, ok := configMap["count"].(int); ok {
+		count = c
+	}
+	if p, ok := configMap["prefix"].(string); ok {
+		prefix = p
+	}
+	if s, ok := configMap["seed"].(int); ok {
+		seed = int64(s)
 	}
 
+	// Create the proper config using the imported type
+	config := &testrand.Config{
+		Count:  count,
+		Prefix: prefix,
+		Seed:   seed,
+	}
+
+	return ds.SetConfig(config)
+}
+
+// setTimestampConfig sets the timestamp config using the actual Config type
+func setTimestampConfig(ds core.Datasource, configMap map[string]interface{}) error {
+	intervalSeconds := 60
+	if i, ok := configMap["interval_seconds"].(int); ok {
+		intervalSeconds = i
+	}
+
+	config := &timestamp.Config{
+		IntervalSeconds: intervalSeconds,
+	}
+
+	return ds.SetConfig(config)
+}
+
+// convertMapToStruct converts a map[string]interface{} to a struct
+func convertMapToStruct(configMap map[string]interface{}, target interface{}) (interface{}, error) {
 	// If we can't convert, return the target type (default config)
 	return target, nil
 }
