@@ -34,7 +34,7 @@ templ Datasource(data types.PageData) {
 						<div class="content-header">
 							<div class="content-info">
 								<span class="block-count">
-									Showing { strconv.Itoa(len(blocks)) } of { strconv.Itoa(data.TotalCount) } blocks (Page { strconv.Itoa(data.CurrentPage) } of { strconv.Itoa(data.TotalPages) })
+									Showing { strconv.Itoa(len(blocks)) } of { strconv.Itoa(data.TotalCount) } blocks (Page { strconv.Itoa(data.CurrentPage) })
 								</span>
 							</div>
 						</div>
@@ -110,22 +110,13 @@ templ Datasource(data types.PageData) {
 											<span class="page-ellipsis">...</span>
 										}
 									}
-									// Show pages around current page
-									for i := 1; i <= data.TotalPages; i++ {
-										if i >= data.CurrentPage-2 && i <= data.CurrentPage+2 {
-											if i == data.CurrentPage {
-												<span class="page-num current">{ strconv.Itoa(i) }</span>
-											} else {
-												<a href={ templ.URL("/datasource/" + data.Datasource + "?page=" + strconv.Itoa(i)) } class="page-num">{ strconv.Itoa(i) }</a>
-											}
-										}
+									// Show current page and nearby pages
+									if data.CurrentPage > 1 {
+										<a href={ templ.URL("/datasource/" + data.Datasource + "?page=" + strconv.Itoa(data.CurrentPage-1)) } class="page-num">{ strconv.Itoa(data.CurrentPage-1) }</a>
 									}
-									// Show last page if we're not near the end
-									if data.CurrentPage < data.TotalPages-2 {
-										if data.CurrentPage < data.TotalPages-3 {
-											<span class="page-ellipsis">...</span>
-										}
-										<a href={ templ.URL("/datasource/" + data.Datasource + "?page=" + strconv.Itoa(data.TotalPages)) } class="page-num">{ strconv.Itoa(data.TotalPages) }</a>
+									<span class="page-num current">{ strconv.Itoa(data.CurrentPage) }</span>
+									if data.HasNextPage {
+										<a href={ templ.URL("/datasource/" + data.Datasource + "?page=" + strconv.Itoa(data.CurrentPage+1)) } class="page-num">{ strconv.Itoa(data.CurrentPage+1) }</a>
 									}
 								</div>
 								if data.HasNextPage {

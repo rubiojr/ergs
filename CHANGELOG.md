@@ -2,6 +2,14 @@
 
 All notable changes to Ergs will be documented in this file.
 
+## [1.5.0] - 2025-08-05
+
+### ✨ New Features
+
+- **Faster search** across many datasources
+
+---
+
 ## [1.4.4] - 2025-08-04
 
 ### ✨ New Features

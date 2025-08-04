@@ -239,6 +239,63 @@ func (s *GenericStorage) SearchBlocks(query string, limit int) ([]core.Block, er
 	return blocks, rows.Err()
 }
 
+// SearchBlocksByTime searches blocks and orders them strictly by creation time (newest first)
+func (s *GenericStorage) SearchBlocksByTime(query string, limit int) ([]core.Block, error) {
+	var sqlQuery string
+	var args []interface{}
+
+	if query != "" {
+		// Escape FTS5 query for special characters
+		escapedQuery := escapeFTS5Query(query)
+		sqlQuery = `
+			SELECT b.id, b.text, b.created_at, b.source, b.datasource, b.metadata
+			FROM blocks b
+			JOIN blocks_fts fts ON b.rowid = fts.rowid
+			WHERE blocks_fts MATCH ?
+			ORDER BY b.created_at DESC
+			LIMIT ?`
+		args = []interface{}{escapedQuery, limit}
+	} else {
+		sqlQuery = `
+			SELECT id, text, created_at, source, datasource, metadata
+			FROM blocks
+			ORDER BY created_at DESC
+			LIMIT ?`
+		args = []interface{}{limit}
+	}
+
+	rows, err := s.db.Query(sqlQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("querying blocks: %w", err)
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			fmt.Printf("Warning: failed to close rows: %v\n", err)
+		}
+	}()
+
+	var blocks []core.Block
+	for rows.Next() {
+		var id, text, source, datasourceType, metadataStr string
+		var createdAt time.Time
+
+		err = rows.Scan(&id, &text, &createdAt, &source, &datasourceType, &metadataStr)
+		if err != nil {
+			return nil, fmt.Errorf("scanning row: %w", err)
+		}
+
+		var metadata map[string]interface{}
+		if err := json.Unmarshal([]byte(metadataStr), &metadata); err != nil {
+			return nil, fmt.Errorf("unmarshaling metadata for block %s: %w", id, err)
+		}
+
+		block := core.NewGenericBlock(id, text, source, datasourceType, createdAt, metadata)
+		blocks = append(blocks, block)
+	}
+
+	return blocks, rows.Err()
+}
+
 func (s *GenericStorage) GetBlocksSince(since time.Time) ([]core.Block, error) {
 	query := `
 		SELECT id, text, created_at, source, datasource, metadata

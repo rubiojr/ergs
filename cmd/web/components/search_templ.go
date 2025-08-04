@@ -433,26 +433,13 @@ func resultsWithPagination(data types.PageData) templ.Component {
 		var templ_7745c5c3_Var14 string
 		templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.CurrentPage))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/search.templ`, Line: 125, Col: 35}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/search.templ`, Line: 124, Col: 110}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, " of ")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var15 string
-		templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.TotalPages))
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/search.templ`, Line: 125, Col: 72}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, ")</p></div><div class=\"results-section\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, ")</p></div><div class=\"results-section\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -464,7 +451,7 @@ func resultsWithPagination(data types.PageData) templ.Component {
 				}
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -493,51 +480,51 @@ func datasourceResult(datasource string, blocks []types.WebBlock) templ.Componen
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var16 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var16 == nil {
-			templ_7745c5c3_Var16 = templ.NopComponent
+		templ_7745c5c3_Var15 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var15 == nil {
+			templ_7745c5c3_Var15 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "<div class=\"datasource-results\"><h3 class=\"datasource-title\"><a href=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "<div class=\"datasource-results\"><h3 class=\"datasource-title\"><a href=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var17 templ.SafeURL
-		templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL("/datasource/" + datasource))
+		var templ_7745c5c3_Var16 templ.SafeURL
+		templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL("/datasource/" + datasource))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/search.templ`, Line: 142, Col: 51}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/search.templ`, Line: 141, Col: 51}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var17 string
+		templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(datasource)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/search.templ`, Line: 141, Col: 66}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "</a> <span class=\"result-count\">(")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var18 string
-		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(datasource)
+		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(len(blocks)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/search.templ`, Line: 142, Col: 66}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/search.templ`, Line: 142, Col: 58}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "</a> <span class=\"result-count\">(")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var19 string
-		templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(len(blocks)))
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/search.templ`, Line: 143, Col: 58}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, " results)</span></h3><div class=\"blocks\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, " results)</span></h3><div class=\"blocks\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -547,7 +534,7 @@ func datasourceResult(datasource string, blocks []types.WebBlock) templ.Componen
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "</div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "</div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -572,84 +559,71 @@ func pagination(data types.PageData) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var20 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var20 == nil {
-			templ_7745c5c3_Var20 = templ.NopComponent
+		templ_7745c5c3_Var19 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var19 == nil {
+			templ_7745c5c3_Var19 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "<div class=\"pagination\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "<div class=\"pagination\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if data.CurrentPage > 1 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "<a href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "<a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var21 templ.SafeURL
-			templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL("/search?q=" + data.Query + "&" + buildDatasourceParams(data.SelectedDatasources) + "&limit=" + strconv.Itoa(data.PageSize) + "&page=" + strconv.Itoa(data.CurrentPage-1)))
+			var templ_7745c5c3_Var20 templ.SafeURL
+			templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL("/search?q=" + data.Query + "&" + buildDatasourceParams(data.SelectedDatasources) + "&limit=" + strconv.Itoa(data.PageSize) + "&page=" + strconv.Itoa(data.CurrentPage-1)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/search.templ`, Line: 158, Col: 191}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/search.templ`, Line: 157, Col: 191}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "\" class=\"pagination-btn\">← Previous</a> ")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "\" class=\"pagination-btn\">← Previous</a> ")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "<span class=\"page-info\">Page ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "<span class=\"page-info\">Page ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var22 string
-		templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.CurrentPage))
+		var templ_7745c5c3_Var21 string
+		templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.CurrentPage))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/search.templ`, Line: 162, Col: 63}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/search.templ`, Line: 162, Col: 40}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, " of ")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var23 string
-		templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.TotalPages))
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/search.templ`, Line: 162, Col: 100}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "</span> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "</span> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if data.HasNextPage {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "<a href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "<a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var24 templ.SafeURL
-			templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL("/search?q=" + data.Query + "&" + buildDatasourceParams(data.SelectedDatasources) + "&limit=" + strconv.Itoa(data.PageSize) + "&page=" + strconv.Itoa(data.CurrentPage+1)))
+			var templ_7745c5c3_Var22 templ.SafeURL
+			templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL("/search?q=" + data.Query + "&" + buildDatasourceParams(data.SelectedDatasources) + "&limit=" + strconv.Itoa(data.PageSize) + "&page=" + strconv.Itoa(data.CurrentPage+1)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/search.templ`, Line: 165, Col: 191}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/search.templ`, Line: 166, Col: 191}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "\" class=\"pagination-btn\">Next →</a>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "\" class=\"pagination-btn\">Next →</a>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -674,25 +648,25 @@ func noResults(query string) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var25 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var25 == nil {
-			templ_7745c5c3_Var25 = templ.NopComponent
+		templ_7745c5c3_Var23 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var23 == nil {
+			templ_7745c5c3_Var23 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "<div class=\"no-results\"><h3>No results found</h3><p>No results found for \"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "<div class=\"no-results\"><h3>No results found</h3><p>No results found for \"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var26 string
-		templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(query)
+		var templ_7745c5c3_Var24 string
+		templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(query)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/search.templ`, Line: 176, Col: 34}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/search.templ`, Line: 177, Col: 34}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "\". Try different search terms.</p></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "\". Try different search terms.</p></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -717,12 +691,12 @@ func searchHelp() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var27 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var27 == nil {
-			templ_7745c5c3_Var27 = templ.NopComponent
+		templ_7745c5c3_Var25 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var25 == nil {
+			templ_7745c5c3_Var25 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 45, "<div class=\"search-help\"><h3>Search Your Data</h3><p>Enter a search query above to find content across all your datasources.</p><p><a href=\"/datasources\">Browse datasources individually</a> or use the search above to find specific content.</p></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "<div class=\"search-help\"><h3>Search Your Data</h3><p>Enter a search query above to find content across all your datasources.</p><p><a href=\"/datasources\">Browse datasources individually</a> or use the search above to find specific content.</p></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -747,12 +721,12 @@ func searchScript() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var28 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var28 == nil {
-			templ_7745c5c3_Var28 = templ.NopComponent
+		templ_7745c5c3_Var26 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var26 == nil {
+			templ_7745c5c3_Var26 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 46, "<script>\n\t\tdocument.addEventListener('DOMContentLoaded', function() {\n\t\t\tinitializeChoices();\n\t\t\taddKeyboardShortcuts();\n\t\t});\n\n\t\tfunction initializeChoices() {\n\t\t\tconst datasourceSelect = document.getElementById('datasource-select');\n\t\t\tif (!datasourceSelect) return;\n\n\t\t\tconst choices = new Choices(datasourceSelect, {\n\t\t\t\tremoveItemButton: true,\n\t\t\t\tsearchEnabled: true,\n\t\t\t\tsearchPlaceholderValue: 'Search datasources...',\n\t\t\t\tplaceholder: false,\n\t\t\t\tnoResultsText: 'No datasources found',\n\t\t\t\tnoChoicesText: 'No datasources available',\n\t\t\t\titemSelectText: 'Press to select'\n\t\t\t});\n\n\t\t\tsetupCustomPlaceholder(choices);\n\t\t}\n\n\t\tfunction setupCustomPlaceholder(choices) {\n\t\t\tfunction updatePlaceholder() {\n\t\t\t\tconst choicesInner = document.querySelector('.choices__inner');\n\t\t\t\tconst selectedItems = choices.getValue();\n\t\t\t\tlet placeholder = choicesInner.querySelector('.custom-placeholder');\n\t\t\t\t\n\t\t\t\tif (selectedItems.length === 0) {\n\t\t\t\t\tif (!placeholder) {\n\t\t\t\t\t\tplaceholder = document.createElement('div');\n\t\t\t\t\t\tplaceholder.className = 'custom-placeholder';\n\t\t\t\t\t\tplaceholder.textContent = 'All datasources (leave empty to search all)';\n\t\t\t\t\t\tplaceholder.style.cssText = 'color: #6c757d; pointer-events: none; position: absolute; left: 12px; top: 50%; transform: translateY(-50%);';\n\t\t\t\t\t\tchoicesInner.style.position = 'relative';\n\t\t\t\t\t\tchoicesInner.appendChild(placeholder);\n\t\t\t\t\t}\n\t\t\t\t\tplaceholder.style.display = 'block';\n\t\t\t\t} else if (placeholder) {\n\t\t\t\t\tplaceholder.style.display = 'none';\n\t\t\t\t}\n\t\t\t}\n\n\t\t\t// Listen for changes and update placeholder\n\t\t\tconst select = document.getElementById('datasource-select');\n\t\t\tselect.addEventListener('addItem', updatePlaceholder);\n\t\t\tselect.addEventListener('removeItem', updatePlaceholder);\n\t\t\t\n\t\t\t// Initial update\n\t\t\tsetTimeout(updatePlaceholder, 100);\n\t\t}\n\n\t\tfunction addKeyboardShortcuts() {\n\t\t\tdocument.addEventListener('keydown', function(e) {\n\t\t\t\t// Ctrl/Cmd + D to focus datasource select\n\t\t\t\tif ((e.ctrlKey || e.metaKey) && e.key === 'd') {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\tconst choicesInput = document.querySelector('.choices__input--cloned');\n\t\t\t\t\tif (choicesInput) {\n\t\t\t\t\t\tchoicesInput.focus();\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t});\n\t\t}\n\t</script>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "<script>\n\t\tdocument.addEventListener('DOMContentLoaded', function() {\n\t\t\tinitializeChoices();\n\t\t\taddKeyboardShortcuts();\n\t\t});\n\n\t\tfunction initializeChoices() {\n\t\t\tconst datasourceSelect = document.getElementById('datasource-select');\n\t\t\tif (!datasourceSelect) return;\n\n\t\t\tconst choices = new Choices(datasourceSelect, {\n\t\t\t\tremoveItemButton: true,\n\t\t\t\tsearchEnabled: true,\n\t\t\t\tsearchPlaceholderValue: 'Search datasources...',\n\t\t\t\tplaceholder: false,\n\t\t\t\tnoResultsText: 'No datasources found',\n\t\t\t\tnoChoicesText: 'No datasources available',\n\t\t\t\titemSelectText: 'Press to select'\n\t\t\t});\n\n\t\t\tsetupCustomPlaceholder(choices);\n\t\t}\n\n\t\tfunction setupCustomPlaceholder(choices) {\n\t\t\tfunction updatePlaceholder() {\n\t\t\t\tconst choicesInner = document.querySelector('.choices__inner');\n\t\t\t\tconst selectedItems = choices.getValue();\n\t\t\t\tlet placeholder = choicesInner.querySelector('.custom-placeholder');\n\t\t\t\t\n\t\t\t\tif (selectedItems.length === 0) {\n\t\t\t\t\tif (!placeholder) {\n\t\t\t\t\t\tplaceholder = document.createElement('div');\n\t\t\t\t\t\tplaceholder.className = 'custom-placeholder';\n\t\t\t\t\t\tplaceholder.textContent = 'All datasources (leave empty to search all)';\n\t\t\t\t\t\tplaceholder.style.cssText = 'color: #6c757d; pointer-events: none; position: absolute; left: 12px; top: 50%; transform: translateY(-50%);';\n\t\t\t\t\t\tchoicesInner.style.position = 'relative';\n\t\t\t\t\t\tchoicesInner.appendChild(placeholder);\n\t\t\t\t\t}\n\t\t\t\t\tplaceholder.style.display = 'block';\n\t\t\t\t} else if (placeholder) {\n\t\t\t\t\tplaceholder.style.display = 'none';\n\t\t\t\t}\n\t\t\t}\n\n\t\t\t// Listen for changes and update placeholder\n\t\t\tconst select = document.getElementById('datasource-select');\n\t\t\tselect.addEventListener('addItem', updatePlaceholder);\n\t\t\tselect.addEventListener('removeItem', updatePlaceholder);\n\t\t\t\n\t\t\t// Initial update\n\t\t\tsetTimeout(updatePlaceholder, 100);\n\t\t}\n\n\t\tfunction addKeyboardShortcuts() {\n\t\t\tdocument.addEventListener('keydown', function(e) {\n\t\t\t\t// Ctrl/Cmd + D to focus datasource select\n\t\t\t\tif ((e.ctrlKey || e.metaKey) && e.key === 'd') {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\tconst choicesInput = document.querySelector('.choices__input--cloned');\n\t\t\t\t\tif (choicesInput) {\n\t\t\t\t\t\tchoicesInput.focus();\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t});\n\t\t}\n\t</script>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

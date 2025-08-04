@@ -5,6 +5,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"sort"
 
 	"log"
 	"net/http"
@@ -193,24 +194,8 @@ func (s *WebServer) handleAPIListDatasources(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	datasources := s.registry.GetAllDatasources()
-	datasourceInfos := make([]types.DatasourceInfo, 0, len(datasources))
-
-	for name, ds := range datasources {
-		info := types.DatasourceInfo{
-			Name: name,
-			Type: ds.Type(),
-		}
-
-		// Try to get stats for this datasource
-		if stats, err := s.storageManager.GetStats(); err == nil {
-			if dsStats, exists := stats[name]; exists {
-				info.Stats = dsStats.(map[string]interface{})
-			}
-		}
-
-		datasourceInfos = append(datasourceInfos, info)
-	}
+	// Use the shared method that already sorts alphabetically
+	datasourceInfos := s.getDatasourceList()
 
 	response := ListDatasourcesResponse{
 		Datasources: datasourceInfos,
@@ -300,24 +285,31 @@ func (s *WebServer) handleAPISearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Parse pagination parameters
 	limitStr := r.URL.Query().Get("limit")
-	limit := 20 // default
+	limit := 30 // default to match web interface
 	if limitStr != "" {
 		if parsed, err := strconv.Atoi(limitStr); err == nil && parsed > 0 {
 			limit = parsed
 		}
 	}
 
-	// Search across all datasources
-	results, err := s.storageManager.SearchAllDatasources(query, limit)
-	if err != nil {
-		s.writeError(w, http.StatusInternalServerError, "Search failed", err.Error())
-		return
+	pageStr := r.URL.Query().Get("page")
+	page := 1 // default
+	if pageStr != "" {
+		if parsed, err := strconv.Atoi(pageStr); err == nil && parsed > 0 {
+			page = parsed
+		}
 	}
+
+	// Parse datasource filters
+	datasourceFilters := r.URL.Query()["datasource"]
+
+	// Use the same pagination logic as web interface
+	results, totalResults, hasMoreResults, totalPages := s.getSearchResults(query, datasourceFilters, page, limit)
 
 	// Convert results to response format
 	searchResults := make(map[string]ListBlocksResponse)
-	totalCount := 0
 
 	for datasourceName, blocks := range results {
 		blockResponses := make([]BlockResponse, len(blocks))
@@ -337,13 +329,16 @@ func (s *WebServer) handleAPISearch(w http.ResponseWriter, r *http.Request) {
 			Count:      len(blockResponses),
 			Query:      query,
 		}
-		totalCount += len(blockResponses)
 	}
 
 	response := map[string]interface{}{
 		"query":       query,
 		"results":     searchResults,
-		"total_count": totalCount,
+		"total_count": totalResults,
+		"page":        page,
+		"limit":       limit,
+		"total_pages": totalPages,
+		"has_more":    hasMoreResults,
 	}
 
 	s.writeJSON(w, http.StatusOK, response)
@@ -487,104 +482,61 @@ func (s *WebServer) handleSearch(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// getSearchResults searches across specified datasource(s) with equal distribution
+// getSearchResults searches across specified datasource(s) with efficient pagination ordered by time
 func (s *WebServer) getSearchResults(query string, datasourceFilters []string, page, totalLimit int) (map[string][]core.Block, int, bool, int) {
-	datasourceList := s.getDatasourceList()
-	if len(datasourceList) == 0 {
+	var results map[string][]core.Block
+	var err error
+
+	// Search either specific datasources or all datasources
+	if len(datasourceFilters) > 0 {
+		results, err = s.storageManager.SearchDatasourcesPaged(datasourceFilters, query, totalLimit*page*2, page, totalLimit)
+	} else {
+		results, err = s.storageManager.SearchAllDatasourcesPaged(query, totalLimit*page*2, page, totalLimit)
+	}
+	if err != nil {
 		return make(map[string][]core.Block), 0, false, 1
 	}
 
-	// Filter datasources if specified
-	if len(datasourceFilters) > 0 {
-		var filteredList []types.DatasourceInfo
-		filterMap := make(map[string]bool)
-		for _, filter := range datasourceFilters {
-			filterMap[filter] = true
-		}
-
-		for _, ds := range datasourceList {
-			if filterMap[ds.Name] {
-				filteredList = append(filteredList, ds)
-			}
-		}
-
-		datasourceList = filteredList
-		if len(datasourceList) == 0 {
-			return make(map[string][]core.Block), 0, false, 1
-		}
-	}
-
-	// First, get total count of available results across all datasources
-	totalAvailableResults := 0
-	for _, dsInfo := range datasourceList {
-		allBlocks, err := s.storageManager.SearchBlocks(dsInfo.Name, query, 10000) // Get a large number to count total
-		if err == nil {
-			totalAvailableResults += len(allBlocks)
-		}
-	}
-
-	// Calculate total pages first
-	totalPages := (totalAvailableResults + totalLimit - 1) / totalLimit
-	if totalPages == 0 {
-		totalPages = 1
-	}
-
-	// Check if requested page is valid
-	if page > totalPages {
-		return make(map[string][]core.Block), 0, false, totalPages
-	}
-
-	// Calculate global offset for this page
-	globalOffset := (page - 1) * totalLimit
-
-	// Collect results with global pagination
-	results := make(map[string][]core.Block)
+	// Count actual results returned for this page
 	totalResults := 0
-	currentOffset := 0
-
-	for _, dsInfo := range datasourceList {
-		if totalResults >= totalLimit {
-			break
-		}
-
-		// Get all blocks from this datasource
-		allBlocks, err := s.storageManager.SearchBlocks(dsInfo.Name, query, 10000)
-		if err != nil {
-			continue
-		}
-
-		// Skip blocks until we reach the global offset
-		if currentOffset+len(allBlocks) <= globalOffset {
-			currentOffset += len(allBlocks)
-			continue
-		}
-
-		// Calculate start position within this datasource's results
-		startInDs := 0
-		if globalOffset > currentOffset {
-			startInDs = globalOffset - currentOffset
-		}
-
-		// Take blocks from this datasource
-		remainingLimit := totalLimit - totalResults
-		endInDs := startInDs + remainingLimit
-		if endInDs > len(allBlocks) {
-			endInDs = len(allBlocks)
-		}
-
-		if startInDs < len(allBlocks) {
-			dsBlocks := allBlocks[startInDs:endInDs]
-			if len(dsBlocks) > 0 {
-				results[dsInfo.Name] = dsBlocks
-				totalResults += len(dsBlocks)
-			}
-		}
-
-		currentOffset += len(allBlocks)
+	for _, blocks := range results {
+		totalResults += len(blocks)
 	}
 
-	// Check if there are more results
-	hasMoreResults := page < totalPages
+	// If we got no results, this page doesn't exist
+	if totalResults == 0 && page > 1 {
+		return make(map[string][]core.Block), 0, false, page
+	}
+
+	// Check if there are more results by trying to get one more result
+	hasMoreResults := false
+	if totalResults == totalLimit {
+		// Try to get the next page to see if it has results
+		var nextPageResults map[string][]core.Block
+		if len(datasourceFilters) > 0 {
+			nextPageResults, err = s.storageManager.SearchDatasourcesPaged(datasourceFilters, query, totalLimit*(page+1)*2, page+1, 1)
+		} else {
+			nextPageResults, err = s.storageManager.SearchAllDatasourcesPaged(query, totalLimit*(page+1)*2, page+1, 1)
+		}
+		if err == nil {
+			nextPageCount := 0
+			for _, blocks := range nextPageResults {
+				nextPageCount += len(blocks)
+			}
+			hasMoreResults = nextPageCount > 0
+		}
+	}
+
+	// Calculate total pages - we don't know the exact total, so estimate conservatively
+	totalPages := page
+	if hasMoreResults {
+		totalPages = page + 1 // We know there's at least one more page
+	}
+
+	// For pages beyond available results, ensure totalPages >= page
+	if totalResults == 0 && page > 1 {
+		totalPages = page // This page exists but is empty
+	}
 
 	return results, totalResults, hasMoreResults, totalPages
 }
@@ -750,6 +702,11 @@ func (s *WebServer) getDatasourceList() []types.DatasourceInfo {
 
 		datasourceInfos = append(datasourceInfos, info)
 	}
+
+	// Sort datasources alphabetically by name
+	sort.Slice(datasourceInfos, func(i, j int) bool {
+		return datasourceInfos[i].Name < datasourceInfos[j].Name
+	})
 
 	return datasourceInfos
 }

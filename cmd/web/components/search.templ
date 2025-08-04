@@ -121,8 +121,7 @@ templ searchResults(data types.PageData) {
 templ resultsWithPagination(data types.PageData) {
 	<div class="results-summary">
 		<p>
-			Found { strconv.Itoa(data.TotalCount) } results for "{ data.Query }" (Page
-			{ strconv.Itoa(data.CurrentPage) } of { strconv.Itoa(data.TotalPages) })
+			Found { strconv.Itoa(data.TotalCount) } results for "{ data.Query }" (Page { strconv.Itoa(data.CurrentPage) })
 		</p>
 	</div>
 	<div class="results-section">
@@ -159,7 +158,9 @@ templ pagination(data types.PageData) {
 				class="pagination-btn"
 			>← Previous</a>
 		}
-		<span class="page-info">Page { strconv.Itoa(data.CurrentPage) } of { strconv.Itoa(data.TotalPages) }</span>
+		<span class="page-info">
+			Page { strconv.Itoa(data.CurrentPage) }
+		</span>
 		if data.HasNextPage {
 			<a
 				href={ templ.URL("/search?q=" + data.Query + "&" + buildDatasourceParams(data.SelectedDatasources) + "&limit=" + strconv.Itoa(data.PageSize) + "&page=" + strconv.Itoa(data.CurrentPage+1)) }
