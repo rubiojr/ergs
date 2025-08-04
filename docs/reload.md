@@ -204,7 +204,10 @@ Make incremental changes rather than wholesale configuration rewrites to make tr
 
 ### 6. Editor Considerations
 
-Some editors create temporary files or use atomic writes. Ergs handles these gracefully, but you might see multiple reload events.
+Some editors create temporary files or use atomic writes (rename operations). Ergs handles these gracefully:
+- **Atomic writes**: Editors like vim, VS Code, and nano that rename temp files over the original are fully supported
+- **File removal**: If the config file is deleted without replacement, reload is skipped to prevent errors
+- **Multiple events**: Some editors may trigger multiple file system events; each is handled safely
 
 ## Integration with Process Managers
 
@@ -239,6 +242,7 @@ docker-compose kill -s HUP ergs
 - **Database connections**: Existing database connections are closed and reopened
 - **File system events**: Some editors may trigger multiple reload events; this is harmless
 - **Network file systems**: File watching may not work reliably on some network-mounted file systems
+- **File removal**: If config file is deleted (not replaced), reload is skipped until file is recreated
 
 ## Troubleshooting
 
@@ -309,7 +313,15 @@ If you see multiple reload events from a single file save:
 
 1. This is normal behavior with some editors
 2. Each reload is harmless and will use the latest file content
-3. Consider using editors that perform atomic writes if this is problematic
+3. Atomic writes (rename operations) are fully supported and handled correctly
+
+### File Removal Handling
+
+If the config file is removed:
+
+1. **Atomic writes**: File replaced via rename - reload happens normally
+2. **Actual deletion**: File removed without replacement - reload is skipped
+3. **Recovery**: Recreate the config file to resume automatic reloading
 
 ### File Watching Errors
 
