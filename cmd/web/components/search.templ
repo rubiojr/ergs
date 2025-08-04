@@ -2,395 +2,261 @@ package components
 
 import (
 	"github.com/rubiojr/ergs/cmd/web/components/types"
+	"net/url"
 	"strconv"
 )
+
+// buildDatasourceParams creates URL parameters for selected datasources
+func buildDatasourceParams(selectedDatasources []string) string {
+	if len(selectedDatasources) == 0 {
+		return ""
+	}
+	params := url.Values{}
+	for _, ds := range selectedDatasources {
+		params.Add("datasource", ds)
+	}
+	return params.Encode()
+}
+
+// isDatasourceSelected checks if a datasource is in the selected list
+func isDatasourceSelected(datasourceName string, selectedDatasources []string) bool {
+	for _, selected := range selectedDatasources {
+		if selected == datasourceName {
+			return true
+		}
+	}
+	return false
+}
 
 templ Search(data types.PageData) {
 	@Layout(data) {
 		<div class="search-page">
-			<div class="search-header">
-				<h2>
-					<svg class="header-icon" viewBox="0 0 24 24" fill="currentColor">
+			@searchHeader()
+			@searchForm(data)
+			@searchResults(data)
+		</div>
+
+		@searchScript()
+	}
+}
+
+// searchHeader renders the page header with title and search icon
+templ searchHeader() {
+	<div class="search-header">
+		<h2>
+			<svg class="header-icon" viewBox="0 0 24 24" fill="currentColor">
+				<path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+			</svg>
+			Search Data
+		</h2>
+	</div>
+}
+
+// searchForm renders the search form with input and controls
+templ searchForm(data types.PageData) {
+	<form action="/search" method="GET" class="search-form">
+		<div class="search-controls">
+			<input
+				type="text"
+				name="q"
+				class="search-input"
+				placeholder="Search across all datasources..."
+				value={ data.Query }
+				autocomplete="off"
+			/>
+			<div class="form-row">
+				@datasourceSelect(data)
+				@limitSelect(data)
+				<button type="submit" class="search-button">
+					<svg viewBox="0 0 24 24" fill="currentColor">
 						<path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
 					</svg>
-					Search Data
-				</h2>
-				<form action="/search" method="GET" class="search-form">
-					<div class="search-controls">
-						<input
-							type="text"
-							name="q"
-							class="search-input"
-							placeholder="Search across all datasources..."
-							value={ data.Query }
-							autocomplete="off"
-						/>
-						<div class="form-row">
-							<select name="datasource" class="datasource-select">
-								<option value="">All Sources</option>
-								for _, ds := range data.Datasources {
-									<option
-										value={ ds.Name }
-										if ds.Name == data.Datasource {
-											selected
-										}
-									>
-										{ ds.Name }
-									</option>
-								}
-							</select>
-							<select name="limit" class="limit-select">
-								<option
-									value="20"
-									if data.PageSize == 20 {
-										selected
-									}
-								>20</option>
-								<option
-									value="30"
-									if data.PageSize == 30 || data.PageSize == 0 {
-										selected
-									}
-								>30</option>
-								<option
-									value="50"
-									if data.PageSize == 50 {
-										selected
-									}
-								>50</option>
-								<option
-									value="100"
-									if data.PageSize == 100 {
-										selected
-									}
-								>100</option>
-							</select>
-							<button type="submit" class="search-button">
-								<svg viewBox="0 0 24 24" fill="currentColor">
-									<path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
-								</svg>
-								Search
-							</button>
-						</div>
-					</div>
-				</form>
+					Search
+				</button>
 			</div>
-			if data.Query != "" {
-				if len(data.Results) > 0 {
-					<div class="results-summary">
-						<p>
-							Found { strconv.Itoa(data.TotalCount) } results for "{ data.Query }" (Page
-							{ strconv.Itoa(data.CurrentPage) } of { strconv.Itoa(data.TotalPages) })
-						</p>
-					</div>
-					<div class="results-section">
-						for datasource, blocks := range data.Results {
-							if len(blocks) > 0 {
-								<div class="datasource-results">
-									<h3 class="datasource-title">
-										<a href={ templ.URL("/datasource/" + datasource) }>{ datasource }</a>
-										<span class="result-count">({ strconv.Itoa(len(blocks)) } results)</span>
-									</h3>
-									<div class="blocks">
-										for _, block := range blocks {
-											@templ.Raw(block.FormattedText)
-										}
-									</div>
-								</div>
-							}
-						}
-					</div>
-					<div class="pagination">
-						if data.CurrentPage > 1 {
-							<a
-								href={ templ.URL("/search?q=" + data.Query + "&datasource=" + data.Datasource + "&limit=" + strconv.Itoa(data.PageSize) + "&page=" + strconv.Itoa(data.CurrentPage-1)) }
-								class="pagination-btn"
-							>← Previous</a>
-						}
-						<span class="page-info">Page { strconv.Itoa(data.CurrentPage) } of { strconv.Itoa(data.TotalPages) }</span>
-						if data.HasNextPage {
-							<a
-								href={ templ.URL("/search?q=" + data.Query + "&datasource=" + data.Datasource + "&limit=" + strconv.Itoa(data.PageSize) + "&page=" + strconv.Itoa(data.CurrentPage+1)) }
-								class="pagination-btn"
-							>Next →</a>
-						}
-					</div>
-				} else {
-					<div class="no-results">
-						<h3>No results found</h3>
-						<p>No results found for "{ data.Query }". Try different search terms.</p>
-					</div>
+		</div>
+	</form>
+}
+
+// datasourceSelect renders the multi-select dropdown for datasources
+templ datasourceSelect(data types.PageData) {
+	<select name="datasource" multiple class="datasource-select" id="datasource-select">
+		for _, ds := range data.Datasources {
+			<option
+				value={ ds.Name }
+				if isDatasourceSelected(ds.Name, data.SelectedDatasources) {
+					selected
 				}
-			} else {
-				<div class="search-help">
-					<h3>Search Your Data</h3>
-					<p>
-						Enter a search query above to find content across all your
-						datasources.
-					</p>
-					<p>
-						<a href="/datasources">Browse datasources individually</a> or use
-						the search above to find specific content.
-					</p>
-				</div>
+			>
+				{ ds.Name }
+			</option>
+		}
+	</select>
+}
+
+// limitSelect renders the results per page selector
+templ limitSelect(data types.PageData) {
+	<select name="limit" class="limit-select">
+		<option value="20" if data.PageSize == 20 { selected }>20</option>
+		<option value="30" if data.PageSize == 30 || data.PageSize == 0 { selected }>30</option>
+		<option value="50" if data.PageSize == 50 { selected }>50</option>
+		<option value="100" if data.PageSize == 100 { selected }>100</option>
+	</select>
+}
+
+// searchResults renders search results, no results, or help text
+templ searchResults(data types.PageData) {
+	if data.Query != "" {
+		if len(data.Results) > 0 {
+			@resultsWithPagination(data)
+		} else {
+			@noResults(data.Query)
+		}
+	} else {
+		@searchHelp()
+	}
+}
+
+// resultsWithPagination renders search results and pagination
+templ resultsWithPagination(data types.PageData) {
+	<div class="results-summary">
+		<p>
+			Found { strconv.Itoa(data.TotalCount) } results for "{ data.Query }" (Page
+			{ strconv.Itoa(data.CurrentPage) } of { strconv.Itoa(data.TotalPages) })
+		</p>
+	</div>
+	<div class="results-section">
+		for datasource, blocks := range data.Results {
+			if len(blocks) > 0 {
+				@datasourceResult(datasource, blocks)
+			}
+		}
+	</div>
+	@pagination(data)
+}
+
+// datasourceResult renders results for a single datasource
+templ datasourceResult(datasource string, blocks []types.WebBlock) {
+	<div class="datasource-results">
+		<h3 class="datasource-title">
+			<a href={ templ.URL("/datasource/" + datasource) }>{ datasource }</a>
+			<span class="result-count">({ strconv.Itoa(len(blocks)) } results)</span>
+		</h3>
+		<div class="blocks">
+			for _, block := range blocks {
+				@templ.Raw(block.FormattedText)
 			}
 		</div>
-		<style>
-			.search-page {
-				max-width: 900px;
-				margin: 0 auto;
-				padding: 1rem;
-			}
+	</div>
+}
 
-			.search-header {
-				margin-bottom: 2rem;
-				background: none;
-				border-radius: 0;
-				padding: 0;
-				box-shadow: none;
-			}
+// pagination renders the pagination controls
+templ pagination(data types.PageData) {
+	<div class="pagination">
+		if data.CurrentPage > 1 {
+			<a
+				href={ templ.URL("/search?q=" + data.Query + "&" + buildDatasourceParams(data.SelectedDatasources) + "&limit=" + strconv.Itoa(data.PageSize) + "&page=" + strconv.Itoa(data.CurrentPage-1)) }
+				class="pagination-btn"
+			>← Previous</a>
+		}
+		<span class="page-info">Page { strconv.Itoa(data.CurrentPage) } of { strconv.Itoa(data.TotalPages) }</span>
+		if data.HasNextPage {
+			<a
+				href={ templ.URL("/search?q=" + data.Query + "&" + buildDatasourceParams(data.SelectedDatasources) + "&limit=" + strconv.Itoa(data.PageSize) + "&page=" + strconv.Itoa(data.CurrentPage+1)) }
+				class="pagination-btn"
+			>Next →</a>
+		}
+	</div>
+}
 
-			.search-header h2 {
-				display: flex;
-				align-items: center;
-				gap: 0.75rem;
-				margin-bottom: 1.5rem;
-				color: #2c3e50;
-				font-size: 1.5rem;
-				font-weight: 600;
-			}
+// noResults renders the no results message
+templ noResults(query string) {
+	<div class="no-results">
+		<h3>No results found</h3>
+		<p>No results found for "{ query }". Try different search terms.</p>
+	</div>
+}
 
-			.header-icon {
-				width: 24px;
-				height: 24px;
-				color: #007bff;
-			}
+// searchHelp renders the help text when no search has been performed
+templ searchHelp() {
+	<div class="search-help">
+		<h3>Search Your Data</h3>
+		<p>Enter a search query above to find content across all your datasources.</p>
+		<p>
+			<a href="/datasources">Browse datasources individually</a> or use
+			the search above to find specific content.
+		</p>
+	</div>
+}
 
-			.search-controls {
-				display: flex;
-				flex-direction: column;
-				gap: 1rem;
-			}
 
-			.search-input {
-				width: 100%;
-				padding: 0.875rem 1rem;
-				border: 2px solid #e9ecef;
-				border-radius: 10px;
-				font-size: 1rem;
-				transition: border-color 0.2s ease;
-			}
 
-			.search-input:focus {
-				outline: none;
-				border-color: #007bff;
-				box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
-			}
+// searchScript contains the JavaScript for search functionality
+templ searchScript() {
+	<script>
+		document.addEventListener('DOMContentLoaded', function() {
+			initializeChoices();
+			addKeyboardShortcuts();
+		});
 
-			.form-row {
-				display: flex;
-				gap: 0.75rem;
-				align-items: center;
-			}
+		function initializeChoices() {
+			const datasourceSelect = document.getElementById('datasource-select');
+			if (!datasourceSelect) return;
 
-			.datasource-select,
-			.limit-select {
-				padding: 0.625rem 0.75rem;
-				border: 1px solid #e9ecef;
-				border-radius: 8px;
-				background: white;
-				font-size: 0.9rem;
-				cursor: pointer;
-				transition: border-color 0.2s ease;
-			}
+			const choices = new Choices(datasourceSelect, {
+				removeItemButton: true,
+				searchEnabled: true,
+				searchPlaceholderValue: 'Search datasources...',
+				placeholder: false,
+				noResultsText: 'No datasources found',
+				noChoicesText: 'No datasources available',
+				itemSelectText: 'Press to select'
+			});
 
-			.datasource-select:focus,
-			.limit-select:focus {
-				outline: none;
-				border-color: #007bff;
-			}
+			setupCustomPlaceholder(choices);
+		}
 
-			.datasource-select {
-				flex: 1;
-				min-width: 140px;
-			}
-
-			.limit-select {
-				width: 80px;
-			}
-
-			.search-button {
-				display: flex;
-				align-items: center;
-				gap: 0.5rem;
-				padding: 0.625rem 1.25rem;
-				background: linear-gradient(135deg, #007bff, #0056b3);
-				color: white;
-				border: none;
-				border-radius: 8px;
-				cursor: pointer;
-				transition: all 0.2s ease;
-				font-size: 0.9rem;
-				font-weight: 500;
-			}
-
-			.search-button:hover {
-				background: linear-gradient(135deg, #0056b3, #004085);
-				transform: translateY(-1px);
-				box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
-			}
-
-			.search-button svg {
-				width: 16px;
-				height: 16px;
-			}
-
-			.results-summary {
-				margin-bottom: 1.5rem;
-				padding: 1rem 1.25rem;
-				background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-				border: 1px solid #dee2e6;
-				border-radius: 10px;
-			}
-
-			.results-summary p {
-				margin: 0;
-				color: #495057;
-				font-weight: 600;
-				font-size: 0.95rem;
-			}
-
-			.datasource-results {
-				margin-bottom: 2rem;
-				background: white;
-				border-radius: 12px;
-				padding: 1.5rem;
-				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-			}
-
-			.datasource-title {
-				display: flex;
-				align-items: center;
-				gap: 0.75rem;
-				margin-bottom: 1.25rem;
-				color: #2c3e50;
-				border-bottom: 2px solid #e9ecef;
-				padding-bottom: 0.75rem;
-			}
-
-			.datasource-title a {
-				text-decoration: none;
-				color: inherit;
-				font-weight: 600;
-				transition: color 0.2s ease;
-			}
-
-			.datasource-title a:hover {
-				color: #007bff;
-			}
-
-			.result-count {
-				background: #007bff;
-				color: white;
-				padding: 0.25rem 0.5rem;
-				border-radius: 12px;
-				font-size: 0.75rem;
-				font-weight: 600;
-			}
-
-			.pagination {
-				display: flex;
-				justify-content: center;
-				align-items: center;
-				gap: 1rem;
-				margin-top: 2rem;
-				padding: 1.5rem;
-				background: white;
-				border-radius: 12px;
-				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-			}
-
-			.pagination-btn {
-				padding: 0.75rem 1.25rem;
-				background: linear-gradient(135deg, #6c757d, #495057);
-				color: white;
-				text-decoration: none;
-				border-radius: 8px;
-				transition: all 0.2s ease;
-				font-weight: 500;
-			}
-
-			.pagination-btn:hover {
-				background: linear-gradient(135deg, #495057, #343a40);
-				transform: translateY(-1px);
-				box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
-			}
-
-			.page-info {
-				color: #6c757d;
-				font-weight: 600;
-				padding: 0 1rem;
-			}
-
-			.no-results {
-				text-align: center;
-				padding: 3rem;
-				background: white;
-				border-radius: 12px;
-				border: 2px dashed #dee2e6;
-				color: #6c757d;
-			}
-
-			.search-help {
-				text-align: center;
-				padding: 3rem;
-				background: white;
-				border-radius: 12px;
-				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-			}
-
-			.search-help h3 {
-				margin-bottom: 1rem;
-				color: #2c3e50;
-				font-weight: 600;
-			}
-
-			.search-help p {
-				margin-bottom: 0.75rem;
-				color: #6c757d;
-				line-height: 1.6;
-			}
-
-			.search-help a {
-				color: #007bff;
-				text-decoration: none;
-				font-weight: 500;
-			}
-
-			.search-help a:hover {
-				text-decoration: underline;
-			}
-
-			@media (max-width: 768px) {
-				.form-row {
-					flex-direction: column;
-					align-items: stretch;
-				}
-
-				.search-button {
-					justify-content: center;
-				}
-
-				.datasource-select,
-				.limit-select {
-					width: 100%;
-				}
-
-				.pagination {
-					flex-direction: column;
-					gap: 0.75rem;
+		function setupCustomPlaceholder(choices) {
+			function updatePlaceholder() {
+				const choicesInner = document.querySelector('.choices__inner');
+				const selectedItems = choices.getValue();
+				let placeholder = choicesInner.querySelector('.custom-placeholder');
+				
+				if (selectedItems.length === 0) {
+					if (!placeholder) {
+						placeholder = document.createElement('div');
+						placeholder.className = 'custom-placeholder';
+						placeholder.textContent = 'All datasources (leave empty to search all)';
+						placeholder.style.cssText = 'color: #6c757d; pointer-events: none; position: absolute; left: 12px; top: 50%; transform: translateY(-50%);';
+						choicesInner.style.position = 'relative';
+						choicesInner.appendChild(placeholder);
+					}
+					placeholder.style.display = 'block';
+				} else if (placeholder) {
+					placeholder.style.display = 'none';
 				}
 			}
-		</style>
-	}
+
+			// Listen for changes and update placeholder
+			const select = document.getElementById('datasource-select');
+			select.addEventListener('addItem', updatePlaceholder);
+			select.addEventListener('removeItem', updatePlaceholder);
+			
+			// Initial update
+			setTimeout(updatePlaceholder, 100);
+		}
+
+		function addKeyboardShortcuts() {
+			document.addEventListener('keydown', function(e) {
+				// Ctrl/Cmd + D to focus datasource select
+				if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+					e.preventDefault();
+					const choicesInput = document.querySelector('.choices__input--cloned');
+					if (choicesInput) {
+						choicesInput.focus();
+					}
+				}
+			});
+		}
+	</script>
 }

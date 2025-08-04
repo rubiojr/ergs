@@ -4,22 +4,23 @@ import "time"
 
 // PageData represents data passed to templates
 type PageData struct {
-	Title             string
-	Query             string
-	Datasource        string
-	Results           map[string][]WebBlock
-	Datasources       []DatasourceInfo
-	TotalCount        int
-	Error             string
-	Success           string
-	CurrentPage       int
-	HasNextPage       bool
-	PageSize          int
-	TotalPages        int
-	TotalBlocks       int
-	ActiveDatasources int
-	OldestBlock       *time.Time
-	NewestBlock       *time.Time
+	Title               string
+	Query               string
+	Datasource          string   // For individual datasource pages
+	SelectedDatasources []string // For search with multiple datasource selection
+	Results             map[string][]WebBlock
+	Datasources         []DatasourceInfo
+	TotalCount          int
+	Error               string
+	Success             string
+	CurrentPage         int
+	HasNextPage         bool
+	PageSize            int
+	TotalPages          int
+	TotalBlocks         int
+	ActiveDatasources   int
+	OldestBlock         *time.Time
+	NewestBlock         *time.Time
 }
 
 // DatasourceInfo represents datasource information

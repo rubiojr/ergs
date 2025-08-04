@@ -44,7 +44,7 @@ func Layout(data types.PageData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><link rel=\"icon\" type=\"image/x-icon\" href=\"/static/favicon.ico\"><link rel=\"icon\" type=\"image/png\" sizes=\"32x32\" href=\"/static/favicon-32x32.png\"><link rel=\"icon\" type=\"image/png\" sizes=\"16x16\" href=\"/static/favicon-16x16.png\"><link rel=\"stylesheet\" href=\"/static/style.css\"></head><body><header><div class=\"container\"><div class=\"header-content\"><h1><a href=\"/\" style=\"text-decoration: none; color: inherit\">Ergs Data Explorer</a></h1><nav><a href=\"/\">Home</a> <a href=\"/search\">Search</a> <a href=\"/datasources\">Datasources</a></nav></div></div></header><main><div class=\"container\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><link rel=\"icon\" type=\"image/x-icon\" href=\"/static/favicon.ico\"><link rel=\"icon\" type=\"image/png\" sizes=\"32x32\" href=\"/static/favicon-32x32.png\"><link rel=\"icon\" type=\"image/png\" sizes=\"16x16\" href=\"/static/favicon-16x16.png\"><link rel=\"stylesheet\" href=\"/static/style.css\"><link rel=\"stylesheet\" href=\"/static/choices.min.css\"></head><body><header><div class=\"container\"><div class=\"header-content\"><h1><a href=\"/\" style=\"text-decoration: none; color: inherit\">Ergs Data Explorer</a></h1><nav><a href=\"/\">Home</a> <a href=\"/search\">Search</a> <a href=\"/datasources\">Datasources</a></nav></div></div></header><main><div class=\"container\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -56,7 +56,7 @@ func Layout(data types.PageData) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(data.Error)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/layout.templ`, Line: 38, Col: 43}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/layout.templ`, Line: 39, Col: 43}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -75,7 +75,7 @@ func Layout(data types.PageData) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(data.Success)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/layout.templ`, Line: 43, Col: 47}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/layout.templ`, Line: 44, Col: 47}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -90,7 +90,7 @@ func Layout(data types.PageData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</div></main><script>\n\t\t\t\t// Add active navigation highlighting\n\t\t\t\tdocument.addEventListener(\"DOMContentLoaded\", function () {\n\t\t\t\t\tconst currentPath = window.location.pathname;\n\t\t\t\t\tconst navLinks = document.querySelectorAll(\"nav a\");\n\n\t\t\t\t\tnavLinks.forEach((link) => {\n\t\t\t\t\t\tif (\n\t\t\t\t\t\t\tlink.getAttribute(\"href\") === currentPath ||\n\t\t\t\t\t\t\t(currentPath.startsWith(\"/datasource/\") &&\n\t\t\t\t\t\t\t\tlink.getAttribute(\"href\") === \"/datasources\")\n\t\t\t\t\t\t) {\n\t\t\t\t\t\t\tlink.style.fontWeight = \"bold\";\n\t\t\t\t\t\t\tlink.style.color = \"#007bff\";\n\t\t\t\t\t\t}\n\t\t\t\t\t});\n\t\t\t\t});\n\t\t\t</script><script src=\"/static/script.js\"></script></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</div></main><script>\n\t\t\t\t// Add active navigation highlighting\n\t\t\t\tdocument.addEventListener(\"DOMContentLoaded\", function () {\n\t\t\t\t\tconst currentPath = window.location.pathname;\n\t\t\t\t\tconst navLinks = document.querySelectorAll(\"nav a\");\n\n\t\t\t\t\tnavLinks.forEach((link) => {\n\t\t\t\t\t\tif (\n\t\t\t\t\t\t\tlink.getAttribute(\"href\") === currentPath ||\n\t\t\t\t\t\t\t(currentPath.startsWith(\"/datasource/\") &&\n\t\t\t\t\t\t\t\tlink.getAttribute(\"href\") === \"/datasources\")\n\t\t\t\t\t\t) {\n\t\t\t\t\t\t\tlink.style.fontWeight = \"bold\";\n\t\t\t\t\t\t\tlink.style.color = \"#007bff\";\n\t\t\t\t\t\t}\n\t\t\t\t\t});\n\t\t\t\t});\n\t\t\t</script><script src=\"/static/choices.min.js\"></script><script src=\"/static/script.js\"></script></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

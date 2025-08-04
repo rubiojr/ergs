@@ -444,7 +444,7 @@ func (s *WebServer) handleHome(w http.ResponseWriter, r *http.Request) {
 // handleSearch handles search requests with distributed results
 func (s *WebServer) handleSearch(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
-	datasource := r.URL.Query().Get("datasource")
+	selectedDatasources := r.URL.Query()["datasource"]
 	limitStr := r.URL.Query().Get("limit")
 	pageStr := r.URL.Query().Get("page")
 
@@ -464,17 +464,17 @@ func (s *WebServer) handleSearch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := types.PageData{
-		Title:       "Search - Ergs",
-		Query:       query,
-		Datasource:  datasource,
-		Datasources: s.getDatasourceList(),
-		CurrentPage: page,
-		PageSize:    limit,
+		Title:               "Search - Ergs",
+		Query:               query,
+		SelectedDatasources: selectedDatasources,
+		Datasources:         s.getDatasourceList(),
+		CurrentPage:         page,
+		PageSize:            limit,
 	}
 
 	if query != "" {
-		// Get search results (distributed or single datasource)
-		results, totalCount, hasNextPage, totalPages := s.getSearchResults(query, datasource, page, limit)
+		// Get search results (distributed or multiple datasources)
+		results, totalCount, hasNextPage, totalPages := s.getSearchResults(query, selectedDatasources, page, limit)
 
 		data.Results = s.convertBlocksToWebBlocks(results)
 		data.TotalCount = totalCount
@@ -488,21 +488,26 @@ func (s *WebServer) handleSearch(w http.ResponseWriter, r *http.Request) {
 }
 
 // getSearchResults searches across specified datasource(s) with equal distribution
-func (s *WebServer) getSearchResults(query, datasourceFilter string, page, totalLimit int) (map[string][]core.Block, int, bool, int) {
+func (s *WebServer) getSearchResults(query string, datasourceFilters []string, page, totalLimit int) (map[string][]core.Block, int, bool, int) {
 	datasourceList := s.getDatasourceList()
 	if len(datasourceList) == 0 {
 		return make(map[string][]core.Block), 0, false, 1
 	}
 
 	// Filter datasources if specified
-	if datasourceFilter != "" {
+	if len(datasourceFilters) > 0 {
 		var filteredList []types.DatasourceInfo
+		filterMap := make(map[string]bool)
+		for _, filter := range datasourceFilters {
+			filterMap[filter] = true
+		}
+
 		for _, ds := range datasourceList {
-			if ds.Name == datasourceFilter {
-				filteredList = []types.DatasourceInfo{ds}
-				break
+			if filterMap[ds.Name] {
+				filteredList = append(filteredList, ds)
 			}
 		}
+
 		datasourceList = filteredList
 		if len(datasourceList) == 0 {
 			return make(map[string][]core.Block), 0, false, 1
