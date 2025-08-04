@@ -296,13 +296,20 @@ func (s *GenericStorage) GetStats() (map[string]interface{}, error) {
 	}
 
 	if oldestBlockStr.Valid && newestBlockStr.Valid {
-		oldestBlock, err := time.Parse("2006-01-02 15:04:05-07:00", oldestBlockStr.String)
+		// Try RFC3339 format first (ncruces driver), then fall back to old format (mattn driver)
+		oldestBlock, err := time.Parse(time.RFC3339, oldestBlockStr.String)
 		if err != nil {
-			return nil, fmt.Errorf("parsing oldest block time: %w", err)
+			oldestBlock, err = time.Parse("2006-01-02 15:04:05-07:00", oldestBlockStr.String)
+			if err != nil {
+				return nil, fmt.Errorf("parsing oldest block time: %w", err)
+			}
 		}
-		newestBlock, err := time.Parse("2006-01-02 15:04:05-07:00", newestBlockStr.String)
+		newestBlock, err := time.Parse(time.RFC3339, newestBlockStr.String)
 		if err != nil {
-			return nil, fmt.Errorf("parsing newest block time: %w", err)
+			newestBlock, err = time.Parse("2006-01-02 15:04:05-07:00", newestBlockStr.String)
+			if err != nil {
+				return nil, fmt.Errorf("parsing newest block time: %w", err)
+			}
 		}
 		stats["oldest_block"] = oldestBlock
 		stats["newest_block"] = newestBlock
