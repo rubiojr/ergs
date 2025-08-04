@@ -167,13 +167,7 @@ nav select:focus {
     transform: translateY(-1px);
 }
 
-.btn-secondary {
-    background: #6c757d;
-}
 
-.btn-secondary:hover {
-    background: #545b62;
-}
 
 /* Results */
 .results-section {
@@ -439,11 +433,7 @@ nav select:focus {
     border: 1px solid #c3e6cb;
 }
 
-.alert-info {
-    background: #d1ecf1;
-    color: #0c5460;
-    border: 1px solid #bee5eb;
-}
+
 
 /* Empty States */
 .empty-state {
@@ -643,7 +633,7 @@ nav select:focus {
     }
 }
 
-/* Dark mode support */
+
 /* ===== PAGE-SPECIFIC STYLES ===== */
 
 /* Home Page Styles */
@@ -1498,50 +1488,4 @@ nav select:focus {
     }
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-    body {
-        background: #1a1a1a;
-        color: #e9ecef;
-    }
 
-    header {
-        background: #2d2d2d;
-        border-bottom-color: #404040;
-    }
-
-    .search-form,
-    .datasource-section,
-    .datasource-card,
-    .info-box,
-    .empty-state {
-        background: #2d2d2d;
-        border-color: #404040;
-    }
-
-    .search-input,
-    .search-options select {
-        background: #404040;
-        border-color: #555;
-        color: #e9ecef;
-    }
-
-    .block:hover {
-        background: #353535;
-    }
-
-    .datasource-header {
-        background: linear-gradient(135deg, #353535 0%, #404040 100%);
-    }
-
-    .block-metadata-content {
-        background: #353535;
-        border-color: #555;
-    }
-
-    .page-info {
-        background: #404040;
-        border-color: #555;
-        color: #e9ecef;
-    }
-}
