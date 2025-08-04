@@ -24,6 +24,8 @@ type Warehouse struct {
 	datasourceTickers   map[string]*time.Ticker
 	optimizeTicker      *time.Ticker
 	stopCh              chan struct{}
+	ctx                 context.Context
+	ctxCancel           context.CancelFunc
 	mu                  sync.RWMutex
 	wg                  sync.WaitGroup
 	running             bool
@@ -63,6 +65,93 @@ func (w *Warehouse) AddDatasourceWithInterval(name string, ds core.Datasource, i
 	w.datasources = append(w.datasources, ds)
 	w.datasourceNames[ds] = name
 	w.datasourceIntervals[name] = interval
+
+	// If warehouse is running, start the ticker for this datasource
+	if w.running && w.ctx != nil {
+		ticker := time.NewTicker(interval)
+		w.datasourceTickers[name] = ticker
+		w.wg.Add(1)
+		go w.runDatasource(w.ctx, name, ticker)
+		log.Printf("Started scheduler for new datasource %s with interval %v", name, interval)
+	}
+
+	return nil
+}
+
+// RemoveDatasource removes a datasource from the warehouse
+func (w *Warehouse) RemoveDatasource(name string) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	// Stop the ticker if it exists
+	if ticker, exists := w.datasourceTickers[name]; exists {
+		ticker.Stop()
+		delete(w.datasourceTickers, name)
+		log.Printf("Stopped ticker for datasource: %s", name)
+	}
+
+	// Find and remove the datasource
+	var targetDS core.Datasource
+	for ds, dsName := range w.datasourceNames {
+		if dsName == name {
+			targetDS = ds
+			break
+		}
+	}
+
+	if targetDS != nil {
+		// Remove from datasourceNames map
+		delete(w.datasourceNames, targetDS)
+
+		// Remove from datasources slice
+		for i, ds := range w.datasources {
+			if ds == targetDS {
+				w.datasources = append(w.datasources[:i], w.datasources[i+1:]...)
+				break
+			}
+		}
+
+		// Close the datasource
+		if err := targetDS.Close(); err != nil {
+			log.Printf("Warning: error closing datasource %s: %v", name, err)
+		}
+	}
+
+	// Remove from intervals map
+	delete(w.datasourceIntervals, name)
+
+	log.Printf("Removed datasource: %s", name)
+	return nil
+}
+
+// UpdateDatasourceInterval updates the fetch interval for an existing datasource
+func (w *Warehouse) UpdateDatasourceInterval(name string, newInterval time.Duration) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	// Check if datasource exists
+	if _, exists := w.datasourceIntervals[name]; !exists {
+		return fmt.Errorf("datasource %s not found", name)
+	}
+
+	// Update the interval
+	w.datasourceIntervals[name] = newInterval
+
+	// If warehouse is running, restart the ticker
+	if w.running && w.ctx != nil {
+		// Stop the old ticker
+		if ticker, exists := w.datasourceTickers[name]; exists {
+			ticker.Stop()
+		}
+
+		// Start a new ticker with the new interval
+		ticker := time.NewTicker(newInterval)
+		w.datasourceTickers[name] = ticker
+		w.wg.Add(1)
+		go w.runDatasource(w.ctx, name, ticker)
+		log.Printf("Updated interval for datasource %s to %v", name, newInterval)
+	}
+
 	return nil
 }
 
@@ -78,6 +167,8 @@ func (w *Warehouse) Start(ctx context.Context) error {
 		return fmt.Errorf("no datasources configured")
 	}
 
+	// Store context for use in dynamic datasource management
+	w.ctx, w.ctxCancel = context.WithCancel(ctx)
 	w.running = true
 
 	// Log all configured datasources and their intervals
@@ -91,7 +182,7 @@ func (w *Warehouse) Start(ctx context.Context) error {
 		ticker := time.NewTicker(interval)
 		w.datasourceTickers[name] = ticker
 		w.wg.Add(1)
-		go w.runDatasource(ctx, name, ticker)
+		go w.runDatasource(w.ctx, name, ticker)
 		log.Printf("Started scheduler for datasource %s with interval %v", name, interval)
 	}
 
@@ -99,7 +190,7 @@ func (w *Warehouse) Start(ctx context.Context) error {
 	if w.config.OptimizeInterval > 0 {
 		w.optimizeTicker = time.NewTicker(w.config.OptimizeInterval)
 		w.wg.Add(1)
-		go w.runOptimization(ctx)
+		go w.runOptimization(w.ctx)
 	}
 
 	// Start initial fetch for all datasources (non-blocking)
@@ -324,6 +415,9 @@ func (w *Warehouse) Stop() {
 	}
 
 	log.Printf("Stopping warehouse...")
+	if w.ctxCancel != nil {
+		w.ctxCancel()
+	}
 	close(w.stopCh)
 	for name, ticker := range w.datasourceTickers {
 		log.Printf("Stopping ticker for datasource: %s", name)
