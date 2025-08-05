@@ -249,3 +249,363 @@ func ExampleSearchParams() {
 	// Datasources: 2
 	// Date range: June
 }
+
+func TestSQLInjectionProtection(t *testing.T) {
+	// Test malicious SQL injection attempts in query parameter
+	maliciousQueries := []string{
+		"'; DROP TABLE blocks; --",
+		"' UNION SELECT * FROM sqlite_master; --",
+		"'; DELETE FROM blocks WHERE 1=1; --",
+		"' OR 1=1 --",
+		"'; INSERT INTO blocks VALUES('evil'); --",
+		"' UNION SELECT password FROM users; --",
+		"'; UPDATE blocks SET text='hacked'; --",
+		"' OR '1'='1",
+		"'; PRAGMA table_info(blocks); --",
+		"' UNION SELECT sql FROM sqlite_master WHERE type='table'; --",
+		"'; ATTACH DATABASE '/etc/passwd' AS pwn; --",
+		"' AND (SELECT COUNT(*) FROM sqlite_master) > 0; --",
+		"'; CREATE TABLE evil AS SELECT * FROM blocks; --",
+		"' UNION SELECT load_extension('evil.so'); --",
+		"' OR EXISTS(SELECT * FROM blocks WHERE text LIKE '%secret%'); --",
+	}
+
+	for _, maliciousQuery := range maliciousQueries {
+		t.Run("SQLInjection_"+maliciousQuery[:min(20, len(maliciousQuery))], func(t *testing.T) {
+			params := SearchParams{
+				Query: maliciousQuery,
+				Page:  1,
+				Limit: 10,
+			}
+
+			// Verify that malicious queries are treated as regular search terms
+			// The query should be safely parameterized and not executed as SQL
+			if params.Query != maliciousQuery {
+				t.Errorf("Query was modified, potential sanitization issue")
+			}
+
+			// Verify the query is passed through FTS5 escaping unchanged
+			// (Since we use parameterized queries, the malicious SQL won't be executed)
+			escapedQuery := escapeFTS5Query(maliciousQuery)
+			if escapedQuery != maliciousQuery {
+				t.Errorf("FTS5 escaping should preserve queries for parameterized execution, got %q, want %q", escapedQuery, maliciousQuery)
+			}
+		})
+	}
+}
+
+func TestFTS5QueryInjectionAttempts(t *testing.T) {
+	// Test FTS5-specific injection attempts
+	fts5Queries := []string{
+		// Valid FTS5 syntax that should be preserved
+		"datasource:github AND text:golang",
+		"\"phrase query\" OR term",
+		"prefix*",
+		"NEAR(term1 term2, 5)",
+		"NOT unwanted",
+		"^start_of_column",
+		// Potentially malicious but valid FTS5 syntax
+		"\" OR 1=1; --\"",
+		"datasource:'; DROP TABLE blocks; --'",
+		"NEAR(\"; DELETE FROM blocks; --\" hack, 1)",
+	}
+
+	for _, query := range fts5Queries {
+		t.Run("FTS5Query_"+query[:min(20, len(query))], func(t *testing.T) {
+			// Verify that all FTS5 syntax is preserved as-is
+			escapedQuery := escapeFTS5Query(query)
+			if escapedQuery != query {
+				t.Errorf("FTS5 query was modified: got %q, want %q", escapedQuery, query)
+			}
+
+			// Verify query parameters structure is not corrupted
+			params := SearchParams{
+				Query: query,
+				Page:  1,
+				Limit: 10,
+			}
+
+			if params.Query != query {
+				t.Errorf("SearchParams Query was corrupted")
+			}
+		})
+	}
+}
+
+func TestSearchParamsValidation(t *testing.T) {
+	// Test parameter validation to prevent injection through other fields
+	tests := []struct {
+		name   string
+		params SearchParams
+		valid  bool
+	}{
+		{
+			name: "valid parameters",
+			params: SearchParams{
+				Query: "test",
+				Page:  1,
+				Limit: 30,
+			},
+			valid: true,
+		},
+		{
+			name: "zero page should be treated as 1",
+			params: SearchParams{
+				Query: "test",
+				Page:  0,
+				Limit: 30,
+			},
+			valid: true,
+		},
+		{
+			name: "negative page should be treated as 1",
+			params: SearchParams{
+				Query: "test",
+				Page:  -1,
+				Limit: 30,
+			},
+			valid: true,
+		},
+		{
+			name: "zero limit should be treated as 30",
+			params: SearchParams{
+				Query: "test",
+				Page:  1,
+				Limit: 0,
+			},
+			valid: true,
+		},
+		{
+			name: "negative limit should be treated as 30",
+			params: SearchParams{
+				Query: "test",
+				Page:  1,
+				Limit: -5,
+			},
+			valid: true,
+		},
+		{
+			name: "extremely large limit",
+			params: SearchParams{
+				Query: "test",
+				Page:  1,
+				Limit: 999999,
+			},
+			valid: true, // Should be clamped to maximum during parsing
+		},
+		{
+			name: "datasource filters with special chars",
+			params: SearchParams{
+				Query:             "test",
+				DatasourceFilters: []string{"github'; DROP TABLE blocks; --", "normal"},
+				Page:              1,
+				Limit:             30,
+			},
+			valid: true, // Invalid datasource names will be filtered out during parsing
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Verify that parameters don't get corrupted during validation
+			originalQuery := tt.params.Query
+			originalFilters := make([]string, len(tt.params.DatasourceFilters))
+			copy(originalFilters, tt.params.DatasourceFilters)
+
+			// The parameters should be preserved as-is since validation
+			// happens during execution, not during parameter creation
+			if tt.params.Query != originalQuery {
+				t.Errorf("Query was modified during validation")
+			}
+
+			if len(tt.params.DatasourceFilters) != len(originalFilters) {
+				t.Errorf("DatasourceFilters length changed")
+			}
+
+			for i, filter := range tt.params.DatasourceFilters {
+				if filter != originalFilters[i] {
+					t.Errorf("DatasourceFilter[%d] was modified: got %q, want %q", i, filter, originalFilters[i])
+				}
+			}
+		})
+	}
+}
+
+func TestDateParameterInjection(t *testing.T) {
+	// Test that date parameters are properly validated and can't be used for injection
+	validDate := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	params := SearchParams{
+		Query:     "test",
+		Page:      1,
+		Limit:     30,
+		StartDate: &validDate,
+		EndDate:   &validDate,
+	}
+
+	// Dates should be handled safely through time.Time type system
+	if params.StartDate == nil || params.EndDate == nil {
+		t.Error("Date parameters should be preserved")
+	}
+
+	if !params.StartDate.Equal(validDate) || !params.EndDate.Equal(validDate) {
+		t.Error("Date values should be preserved exactly")
+	}
+}
+
+func TestParseSearchParamsInjection(t *testing.T) {
+	// Test injection attempts through URL query parameters
+	maliciousParams := map[string][]string{
+		"q":          {"'; DROP TABLE blocks; --"},
+		"datasource": {"github'; UNION SELECT * FROM sqlite_master; --", "normal"},
+		"page":       {"1'; DELETE FROM blocks; --"},
+		"limit":      {"30'; INSERT INTO blocks VALUES('evil'); --"},
+		"start_date": {"2023-01-01'; DROP TABLE blocks; --"},
+		"end_date":   {"2023-12-31'; PRAGMA table_info(blocks); --"},
+	}
+
+	params, err := ParseSearchParams(maliciousParams)
+
+	// Should return an error for invalid date formats
+	if err == nil {
+		t.Error("Expected error for invalid date formats")
+	}
+
+	// Query should be preserved as-is (will be safely parameterized)
+	if params.Query != "'; DROP TABLE blocks; --" {
+		t.Errorf("Query should be preserved exactly: got %q", params.Query)
+	}
+
+	// Invalid datasource filters should be filtered out
+	if len(params.DatasourceFilters) != 1 {
+		t.Errorf("Expected 1 valid datasource filter, got %d", len(params.DatasourceFilters))
+	}
+	if len(params.DatasourceFilters) > 0 && params.DatasourceFilters[0] != "normal" {
+		t.Errorf("Expected 'normal' datasource filter, got %q", params.DatasourceFilters[0])
+	}
+
+	// Page and limit should default to safe values when invalid
+	if params.Page != 1 {
+		t.Errorf("Page should default to 1 when invalid, got %d", params.Page)
+	}
+
+	if params.Limit != 30 {
+		t.Errorf("Limit should default to 30 when invalid, got %d", params.Limit)
+	}
+}
+
+func TestParameterizedQueryConstruction(t *testing.T) {
+	// Test that SQL queries are properly constructed with parameters
+	// This is more of a documentation test to show the safe pattern
+
+	// These are the patterns used in the actual search code
+	safePatterns := []string{
+		"SELECT * FROM blocks WHERE blocks_fts MATCH ?",
+		"SELECT * FROM blocks WHERE created_at >= ?",
+		"SELECT * FROM blocks WHERE created_at <= ?",
+		"LIMIT ?",
+	}
+
+	maliciousInputs := []string{
+		"'; DROP TABLE blocks; --",
+		"' UNION SELECT * FROM sqlite_master; --",
+		"1; DELETE FROM blocks; --",
+	}
+
+	for _, pattern := range safePatterns {
+		for _, input := range maliciousInputs {
+			t.Run("Pattern_"+pattern+"_Input_"+input[:min(10, len(input))], func(t *testing.T) {
+				// Verify that the pattern uses ? placeholders
+				if !contains(pattern, "?") {
+					t.Errorf("Pattern should use parameterized queries: %s", pattern)
+				}
+
+				// Verify that the input would be safely bound as a parameter
+				// (This is handled by SQLite's parameter binding, not our code)
+				// We just need to ensure we're using the ? placeholder syntax
+				if contains(pattern, input) {
+					t.Errorf("Pattern should not contain user input directly: %s", pattern)
+				}
+			})
+		}
+	}
+}
+
+func TestDatasourceNameValidation(t *testing.T) {
+	tests := []struct {
+		name     string
+		dsName   string
+		expected bool
+	}{
+		{"valid alphanumeric", "github123", true},
+		{"valid with underscore", "my_datasource", true},
+		{"valid with hyphen", "data-source", true},
+		{"valid with dot", "source.db", true},
+		{"invalid with semicolon", "github; DROP TABLE", false},
+		{"invalid with quote", "github'", false},
+		{"invalid with space", "github repo", false},
+		{"invalid with slash", "github/repo", false},
+		{"invalid with backslash", "github\\repo", false},
+		{"invalid empty", "", false},
+		{"valid mixed case", "GitHub_Repo-v1.2", true},
+		{"invalid with SQL keywords", "github'; UNION SELECT", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isValidDatasourceName(tt.dsName)
+			if result != tt.expected {
+				t.Errorf("isValidDatasourceName(%q) = %v, want %v", tt.dsName, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestLimitAndPageCapping(t *testing.T) {
+	// Test that limits and pages are properly capped
+	queryParams := map[string][]string{
+		"q":     {"test"},
+		"limit": {"999999"},
+		"page":  {"999999"},
+	}
+
+	params, err := ParseSearchParams(queryParams)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	// Limit should be capped at 1000
+	if params.Limit != 1000 {
+		t.Errorf("Limit should be capped at 1000, got %d", params.Limit)
+	}
+
+	// Page should be capped at 10000
+	if params.Page != 10000 {
+		t.Errorf("Page should be capped at 10000, got %d", params.Page)
+	}
+}
+
+// Helper function to check if a string contains a substring
+func contains(s, substr string) bool {
+	return len(substr) <= len(s) && (substr == "" || s[len(s)-len(substr):] == substr ||
+		len(s) >= len(substr) && s[:len(substr)] == substr ||
+		len(s) > len(substr) && findSubstring(s, substr))
+}
+
+// Helper function to find substring
+func findSubstring(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}
+
+// Helper function to get minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}

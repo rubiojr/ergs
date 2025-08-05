@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/rubiojr/ergs/cmd/web/renderers"
 	"github.com/rubiojr/ergs/pkg/api"
+	"github.com/rubiojr/ergs/pkg/config"
 	"github.com/rubiojr/ergs/pkg/core"
 	"github.com/rubiojr/ergs/pkg/storage"
 
@@ -258,6 +261,167 @@ func TestAPISearchPage2(t *testing.T) {
 	hasMore := response["has_more"].(bool)
 	if !hasMore {
 		t.Error("Expected has_more to be true for page 2")
+	}
+}
+
+func TestWebSearchErrorHandling(t *testing.T) {
+	// Test that web search handles FTS5 syntax errors gracefully
+	tempDir, err := os.MkdirTemp("", "ergs-web-error-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Logf("Warning: failed to remove temp dir: %v", err)
+		}
+	}()
+
+	// Create config
+	cfg := &config.Config{
+		StorageDir: tempDir,
+	}
+
+	registry := core.NewRegistry()
+	storageManager, err := storage.NewManager(tempDir)
+	if err != nil {
+		t.Fatalf("Failed to create storage manager: %v", err)
+	}
+	defer func() {
+		if err := storageManager.Close(); err != nil {
+			t.Logf("Warning: failed to close storage manager: %v", err)
+		}
+	}()
+
+	// Create test datasource and add some data to trigger FTS5 errors
+	testStorage, err := storageManager.EnsureStorageWithMigrations("test-datasource")
+	if err != nil {
+		t.Fatalf("Failed to create test storage: %v", err)
+	}
+
+	// Add test data so FTS5 queries actually run
+	testBlock := core.NewGenericBlock("1", "test content", "source1", "test", time.Now(), nil)
+	err = testStorage.StoreBlock(testBlock, "test")
+	if err != nil {
+		t.Fatalf("Failed to store test block: %v", err)
+	}
+
+	// Initialize renderer registry
+	rendererRegistry := renderers.GetGlobalRegistry()
+
+	// Create web server
+	webServer := &WebServer{
+		registry:         registry,
+		storageManager:   storageManager,
+		config:           cfg,
+		rendererRegistry: rendererRegistry,
+	}
+
+	// Test cases with various FTS5 syntax errors
+	testCases := []struct {
+		name          string
+		query         string
+		expectedError string
+		shouldContain string
+	}{
+		{
+			name:          "forward_slash_error",
+			query:         "KG7x/Quake3e",
+			expectedError: "syntax error near \"/\"",
+			shouldContain: "Forward slashes (/) are not allowed",
+		},
+		{
+			name:          "unmatched_quote_error",
+			query:         "test 'unmatched",
+			expectedError: "syntax error near \"'\"",
+			shouldContain: "Unmatched single quotes detected",
+		},
+		{
+			name:          "general_syntax_error",
+			query:         "test & invalid",
+			expectedError: "syntax error",
+			shouldContain: "Invalid search syntax",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create a request with the problematic query
+			req, err := http.NewRequest("GET", "/search?q="+url.QueryEscape(tc.query), nil)
+			if err != nil {
+				t.Fatalf("Failed to create request: %v", err)
+			}
+
+			// Create response recorder
+			rr := httptest.NewRecorder()
+
+			// Handle the request
+			webServer.handleSearch(rr, req)
+
+			// Should return 200 OK (not 500) with error message in page
+			if rr.Code != http.StatusOK {
+				t.Errorf("Expected status 200, got %d", rr.Code)
+			}
+
+			// Response body should contain the error message
+			body := rr.Body.String()
+			if !strings.Contains(body, tc.shouldContain) {
+				t.Errorf("Expected response to contain %q, but it didn't. Body: %s", tc.shouldContain, body)
+			}
+
+			// Should not contain the raw error message
+			if strings.Contains(body, "sqlite3: SQL logic error") {
+				t.Error("Response should not contain raw SQLite error messages")
+			}
+		})
+	}
+}
+
+func TestFormatSearchError(t *testing.T) {
+	// Test the formatSearchError function directly
+	testCases := []struct {
+		name     string
+		input    error
+		expected string
+	}{
+		{
+			name:     "forward_slash_syntax_error",
+			input:    fmt.Errorf("searching hackernews: sqlite3: SQL logic error: fts5: syntax error near \"/\""),
+			expected: "Invalid search query: Forward slashes (/) are not allowed in search terms. Please remove special characters and try again.",
+		},
+		{
+			name:     "single_quote_syntax_error",
+			input:    fmt.Errorf("searching test: sqlite3: SQL logic error: fts5: syntax error near \"'\""),
+			expected: "Invalid search query: Unmatched single quotes detected. Please use double quotes for phrase searches or remove single quotes.",
+		},
+		{
+			name:     "general_syntax_error",
+			input:    fmt.Errorf("searching test: sqlite3: SQL logic error: fts5: syntax error near \"&\""),
+			expected: "Invalid search syntax. Please check your query for special characters, unmatched quotes, or invalid operators.",
+		},
+		{
+			name:     "database_locked_error",
+			input:    fmt.Errorf("database is locked"),
+			expected: "Database is temporarily busy. Please try again in a moment.",
+		},
+		{
+			name:     "generic_search_error",
+			input:    fmt.Errorf("searching datasource: some other error"),
+			expected: "Search error occurred. Please check your query syntax and try again.",
+		},
+		{
+			name:     "unknown_error",
+			input:    fmt.Errorf("completely unknown error"),
+			expected: "Search failed due to an unexpected error. Please try a simpler query.",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := formatSearchError(tc.input)
+			if result != tc.expected {
+				t.Errorf("Expected %q, got %q", tc.expected, result)
+			}
+		})
 	}
 }
 

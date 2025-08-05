@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/rubiojr/ergs/pkg/core"
@@ -54,7 +55,12 @@ func (s *Server) HandleDatasourceBlocks(w http.ResponseWriter, r *http.Request) 
 	searchService := s.storageManager.GetSearchService()
 	results, err := searchService.Search(params)
 	if err != nil {
-		s.writeError(w, http.StatusInternalServerError, "Failed to retrieve blocks", err.Error())
+		// Handle FTS5 syntax errors more gracefully
+		if isFTS5SyntaxError(err) {
+			s.writeError(w, http.StatusBadRequest, "Invalid search query", formatAPISearchError(err))
+		} else {
+			s.writeError(w, http.StatusInternalServerError, "Failed to retrieve blocks", err.Error())
+		}
 		return
 	}
 
@@ -103,7 +109,12 @@ func (s *Server) HandleSearch(w http.ResponseWriter, r *http.Request) {
 	searchService := s.storageManager.GetSearchService()
 	results, err := searchService.Search(params)
 	if err != nil {
-		s.writeError(w, http.StatusInternalServerError, "Search failed", err.Error())
+		// Handle FTS5 syntax errors more gracefully
+		if isFTS5SyntaxError(err) {
+			s.writeError(w, http.StatusBadRequest, "Invalid search query", formatAPISearchError(err))
+		} else {
+			s.writeError(w, http.StatusInternalServerError, "Search failed", err.Error())
+		}
 		return
 	}
 
@@ -160,4 +171,35 @@ func (s *Server) HandleHealth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.writeJSON(w, http.StatusOK, health)
+}
+
+// isFTS5SyntaxError checks if an error is due to FTS5 syntax issues
+func isFTS5SyntaxError(err error) bool {
+	errStr := err.Error()
+	return strings.Contains(errStr, "fts5: syntax error") ||
+		strings.Contains(errStr, "SQL logic error")
+}
+
+// formatAPISearchError converts search errors into API-friendly messages
+func formatAPISearchError(err error) string {
+	errStr := err.Error()
+
+	// Handle FTS5 syntax errors
+	if strings.Contains(errStr, "fts5: syntax error") {
+		if strings.Contains(errStr, "syntax error near \"/\"") {
+			return "Forward slashes (/) are not allowed in search terms"
+		}
+		if strings.Contains(errStr, "syntax error near \"'\"") {
+			return "Unmatched single quotes detected. Use double quotes for phrase searches"
+		}
+		return "Invalid search syntax. Check for special characters or invalid operators"
+	}
+
+	// Handle other SQLite errors
+	if strings.Contains(errStr, "SQL logic error") {
+		return "Search query contains invalid syntax"
+	}
+
+	// Fallback for unknown errors
+	return "Invalid search query format"
 }

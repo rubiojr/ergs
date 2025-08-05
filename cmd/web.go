@@ -252,14 +252,15 @@ func (s *WebServer) handleSearch(w http.ResponseWriter, r *http.Request) {
 		searchService := s.storageManager.GetSearchService()
 		results, err := searchService.Search(params)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("Search failed: %v", err), http.StatusInternalServerError)
-			return
+			// Handle search errors gracefully instead of returning HTTP 500
+			data.Error = formatSearchError(err)
+			// Still render the search page with the error message
+		} else {
+			data.Results = s.convertBlocksToWebBlocks(results.Results)
+			data.TotalCount = results.TotalCount
+			data.HasNextPage = results.HasMore
+			data.TotalPages = results.TotalPages
 		}
-
-		data.Results = s.convertBlocksToWebBlocks(results.Results)
-		data.TotalCount = results.TotalCount
-		data.HasNextPage = results.HasMore
-		data.TotalPages = results.TotalPages
 	}
 
 	if err := components.Search(data).Render(r.Context(), w); err != nil {
@@ -438,6 +439,42 @@ func extractLinks(text string) []string {
 	}
 
 	return links
+}
+
+// formatSearchError converts search errors into user-friendly messages
+func formatSearchError(err error) string {
+	errStr := err.Error()
+
+	// Handle FTS5 syntax errors
+	if strings.Contains(errStr, "fts5: syntax error") {
+		if strings.Contains(errStr, "syntax error near \"/\"") {
+			return "Invalid search query: Forward slashes (/) are not allowed in search terms. Please remove special characters or quote the query and try again."
+		}
+		if strings.Contains(errStr, "syntax error near \"'\"") {
+			return "Invalid search query: Unmatched single quotes detected. Please use double quotes for phrase searches or remove single quotes."
+		}
+		if strings.Contains(errStr, "syntax error") {
+			return "Invalid search syntax. Please check your query for special characters, unmatched quotes, or invalid operators."
+		}
+	}
+
+	// Handle other SQLite errors
+	if strings.Contains(errStr, "SQL logic error") {
+		return "Search query contains invalid syntax. Please simplify your query and try again."
+	}
+
+	// Handle database connectivity issues
+	if strings.Contains(errStr, "database is locked") {
+		return "Database is temporarily busy. Please try again in a moment."
+	}
+
+	// Handle generic search errors
+	if strings.Contains(errStr, "searching") {
+		return "Search error occurred. Please check your query syntax and try again."
+	}
+
+	// Fallback for unknown errors - show a generic message
+	return "Search failed due to an unexpected error. Please try a simpler query."
 }
 
 // writeJSON writes a JSON response

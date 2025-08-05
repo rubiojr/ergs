@@ -414,21 +414,36 @@ func ParseSearchParams(queryParams map[string][]string) (SearchParams, error) {
 		params.Query = q[0]
 	}
 
-	// Get datasource filters
+	// Get datasource filters - validate they contain only safe characters
 	if datasources := queryParams["datasource"]; len(datasources) > 0 {
-		params.DatasourceFilters = datasources
+		validatedDatasources := make([]string, 0, len(datasources))
+		for _, ds := range datasources {
+			// Datasource names should be alphanumeric with underscores/hyphens
+			if isValidDatasourceName(ds) {
+				validatedDatasources = append(validatedDatasources, ds)
+			}
+		}
+		params.DatasourceFilters = validatedDatasources
 	}
 
-	// Parse limit
+	// Parse limit with bounds checking
 	if limitStr := queryParams["limit"]; len(limitStr) > 0 && limitStr[0] != "" {
 		if parsed, err := strconv.Atoi(limitStr[0]); err == nil && parsed > 0 {
+			// Cap limit at reasonable maximum to prevent resource exhaustion
+			if parsed > 1000 {
+				parsed = 1000
+			}
 			params.Limit = parsed
 		}
 	}
 
-	// Parse page
+	// Parse page with bounds checking
 	if pageStr := queryParams["page"]; len(pageStr) > 0 && pageStr[0] != "" {
 		if parsed, err := strconv.Atoi(pageStr[0]); err == nil && parsed > 0 {
+			// Cap page at reasonable maximum
+			if parsed > 10000 {
+				parsed = 10000
+			}
 			params.Page = parsed
 		}
 	}
@@ -438,7 +453,7 @@ func ParseSearchParams(queryParams map[string][]string) (SearchParams, error) {
 		if parsed, err := time.Parse("2006-01-02", startDateStr[0]); err == nil {
 			params.StartDate = &parsed
 		} else {
-			return params, err
+			return params, fmt.Errorf("invalid start_date format: %w", err)
 		}
 	}
 
@@ -448,7 +463,7 @@ func ParseSearchParams(queryParams map[string][]string) (SearchParams, error) {
 			endOfDay := time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 23, 59, 59, 999999999, parsed.Location())
 			params.EndDate = &endOfDay
 		} else {
-			return params, err
+			return params, fmt.Errorf("invalid end_date format: %w", err)
 		}
 	}
 
@@ -460,6 +475,22 @@ type searchResult struct {
 	datasource string
 	blocks     []core.Block
 	err        error
+}
+
+// isValidDatasourceName validates that a datasource name contains only safe characters
+func isValidDatasourceName(name string) bool {
+	if name == "" {
+		return false
+	}
+
+	// Allow alphanumeric characters, underscores, hyphens, and dots
+	for _, r := range name {
+		if (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') &&
+			(r < '0' || r > '9') && r != '_' && r != '-' && r != '.' {
+			return false
+		}
+	}
+	return true
 }
 
 // escapeFTS5Query prevents SQL injection while allowing all FTS5 syntax

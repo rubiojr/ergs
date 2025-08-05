@@ -2,8 +2,13 @@ package api
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -273,6 +278,203 @@ func TestAPIHealth(t *testing.T) {
 
 	if contentType := w.Header().Get("Content-Type"); contentType != "application/json" {
 		t.Errorf("Expected Content-Type application/json, got %s", contentType)
+	}
+}
+
+func TestAPISearchErrorHandling(t *testing.T) {
+	// Test that API search handles FTS5 syntax errors gracefully
+	tempDir, err := os.MkdirTemp("", "ergs-api-error-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Logf("Warning: failed to remove temp dir: %v", err)
+		}
+	}()
+
+	registry := core.NewRegistry()
+	storageManager, err := storage.NewManager(tempDir)
+	if err != nil {
+		t.Fatalf("Failed to create storage manager: %v", err)
+	}
+	defer func() {
+		if err := storageManager.Close(); err != nil {
+			t.Logf("Warning: failed to close storage manager: %v", err)
+		}
+	}()
+
+	// Create test datasource and add some data to trigger FTS5 errors
+	testStorage, err := storageManager.EnsureStorageWithMigrations("test-datasource")
+	if err != nil {
+		t.Fatalf("Failed to create test storage: %v", err)
+	}
+
+	// Add test data so FTS5 queries actually run
+	testBlock := core.NewGenericBlock("1", "test content", "source1", "test", time.Now(), nil)
+	err = testStorage.StoreBlock(testBlock, "test")
+	if err != nil {
+		t.Fatalf("Failed to store test block: %v", err)
+	}
+
+	// Create API server
+	server := NewServer(registry, storageManager)
+
+	// Test cases with various FTS5 syntax errors
+	testCases := []struct {
+		name           string
+		query          string
+		expectedStatus int
+		expectedType   string
+		shouldContain  string
+	}{
+		{
+			name:           "forward_slash_error",
+			query:          "KG7x/Quake3e",
+			expectedStatus: http.StatusBadRequest,
+			expectedType:   "Invalid search query",
+			shouldContain:  "Forward slashes (/) are not allowed",
+		},
+		{
+			name:           "unmatched_quote_error",
+			query:          "test 'unmatched",
+			expectedStatus: http.StatusBadRequest,
+			expectedType:   "Invalid search query",
+			shouldContain:  "Unmatched single quotes detected",
+		},
+		{
+			name:           "general_syntax_error",
+			query:          "test & invalid",
+			expectedStatus: http.StatusBadRequest,
+			expectedType:   "Invalid search query",
+			shouldContain:  "Invalid search syntax",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create a request with the problematic query
+			req, err := http.NewRequest("GET", "/api/search?q="+url.QueryEscape(tc.query), nil)
+			if err != nil {
+				t.Fatalf("Failed to create request: %v", err)
+			}
+
+			// Create response recorder
+			rr := httptest.NewRecorder()
+
+			// Handle the request
+			server.HandleSearch(rr, req)
+
+			// Should return 400 Bad Request (not 500) for syntax errors
+			if rr.Code != tc.expectedStatus {
+				t.Errorf("Expected status %d, got %d", tc.expectedStatus, rr.Code)
+			}
+
+			// Parse response
+			var response map[string]interface{}
+			err = json.Unmarshal(rr.Body.Bytes(), &response)
+			if err != nil {
+				t.Fatalf("Failed to parse response: %v", err)
+			}
+
+			// Check error type
+			if errorType, ok := response["error"].(string); !ok || errorType != tc.expectedType {
+				t.Errorf("Expected error type %q, got %q", tc.expectedType, errorType)
+			}
+
+			// Check error message content
+			if message, ok := response["message"].(string); !ok || !strings.Contains(message, tc.shouldContain) {
+				t.Errorf("Expected message to contain %q, got %q", tc.shouldContain, message)
+			}
+
+			// Should not contain raw SQLite error messages
+			if message, ok := response["message"].(string); ok && strings.Contains(message, "sqlite3: SQL logic error") {
+				t.Error("Response should not contain raw SQLite error messages")
+			}
+		})
+	}
+}
+
+func TestFormatAPISearchError(t *testing.T) {
+	// Test the formatAPISearchError function directly
+	testCases := []struct {
+		name     string
+		input    error
+		expected string
+	}{
+		{
+			name:     "forward_slash_syntax_error",
+			input:    fmt.Errorf("searching hackernews: sqlite3: SQL logic error: fts5: syntax error near \"/\""),
+			expected: "Forward slashes (/) are not allowed in search terms",
+		},
+		{
+			name:     "single_quote_syntax_error",
+			input:    fmt.Errorf("searching test: sqlite3: SQL logic error: fts5: syntax error near \"'\""),
+			expected: "Unmatched single quotes detected. Use double quotes for phrase searches",
+		},
+		{
+			name:     "general_syntax_error",
+			input:    fmt.Errorf("searching test: sqlite3: SQL logic error: fts5: syntax error near \"&\""),
+			expected: "Invalid search syntax. Check for special characters or invalid operators",
+		},
+		{
+			name:     "sql_logic_error",
+			input:    fmt.Errorf("searching test: sqlite3: SQL logic error: some other issue"),
+			expected: "Search query contains invalid syntax",
+		},
+		{
+			name:     "unknown_error",
+			input:    fmt.Errorf("completely unknown error"),
+			expected: "Invalid search query format",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := formatAPISearchError(tc.input)
+			if result != tc.expected {
+				t.Errorf("Expected %q, got %q", tc.expected, result)
+			}
+		})
+	}
+}
+
+func TestIsFTS5SyntaxError(t *testing.T) {
+	// Test the isFTS5SyntaxError function
+	testCases := []struct {
+		name     string
+		input    error
+		expected bool
+	}{
+		{
+			name:     "fts5_syntax_error",
+			input:    fmt.Errorf("sqlite3: SQL logic error: fts5: syntax error near \"/\""),
+			expected: true,
+		},
+		{
+			name:     "sql_logic_error",
+			input:    fmt.Errorf("sqlite3: SQL logic error: something"),
+			expected: true,
+		},
+		{
+			name:     "other_error",
+			input:    fmt.Errorf("network timeout"),
+			expected: false,
+		},
+		{
+			name:     "database_locked",
+			input:    fmt.Errorf("database is locked"),
+			expected: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := isFTS5SyntaxError(tc.input)
+			if result != tc.expected {
+				t.Errorf("Expected %v, got %v", tc.expected, result)
+			}
+		})
 	}
 }
 
