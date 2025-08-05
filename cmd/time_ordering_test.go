@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/rubiojr/ergs/cmd/web/renderers"
+	"github.com/rubiojr/ergs/pkg/api"
 	"github.com/rubiojr/ergs/pkg/config"
 	"github.com/rubiojr/ergs/pkg/core"
 	"github.com/rubiojr/ergs/pkg/storage"
@@ -134,10 +135,13 @@ func TestTimeBasedOrderingIntegration(t *testing.T) {
 		storageManager.RegisterBlockPrototype(datasourceName, mockBlockPrototype)
 	}
 
+	apiServer := api.NewServer(registry, storageManager)
+
 	server := &WebServer{
 		registry:         registry,
 		storageManager:   storageManager,
 		rendererRegistry: rendererRegistry,
+		apiServer:        apiServer,
 		config: &config.Config{
 			StorageDir: tempDir,
 		},
@@ -151,7 +155,7 @@ func TestTimeBasedOrderingIntegration(t *testing.T) {
 		req := httptest.NewRequest("GET", "/api/search?q=test&limit=20", nil) // Search for a term that matches all test data
 		w := httptest.NewRecorder()
 
-		server.handleAPISearch(w, req)
+		server.apiServer.HandleSearch(w, req)
 
 		if w.Code != http.StatusOK {
 			t.Errorf("API request failed with status %d", w.Code)
@@ -222,7 +226,7 @@ func TestTimeBasedOrderingIntegration(t *testing.T) {
 		req := httptest.NewRequest("GET", "/api/search?q=test&datasource=github&datasource=rss&limit=10", nil)
 		w := httptest.NewRecorder()
 
-		server.handleAPISearch(w, req)
+		server.apiServer.HandleSearch(w, req)
 
 		if w.Code != http.StatusOK {
 			t.Errorf("API request failed with status %d", w.Code)
@@ -314,7 +318,7 @@ func TestTimeBasedOrderingIntegration(t *testing.T) {
 		// Get first page
 		req1 := httptest.NewRequest("GET", "/api/search?q=test&limit=5&page=1", nil)
 		w1 := httptest.NewRecorder()
-		server.handleAPISearch(w1, req1)
+		server.apiServer.HandleSearch(w1, req1)
 
 		var response1 map[string]interface{}
 		if err := json.Unmarshal(w1.Body.Bytes(), &response1); err != nil {
@@ -324,7 +328,7 @@ func TestTimeBasedOrderingIntegration(t *testing.T) {
 		// Get second page
 		req2 := httptest.NewRequest("GET", "/api/search?q=test&limit=5&page=2", nil)
 		w2 := httptest.NewRecorder()
-		server.handleAPISearch(w2, req2)
+		server.apiServer.HandleSearch(w2, req2)
 
 		var response2 map[string]interface{}
 		if err := json.Unmarshal(w2.Body.Bytes(), &response2); err != nil {

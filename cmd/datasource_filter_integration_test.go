@@ -10,13 +10,13 @@ import (
 	"time"
 
 	"github.com/rubiojr/ergs/cmd/web/renderers"
+	"github.com/rubiojr/ergs/pkg/api"
 	"github.com/rubiojr/ergs/pkg/config"
 	"github.com/rubiojr/ergs/pkg/core"
 	"github.com/rubiojr/ergs/pkg/storage"
 
 	// Import test datasources to register their factories
 	_ "github.com/rubiojr/ergs/pkg/datasources/testrand"
-	_ "github.com/rubiojr/ergs/pkg/datasources/timestamp"
 )
 
 // TestDatasourceFilteringIntegration tests the complete datasource filtering functionality
@@ -102,10 +102,13 @@ func TestDatasourceFilteringIntegration(t *testing.T) {
 		storageManager.RegisterBlockPrototype(datasourceName, mockBlockPrototype)
 	}
 
+	apiServer := api.NewServer(registry, storageManager)
+
 	server := &WebServer{
 		registry:         registry,
 		storageManager:   storageManager,
 		rendererRegistry: rendererRegistry,
+		apiServer:        apiServer,
 		config: &config.Config{
 			StorageDir: tempDir,
 		},
@@ -164,7 +167,7 @@ func TestDatasourceFilteringIntegration(t *testing.T) {
 				req := httptest.NewRequest("GET", apiURL, nil)
 				w := httptest.NewRecorder()
 
-				server.handleAPISearch(w, req)
+				server.apiServer.HandleSearch(w, req)
 
 				if w.Code != http.StatusOK {
 					t.Errorf("API request failed with status %d", w.Code)
@@ -233,7 +236,7 @@ func TestDatasourceFilteringIntegration(t *testing.T) {
 		req := httptest.NewRequest("GET", issueURL, nil)
 		w := httptest.NewRecorder()
 
-		server.handleAPISearch(w, req)
+		server.apiServer.HandleSearch(w, req)
 
 		if w.Code != http.StatusOK {
 			t.Errorf("Original issue URL failed with status %d", w.Code)

@@ -47,10 +47,6 @@ fmt:
 vet:
 	go vet ./...
 
-# Run tests
-test:
-	CGO_ENABLED=$(CGO_ENABLED) go test -tags $(BUILD_TAGS) -v ./...
-
 # Run unit tests only (exclude integration tests)
 test-unit:
 	CGO_ENABLED=$(CGO_ENABLED) go test -tags $(BUILD_TAGS) -v ./pkg/... ./cmd/...
@@ -69,7 +65,7 @@ test-coverage:
 	go tool cover -html=coverage.out -o coverage.html
 
 # Run all tests including integration tests
-test-all: test-unit test-integration
+test: test-unit test-integration
 
 # Install binary to ~/.local/bin
 install: build
@@ -132,7 +128,6 @@ help:
 	@echo "  test-integration - Run integration tests"
 	@echo "  test-integration-quick - Run quick integration tests"
 	@echo "  test-coverage- Run tests with coverage"
-	@echo "  test-all     - Run all tests including integration"
 	@echo "  install      - Install binary to ~/.local/bin"
 	@echo "  uninstall    - Remove binary from ~/.local/bin"
 	@echo "  clean        - Clean build artifacts"

@@ -6,6 +6,7 @@ import (
 
 	"github.com/rubiojr/ergs/pkg/config"
 	"github.com/rubiojr/ergs/pkg/core"
+	"github.com/rubiojr/ergs/pkg/search"
 	"github.com/rubiojr/ergs/pkg/storage"
 	"github.com/urfave/cli/v3"
 )
@@ -68,42 +69,51 @@ func searchData(configPath, query, datasourceName string, limit int) error {
 		return fmt.Errorf("initializing storage: %w", err)
 	}
 
+	// Use search service for consistent behavior
+	searchService := search.NewSearchService(storageManager)
+
+	// Build search parameters
+	params := search.SearchParams{
+		Query: query,
+		Page:  1,
+		Limit: limit,
+	}
+
+	// Add datasource filter if specified
 	if datasourceName != "" {
-		blocks, err := storageManager.SearchBlocks(datasourceName, query, limit)
-		if err != nil {
-			return fmt.Errorf("searching %s: %w", datasourceName, err)
+		params.DatasourceFilters = []string{datasourceName}
+	}
+
+	results, err := searchService.Search(params)
+	if err != nil {
+		return fmt.Errorf("executing search: %w", err)
+	}
+
+	// Display results
+	if len(results.Results) == 0 {
+		fmt.Println("No results found")
+		return nil
+	}
+
+	totalResults := 0
+	for datasource, blocks := range results.Results {
+		totalResults += len(blocks)
+		if datasourceName != "" {
+			fmt.Printf("Found %d results in %s:\n", len(blocks), datasource)
+		} else {
+			fmt.Printf("\n=== %s (%d results) ===\n", datasource, len(blocks))
 		}
 
-		fmt.Printf("Found %d results in %s:\n", len(blocks), datasourceName)
 		for i, block := range blocks {
 			fmt.Printf("%d. %s\n", i+1, block.PrettyText())
 			if i < len(blocks)-1 {
 				fmt.Println()
 			}
 		}
-	} else {
-		results, err := storageManager.SearchAllDatasources(query, limit)
-		if err != nil {
-			return fmt.Errorf("searching all datasources: %w", err)
-		}
+	}
 
-		totalResults := 0
-		for datasource, blocks := range results {
-			totalResults += len(blocks)
-			fmt.Printf("\n=== %s (%d results) ===\n", datasource, len(blocks))
-			for i, block := range blocks {
-				fmt.Printf("%d. %s\n", i+1, block.PrettyText())
-				if i < len(blocks)-1 {
-					fmt.Println()
-				}
-			}
-		}
-
-		if totalResults == 0 {
-			fmt.Println("No results found")
-		} else {
-			fmt.Printf("\nTotal: %d results across %d datasources\n", totalResults, len(results))
-		}
+	if datasourceName == "" && totalResults > 0 {
+		fmt.Printf("\nTotal: %d results across %d datasources\n", totalResults, len(results.Results))
 	}
 
 	return nil

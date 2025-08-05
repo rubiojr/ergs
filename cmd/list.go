@@ -6,6 +6,7 @@ import (
 
 	"github.com/rubiojr/ergs/pkg/config"
 	"github.com/rubiojr/ergs/pkg/core"
+	"github.com/rubiojr/ergs/pkg/search"
 	"github.com/rubiojr/ergs/pkg/storage"
 	"github.com/urfave/cli/v3"
 )
@@ -65,12 +66,24 @@ func listBlocks(configPath, datasourceName string, limit int) error {
 		return fmt.Errorf("initializing storage: %w", err)
 	}
 
-	blocks, err := storageManager.SearchBlocks(datasourceName, "", limit)
+	// Use search service for consistent behavior
+	searchService := search.NewSearchService(storageManager)
+
+	// Build search parameters (empty query lists all blocks)
+	params := search.SearchParams{
+		Query:             "", // Empty query to list all blocks
+		DatasourceFilters: []string{datasourceName},
+		Page:              1,
+		Limit:             limit,
+	}
+
+	results, err := searchService.Search(params)
 	if err != nil {
 		return fmt.Errorf("listing blocks from %s: %w", datasourceName, err)
 	}
 
-	if len(blocks) == 0 {
+	blocks, exists := results.Results[datasourceName]
+	if !exists || len(blocks) == 0 {
 		fmt.Printf("No blocks found in datasource '%s'\n", datasourceName)
 		return nil
 	}

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/rubiojr/ergs/cmd/web/renderers"
+	"github.com/rubiojr/ergs/pkg/api"
 	"github.com/rubiojr/ergs/pkg/core"
 	"github.com/rubiojr/ergs/pkg/storage"
 
@@ -119,10 +120,14 @@ func setupTestWebServer(t *testing.T) (*WebServer, func()) {
 	// Initialize renderer registry for web interface tests
 	rendererRegistry := renderers.NewRendererRegistry()
 
+	// Initialize API server
+	apiServer := api.NewServer(registry, storageManager)
+
 	server := &WebServer{
 		registry:         registry,
 		storageManager:   storageManager,
 		rendererRegistry: rendererRegistry,
+		apiServer:        apiServer,
 	}
 
 	cleanup := func() {
@@ -144,7 +149,7 @@ func TestAPISearchBasic(t *testing.T) {
 	req := httptest.NewRequest("GET", "/api/search?q=test", nil)
 	w := httptest.NewRecorder()
 
-	server.handleAPISearch(w, req)
+	server.apiServer.HandleSearch(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
@@ -188,7 +193,7 @@ func TestAPISearchPagination(t *testing.T) {
 	req := httptest.NewRequest("GET", "/api/search?q=test&page=1&limit=10", nil)
 	w := httptest.NewRecorder()
 
-	server.handleAPISearch(w, req)
+	server.apiServer.HandleSearch(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
@@ -228,7 +233,7 @@ func TestAPISearchPage2(t *testing.T) {
 	req := httptest.NewRequest("GET", "/api/search?q=test&page=2&limit=10", nil)
 	w := httptest.NewRecorder()
 
-	server.handleAPISearch(w, req)
+	server.apiServer.HandleSearch(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
@@ -264,7 +269,7 @@ func TestAPISearchLastPage(t *testing.T) {
 	req := httptest.NewRequest("GET", "/api/search?q=test&page=3&limit=10", nil)
 	w := httptest.NewRecorder()
 
-	server.handleAPISearch(w, req)
+	server.apiServer.HandleSearch(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
@@ -301,7 +306,7 @@ func TestAPISearchEmptyResults(t *testing.T) {
 	req := httptest.NewRequest("GET", "/api/search?q=nonexistent", nil)
 	w := httptest.NewRecorder()
 
-	server.handleAPISearch(w, req)
+	server.apiServer.HandleSearch(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
@@ -341,7 +346,7 @@ func TestAPISearchMissingQuery(t *testing.T) {
 	req := httptest.NewRequest("GET", "/api/search", nil)
 	w := httptest.NewRecorder()
 
-	server.handleAPISearch(w, req)
+	server.apiServer.HandleSearch(w, req)
 
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("Expected status %d, got %d", http.StatusBadRequest, w.Code)
@@ -356,7 +361,7 @@ func TestAPISearchWithDatasourceFilter(t *testing.T) {
 	req := httptest.NewRequest("GET", "/api/search?q=test&datasource=datasource_a", nil)
 	w := httptest.NewRecorder()
 
-	server.handleAPISearch(w, req)
+	server.apiServer.HandleSearch(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
@@ -393,7 +398,7 @@ func TestAPISearchWithMultipleDatasourceFilters(t *testing.T) {
 	req := httptest.NewRequest("GET", "/api/search?q=test&datasource=datasource_a&datasource=datasource_b", nil)
 	w := httptest.NewRecorder()
 
-	server.handleAPISearch(w, req)
+	server.apiServer.HandleSearch(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
@@ -430,7 +435,7 @@ func TestAPISearchWithNonexistentDatasourceFilter(t *testing.T) {
 	req := httptest.NewRequest("GET", "/api/search?q=test&datasource=nonexistent", nil)
 	w := httptest.NewRecorder()
 
-	server.handleAPISearch(w, req)
+	server.apiServer.HandleSearch(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
@@ -469,7 +474,7 @@ func TestAPISearchWithMixedDatasourceFilters(t *testing.T) {
 	req := httptest.NewRequest("GET", "/api/search?q=test&datasource=datasource_a&datasource=nonexistent", nil)
 	w := httptest.NewRecorder()
 
-	server.handleAPISearch(w, req)
+	server.apiServer.HandleSearch(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
@@ -551,7 +556,7 @@ func TestSearchResultsConsistencyBetweenAPIAndWeb(t *testing.T) {
 	// Test API
 	apiReq := httptest.NewRequest("GET", fmt.Sprintf("/api/search?q=%s&datasource=%s", query, datasourceFilter), nil)
 	apiW := httptest.NewRecorder()
-	server.handleAPISearch(apiW, apiReq)
+	server.apiServer.HandleSearch(apiW, apiReq)
 
 	if apiW.Code != http.StatusOK {
 		t.Errorf("API request failed with status %d", apiW.Code)
@@ -594,7 +599,7 @@ func TestAPISearchInvalidPagination(t *testing.T) {
 	req := httptest.NewRequest("GET", "/api/search?q=test&page=0&limit=-5", nil)
 	w := httptest.NewRecorder()
 
-	server.handleAPISearch(w, req)
+	server.apiServer.HandleSearch(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status %d (should handle invalid params gracefully), got %d", http.StatusOK, w.Code)
@@ -623,7 +628,7 @@ func TestAPISearchResponseStructure(t *testing.T) {
 	req := httptest.NewRequest("GET", "/api/search?q=test&limit=5", nil)
 	w := httptest.NewRecorder()
 
-	server.handleAPISearch(w, req)
+	server.apiServer.HandleSearch(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
@@ -686,11 +691,15 @@ func TestAPISearchMethodNotAllowed(t *testing.T) {
 	server, cleanup := setupTestWebServer(t)
 	defer cleanup()
 
+	// Create a mux and register the API routes like the web server does
+	mux := http.NewServeMux()
+	server.apiServer.RegisterRoutes(mux)
+
 	// POST method should not be allowed
 	req := httptest.NewRequest("POST", "/api/search?q=test", nil)
 	w := httptest.NewRecorder()
 
-	server.handleAPISearch(w, req)
+	mux.ServeHTTP(w, req)
 
 	if w.Code != http.StatusMethodNotAllowed {
 		t.Errorf("Expected status %d, got %d", http.StatusMethodNotAllowed, w.Code)
@@ -760,13 +769,14 @@ func TestAPISearchDatasourceAlphabeticalOrder(t *testing.T) {
 		storageManager.RegisterBlockPrototype(datasourceName, mockBlockPrototype)
 	}
 
-	// Update server to use new storage manager
+	// Update server to use new storage manager and recreate API server
 	server.storageManager = storageManager
+	server.apiServer = api.NewServer(server.registry, storageManager)
 
 	req := httptest.NewRequest("GET", "/api/search?q=test", nil)
 	w := httptest.NewRecorder()
 
-	server.handleAPISearch(w, req)
+	server.apiServer.HandleSearch(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
@@ -859,7 +869,13 @@ func TestAPIPaginationAccuracy(t *testing.T) {
 		storageManager.RegisterBlockPrototype(datasourceName, mockBlockPrototype)
 	}
 
-	server := &WebServer{storageManager: storageManager}
+	registry := core.NewRegistry()
+	apiServer := api.NewServer(registry, storageManager)
+	server := &WebServer{
+		storageManager: storageManager,
+		registry:       registry,
+		apiServer:      apiServer,
+	}
 
 	testCases := []struct {
 		page            int
@@ -886,7 +902,7 @@ func TestAPIPaginationAccuracy(t *testing.T) {
 			req := httptest.NewRequest("GET", url, nil)
 			w := httptest.NewRecorder()
 
-			server.handleAPISearch(w, req)
+			server.apiServer.HandleSearch(w, req)
 
 			if w.Code != http.StatusOK {
 				t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
@@ -977,10 +993,12 @@ func TestAPISearchDateFiltering(t *testing.T) {
 
 	rendererRegistry := renderers.NewRendererRegistry()
 	registry := core.GetGlobalRegistry()
+	apiServer := api.NewServer(registry, storageManager)
 	server := &WebServer{
 		registry:         registry,
 		storageManager:   storageManager,
 		rendererRegistry: rendererRegistry,
+		apiServer:        apiServer,
 	}
 	defer func() {
 		if err := storageManager.Close(); err != nil {
@@ -1061,7 +1079,7 @@ func TestAPISearchDateFiltering(t *testing.T) {
 			}
 
 			rr := httptest.NewRecorder()
-			server.handleAPISearch(rr, req)
+			server.apiServer.HandleSearch(rr, req)
 
 			if tt.shouldError {
 				if rr.Code != http.StatusBadRequest {
@@ -1176,10 +1194,12 @@ func TestWebSearchDateFiltering(t *testing.T) {
 
 	rendererRegistry := renderers.NewRendererRegistry()
 	registry := core.GetGlobalRegistry()
+	apiServer := api.NewServer(registry, storageManager)
 	server := &WebServer{
 		registry:         registry,
 		storageManager:   storageManager,
 		rendererRegistry: rendererRegistry,
+		apiServer:        apiServer,
 	}
 	defer func() {
 		if err := storageManager.Close(); err != nil {
@@ -1255,10 +1275,12 @@ func TestDateFilterParameterParsing(t *testing.T) {
 
 	rendererRegistry := renderers.NewRendererRegistry()
 	registry := core.GetGlobalRegistry()
+	apiServer := api.NewServer(registry, storageManager)
 	server := &WebServer{
 		registry:         registry,
 		storageManager:   storageManager,
 		rendererRegistry: rendererRegistry,
+		apiServer:        apiServer,
 	}
 
 	tests := []struct {
@@ -1301,7 +1323,7 @@ func TestDateFilterParameterParsing(t *testing.T) {
 			}
 
 			rr := httptest.NewRecorder()
-			server.handleAPISearch(rr, req)
+			server.apiServer.HandleSearch(rr, req)
 
 			if rr.Code != tt.expectedStatus {
 				t.Errorf("Expected status %d, got %d", tt.expectedStatus, rr.Code)
@@ -1318,7 +1340,7 @@ func TestAPIDatasourcesAlphabeticalOrder(t *testing.T) {
 	req := httptest.NewRequest("GET", "/api/datasources", nil)
 	w := httptest.NewRecorder()
 
-	server.handleAPIListDatasources(w, req)
+	server.apiServer.HandleListDatasources(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
