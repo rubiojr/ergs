@@ -386,7 +386,7 @@ func TestFormatSearchError(t *testing.T) {
 		{
 			name:     "forward_slash_syntax_error",
 			input:    fmt.Errorf("searching hackernews: sqlite3: SQL logic error: fts5: syntax error near \"/\""),
-			expected: "Invalid search query: Forward slashes (/) are not allowed in search terms. Please remove special characters and try again.",
+			expected: "Invalid search query: Forward slashes (/) are not allowed in search terms. Please remove special characters or quote the query and try again.",
 		},
 		{
 			name:     "single_quote_syntax_error",
