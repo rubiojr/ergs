@@ -25,6 +25,7 @@ Ergs stores data in several searchable columns:
 - `source` - The datasource instance name (e.g., "github-work", "firefox-home")  
 - `datasource` - The datasource type (e.g., "github", "firefox", "gasstations")
 - `metadata` - Structured metadata as JSON
+- `hostname` - The hostname where the data was collected (e.g., "workstation", "server01")
 
 ### Basic Column Syntax
 ```
@@ -34,6 +35,7 @@ datasource:firefox
 source:github-work
 text:golang
 metadata:important
+hostname:workstation
 ```
 
 ### Quoted Column Names
@@ -41,6 +43,7 @@ metadata:important
 "datasource":github
 "text":"hello world"
 "source":"github-work"
+"hostname":"workstation"
 ```
 
 ## Boolean Operators
@@ -184,6 +187,13 @@ datasource:firefox AND github
 text:documentation AND datasource:firefox
 ```
 
+### Search by Hostname
+```
+hostname:workstation
+hostname:server01
+hostname:laptop AND datasource:github
+```
+
 ### Cross-Datasource Searches
 ```
 (datasource:github OR datasource:codeberg) AND rust
@@ -191,11 +201,20 @@ golang NOT datasource:firefox
 project AND (datasource:github OR datasource:codeberg)
 ```
 
+### Multi-Machine Searches
+```
+hostname:workstation OR hostname:server01
+datasource:github AND hostname:workstation
+hostname:laptop AND NOT hostname:server01
+```
+
 ### Advanced Combinations
 ```
 datasource:github AND text:"open source" AND rust
 (datasource:gasstations AND diesel) OR (datasource:github AND fuel)
 text:(price OR cost) AND NOT (test OR demo)
+hostname:workstation AND datasource:github AND rust
+(hostname:server01 OR hostname:server02) AND datasource:gasstations
 ```
 
 ## Special Considerations

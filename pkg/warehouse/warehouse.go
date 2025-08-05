@@ -377,7 +377,7 @@ func (w *Warehouse) fetchFromDatasourceByName(ctx context.Context, datasourceNam
 func (w *Warehouse) storeBlock(block core.Block) error {
 	// Use the block's source directly as the datasource name
 	// since blocks now use instance names as their source
-	storage, err := w.storageManager.GetStorage(block.Source())
+	storage, err := w.storageManager.EnsureStorageWithMigrations(block.Source())
 	if err != nil {
 		return fmt.Errorf("getting storage for datasource %s: %w", block.Source(), err)
 	}

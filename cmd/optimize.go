@@ -56,7 +56,10 @@ func optimizeDatabase(configPath string, analyze, vacuum, checkpoint bool) error
 		}
 	}()
 
-	storageManager := storage.NewManager(cfg.StorageDir)
+	storageManager, err := storage.NewManager(cfg.StorageDir)
+	if err != nil {
+		return fmt.Errorf("creating storage manager: %w", err)
+	}
 	defer func() {
 		if err := storageManager.Close(); err != nil {
 			fmt.Printf("Warning: failed to close storage manager: %v\n", err)

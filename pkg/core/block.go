@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 )
@@ -114,6 +115,7 @@ type GenericBlock struct {
 	createdAt time.Time              // When this block was created
 	source    string                 // Source datasource instance name
 	dsType    string                 // Datasource type (e.g., "github", "firefox")
+	hostname  string                 // Hostname where this block was created
 	metadata  map[string]interface{} // Structured data from database
 }
 
@@ -131,6 +133,31 @@ func (b *GenericBlock) CreatedAt() time.Time { return b.createdAt }
 // Source returns the datasource instance name
 func (b *GenericBlock) Source() string { return b.source }
 
+// Hostname returns the hostname where this block was created
+func (b *GenericBlock) Hostname() string { return b.hostname }
+
+// ToGenericBlock converts any Block to a GenericBlock with hostname information
+func ToGenericBlock(block Block, hostname string) *GenericBlock {
+	return &GenericBlock{
+		id:        block.ID(),
+		text:      block.Text(),
+		createdAt: block.CreatedAt(),
+		source:    block.Source(),
+		dsType:    block.Type(),
+		hostname:  hostname,
+		metadata:  block.Metadata(),
+	}
+}
+
+// ToGenericBlockWithAutoHostname converts any Block to a GenericBlock with automatic hostname detection
+func ToGenericBlockWithAutoHostname(block Block) *GenericBlock {
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "" // Empty hostname is valid for blocks that don't have hostname info
+	}
+	return ToGenericBlock(block, hostname)
+}
+
 // Metadata returns the structured data for this block
 func (b *GenericBlock) Metadata() map[string]interface{} { return b.metadata }
 
@@ -146,8 +173,12 @@ func (b *GenericBlock) Type() string { return b.dsType }
 // more tailored and visually appealing formatting.
 func (b *GenericBlock) PrettyText() string {
 	metadataInfo := FormatMetadata(b.metadata)
-	return fmt.Sprintf("📄 %s\n  ID: %s\n  Time: %s\n  Source: %s\n  Type: %s%s",
-		b.text, b.id, b.createdAt.Format("2006-01-02 15:04:05"), b.source, b.dsType, metadataInfo)
+	hostnameInfo := ""
+	if b.hostname != "" {
+		hostnameInfo = fmt.Sprintf("\n  Hostname: %s", b.hostname)
+	}
+	return fmt.Sprintf("📄 %s\n  ID: %s\n  Time: %s\n  Source: %s\n  Type: %s%s%s",
+		b.text, b.id, b.createdAt.Format("2006-01-02 15:04:05"), b.source, b.dsType, hostnameInfo, metadataInfo)
 }
 
 // Summary returns a concise one-line summary for this generic block.
@@ -194,6 +225,7 @@ func (b *GenericBlock) Factory(genericBlock *GenericBlock, source string) Block 
 		createdAt: genericBlock.CreatedAt(),
 		source:    source,
 		dsType:    genericBlock.DSType(),
+		hostname:  genericBlock.hostname,
 		metadata:  genericBlock.Metadata(),
 	}
 }
@@ -209,12 +241,18 @@ func (b *GenericBlock) Factory(genericBlock *GenericBlock, source string) Block 
 // - createdAt: Original creation time of the data
 // - metadata: All structured data needed for persistence
 func NewGenericBlock(id, text, source, dsType string, createdAt time.Time, metadata map[string]interface{}) *GenericBlock {
+	return NewGenericBlockWithHostname(id, text, source, dsType, "", createdAt, metadata)
+}
+
+// NewGenericBlockWithHostname creates a new GenericBlock with hostname information.
+func NewGenericBlockWithHostname(id, text, source, dsType, hostname string, createdAt time.Time, metadata map[string]interface{}) *GenericBlock {
 	return &GenericBlock{
 		id:        id,
 		text:      text,
 		createdAt: createdAt,
 		source:    source,
 		dsType:    dsType,
+		hostname:  hostname,
 		metadata:  metadata,
 	}
 }

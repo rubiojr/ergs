@@ -38,7 +38,11 @@ func (b *mockBlock) Factory(genericBlock *core.GenericBlock, source string) core
 }
 
 func createTestManager(t *testing.T) *Manager {
-	return NewManager(t.TempDir())
+	manager, err := NewManager(t.TempDir())
+	if err != nil {
+		t.Fatalf("Failed to create test manager: %v", err)
+	}
+	return manager
 }
 
 func setupTestData(t *testing.T, manager *Manager, datasources map[string][]core.Block) {
@@ -54,7 +58,7 @@ func setupTestData(t *testing.T, manager *Manager, datasources map[string][]core
 			t.Fatalf("Failed to initialize storage for %s: %v", datasourceName, err)
 		}
 
-		storage, err := manager.GetStorage(datasourceName)
+		storage, err := manager.EnsureStorageWithMigrations(datasourceName)
 		if err != nil {
 			t.Fatalf("Failed to get storage for %s: %v", datasourceName, err)
 		}

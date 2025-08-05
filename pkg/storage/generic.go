@@ -45,10 +45,6 @@ func NewGenericStorage(dbPath, datasourceName string) (*GenericStorage, error) {
 		datasourceName: datasourceName,
 	}
 
-	if err := storage.initBaseTables(); err != nil {
-		return nil, fmt.Errorf("initializing base tables: %w", err)
-	}
-
 	return storage, nil
 }
 
@@ -56,39 +52,9 @@ func (s *GenericStorage) Close() error {
 	return s.db.Close()
 }
 
-func (s *GenericStorage) initBaseTables() error {
-	queries := []string{
-		`CREATE TABLE IF NOT EXISTS blocks (
-			id TEXT PRIMARY KEY,
-			text TEXT NOT NULL,
-			created_at DATETIME NOT NULL,
-			source TEXT NOT NULL,
-			datasource TEXT NOT NULL,
-			metadata TEXT
-		)`,
-		`CREATE TABLE IF NOT EXISTS fetch_metadata (
-			key TEXT PRIMARY KEY,
-			value TEXT NOT NULL,
-			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-		)`,
-		`CREATE VIRTUAL TABLE IF NOT EXISTS blocks_fts USING fts5(
-			text,
-			source,
-			datasource,
-			metadata,
-			content='blocks',
-			content_rowid='rowid',
-			tokenize='porter'
-		)`,
-	}
-
-	for _, query := range queries {
-		if _, err := s.db.Exec(query); err != nil {
-			return fmt.Errorf("executing query %q: %w", query, err)
-		}
-	}
-
-	return nil
+// GetDB returns the underlying database connection for migrations
+func (s *GenericStorage) GetDB() *sql.DB {
+	return s.db
 }
 
 func (s *GenericStorage) InitializeSchema(schema map[string]any) error {
@@ -120,8 +86,8 @@ func (s *GenericStorage) StoreBlocks(blocks []core.Block, datasourceType string)
 	}()
 
 	stmt, err := tx.Prepare(`
-		INSERT OR REPLACE INTO blocks (id, text, created_at, source, datasource, metadata)
-		VALUES (?, ?, ?, ?, ?, ?)
+		INSERT OR REPLACE INTO blocks (id, text, created_at, source, datasource, metadata, hostname)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
 	`)
 	if err != nil {
 		return fmt.Errorf("preparing statement: %w", err)
@@ -133,8 +99,8 @@ func (s *GenericStorage) StoreBlocks(blocks []core.Block, datasourceType string)
 	}()
 
 	ftsStmt, err := tx.Prepare(`
-		INSERT OR REPLACE INTO blocks_fts (rowid, text, source, datasource, metadata)
-		VALUES ((SELECT rowid FROM blocks WHERE id = ?), ?, ?, ?, ?)
+		INSERT OR REPLACE INTO blocks_fts (rowid, text, source, datasource, metadata, hostname)
+		VALUES ((SELECT rowid FROM blocks WHERE id = ?), ?, ?, ?, ?, ?)
 	`)
 	if err != nil {
 		return fmt.Errorf("preparing FTS statement: %w", err)
@@ -146,34 +112,39 @@ func (s *GenericStorage) StoreBlocks(blocks []core.Block, datasourceType string)
 	}()
 
 	for _, block := range blocks {
-		metadataJSON, err := json.Marshal(block.Metadata())
+		// Convert to GenericBlock to get hostname information
+		genericBlock := core.ToGenericBlockWithAutoHostname(block)
+
+		metadataJSON, err := json.Marshal(genericBlock.Metadata())
 		if err != nil {
-			return fmt.Errorf("marshaling metadata for block %s: %w", block.ID(), err)
+			return fmt.Errorf("marshaling metadata for block %s: %w", genericBlock.ID(), err)
 		}
 
 		// Insert into main blocks table
 		_, err = stmt.Exec(
-			block.ID(),
-			block.Text(),
-			block.CreatedAt(),
-			block.Source(),
+			genericBlock.ID(),
+			genericBlock.Text(),
+			genericBlock.CreatedAt(),
+			genericBlock.Source(),
 			datasourceType,
 			string(metadataJSON),
+			genericBlock.Hostname(),
 		)
 		if err != nil {
-			return fmt.Errorf("inserting block %s: %w", block.ID(), err)
+			return fmt.Errorf("inserting block %s: %w", genericBlock.ID(), err)
 		}
 
 		// Insert into FTS table using the original text
 		_, err = ftsStmt.Exec(
-			block.ID(),
-			block.Text(),
-			block.Source(),
+			genericBlock.ID(),
+			genericBlock.Text(),
+			genericBlock.Source(),
 			datasourceType,
 			string(metadataJSON),
+			genericBlock.Hostname(),
 		)
 		if err != nil {
-			return fmt.Errorf("inserting block %s into FTS: %w", block.ID(), err)
+			return fmt.Errorf("inserting block %s into FTS: %w", genericBlock.ID(), err)
 		}
 	}
 
@@ -192,7 +163,7 @@ func (s *GenericStorage) SearchBlocks(query string, limit int) ([]core.Block, er
 		// Escape FTS5 query for special characters
 		escapedQuery := escapeFTS5Query(query)
 		sqlQuery = `
-			SELECT b.id, b.text, b.created_at, b.source, b.datasource, b.metadata
+			SELECT b.id, b.text, b.created_at, b.source, b.datasource, b.metadata, b.hostname
 			FROM blocks b
 			JOIN blocks_fts fts ON b.rowid = fts.rowid
 			WHERE blocks_fts MATCH ?
@@ -201,7 +172,7 @@ func (s *GenericStorage) SearchBlocks(query string, limit int) ([]core.Block, er
 		args = []interface{}{escapedQuery, limit}
 	} else {
 		sqlQuery = `
-			SELECT id, text, created_at, source, datasource, metadata
+			SELECT id, text, created_at, source, datasource, metadata, hostname
 			FROM blocks
 			ORDER BY created_at DESC
 			LIMIT ?`
@@ -221,9 +192,10 @@ func (s *GenericStorage) SearchBlocks(query string, limit int) ([]core.Block, er
 	var blocks []core.Block
 	for rows.Next() {
 		var id, text, source, datasourceType, metadataStr string
+		var hostname sql.NullString
 		var createdAt time.Time
 
-		err = rows.Scan(&id, &text, &createdAt, &source, &datasourceType, &metadataStr)
+		err = rows.Scan(&id, &text, &createdAt, &source, &datasourceType, &metadataStr, &hostname)
 		if err != nil {
 			return nil, fmt.Errorf("scanning row: %w", err)
 		}
@@ -233,7 +205,12 @@ func (s *GenericStorage) SearchBlocks(query string, limit int) ([]core.Block, er
 			return nil, fmt.Errorf("unmarshaling metadata for block %s: %w", id, err)
 		}
 
-		block := core.NewGenericBlock(id, text, source, datasourceType, createdAt, metadata)
+		hostnameStr := ""
+		if hostname.Valid {
+			hostnameStr = hostname.String
+		}
+
+		block := core.NewGenericBlockWithHostname(id, text, source, datasourceType, hostnameStr, createdAt, metadata)
 		blocks = append(blocks, block)
 	}
 
@@ -249,7 +226,7 @@ func (s *GenericStorage) SearchBlocksByTime(query string, limit int) ([]core.Blo
 		// Escape FTS5 query for special characters
 		escapedQuery := escapeFTS5Query(query)
 		sqlQuery = `
-			SELECT b.id, b.text, b.created_at, b.source, b.datasource, b.metadata
+			SELECT b.id, b.text, b.created_at, b.source, b.datasource, b.metadata, b.hostname
 			FROM blocks b
 			JOIN blocks_fts fts ON b.rowid = fts.rowid
 			WHERE blocks_fts MATCH ?
@@ -258,7 +235,7 @@ func (s *GenericStorage) SearchBlocksByTime(query string, limit int) ([]core.Blo
 		args = []interface{}{escapedQuery, limit}
 	} else {
 		sqlQuery = `
-			SELECT id, text, created_at, source, datasource, metadata
+			SELECT id, text, created_at, source, datasource, metadata, hostname
 			FROM blocks
 			ORDER BY created_at DESC
 			LIMIT ?`
@@ -278,9 +255,10 @@ func (s *GenericStorage) SearchBlocksByTime(query string, limit int) ([]core.Blo
 	var blocks []core.Block
 	for rows.Next() {
 		var id, text, source, datasourceType, metadataStr string
+		var hostname sql.NullString
 		var createdAt time.Time
 
-		err = rows.Scan(&id, &text, &createdAt, &source, &datasourceType, &metadataStr)
+		err = rows.Scan(&id, &text, &createdAt, &source, &datasourceType, &metadataStr, &hostname)
 		if err != nil {
 			return nil, fmt.Errorf("scanning row: %w", err)
 		}
@@ -290,7 +268,12 @@ func (s *GenericStorage) SearchBlocksByTime(query string, limit int) ([]core.Blo
 			return nil, fmt.Errorf("unmarshaling metadata for block %s: %w", id, err)
 		}
 
-		block := core.NewGenericBlock(id, text, source, datasourceType, createdAt, metadata)
+		hostnameStr := ""
+		if hostname.Valid {
+			hostnameStr = hostname.String
+		}
+
+		block := core.NewGenericBlockWithHostname(id, text, source, datasourceType, hostnameStr, createdAt, metadata)
 		blocks = append(blocks, block)
 	}
 
@@ -322,7 +305,7 @@ func (s *GenericStorage) SearchBlocksByTimeWithDateRange(query string, limit int
 		// Escape FTS5 query for special characters
 		escapedQuery := escapeFTS5Query(query)
 		sqlQuery = `
-			SELECT b.id, b.text, b.created_at, b.source, b.datasource, b.metadata
+			SELECT b.id, b.text, b.created_at, b.source, b.datasource, b.metadata, b.hostname
 			FROM blocks b
 			JOIN blocks_fts fts ON b.rowid = fts.rowid
 			WHERE blocks_fts MATCH ?` + whereClause + `
@@ -335,7 +318,7 @@ func (s *GenericStorage) SearchBlocksByTimeWithDateRange(query string, limit int
 			whereClause = " WHERE " + strings.Join(dateConditions, " AND ")
 		}
 		sqlQuery = `
-			SELECT id, text, created_at, source, datasource, metadata
+			SELECT id, text, created_at, source, datasource, metadata, hostname
 			FROM blocks` + whereClause + `
 			ORDER BY created_at DESC
 			LIMIT ?`
@@ -355,9 +338,10 @@ func (s *GenericStorage) SearchBlocksByTimeWithDateRange(query string, limit int
 	var blocks []core.Block
 	for rows.Next() {
 		var id, text, source, datasourceType, metadataStr string
+		var hostname sql.NullString
 		var createdAt time.Time
 
-		err = rows.Scan(&id, &text, &createdAt, &source, &datasourceType, &metadataStr)
+		err = rows.Scan(&id, &text, &createdAt, &source, &datasourceType, &metadataStr, &hostname)
 		if err != nil {
 			return nil, fmt.Errorf("scanning row: %w", err)
 		}
@@ -367,7 +351,12 @@ func (s *GenericStorage) SearchBlocksByTimeWithDateRange(query string, limit int
 			return nil, fmt.Errorf("unmarshaling metadata for block %s: %w", id, err)
 		}
 
-		block := core.NewGenericBlock(id, text, source, datasourceType, createdAt, metadata)
+		hostnameStr := ""
+		if hostname.Valid {
+			hostnameStr = hostname.String
+		}
+
+		block := core.NewGenericBlockWithHostname(id, text, source, datasourceType, hostnameStr, createdAt, metadata)
 		blocks = append(blocks, block)
 	}
 
@@ -376,7 +365,7 @@ func (s *GenericStorage) SearchBlocksByTimeWithDateRange(query string, limit int
 
 func (s *GenericStorage) GetBlocksSince(since time.Time) ([]core.Block, error) {
 	query := `
-		SELECT id, text, created_at, source, datasource, metadata
+		SELECT id, text, created_at, source, datasource, metadata, hostname
 		FROM blocks
 		WHERE created_at > ?
 		ORDER BY created_at DESC
@@ -395,9 +384,10 @@ func (s *GenericStorage) GetBlocksSince(since time.Time) ([]core.Block, error) {
 	var blocks []core.Block
 	for rows.Next() {
 		var id, text, source, datasourceType, metadataStr string
+		var hostname sql.NullString
 		var createdAt time.Time
 
-		err = rows.Scan(&id, &text, &createdAt, &source, &datasourceType, &metadataStr)
+		err = rows.Scan(&id, &text, &createdAt, &source, &datasourceType, &metadataStr, &hostname)
 		if err != nil {
 			return nil, fmt.Errorf("scanning row: %w", err)
 		}
@@ -407,7 +397,12 @@ func (s *GenericStorage) GetBlocksSince(since time.Time) ([]core.Block, error) {
 			return nil, fmt.Errorf("unmarshaling metadata for block %s: %w", id, err)
 		}
 
-		block := core.NewGenericBlock(id, text, source, datasourceType, createdAt, metadata)
+		hostnameStr := ""
+		if hostname.Valid {
+			hostnameStr = hostname.String
+		}
+
+		block := core.NewGenericBlockWithHostname(id, text, source, datasourceType, hostnameStr, createdAt, metadata)
 		blocks = append(blocks, block)
 	}
 

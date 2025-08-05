@@ -2,13 +2,36 @@ package storage
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
 	"sync"
 	"time"
 
 	"github.com/rubiojr/ergs/pkg/core"
+	"github.com/rubiojr/ergs/pkg/db"
 )
+
+// ErrPendingMigrations is returned when there are pending migrations
+var ErrPendingMigrations = fmt.Errorf("pending migrations detected")
+
+// PendingMigrationsError wraps ErrPendingMigrations with details
+type PendingMigrationsError struct {
+	Datasource string
+	Count      int
+}
+
+func (e *PendingMigrationsError) Error() string {
+	return fmt.Sprintf("database '%s' has %d pending migrations. Run 'ergs migrate' first", e.Datasource, e.Count)
+}
+
+func (e *PendingMigrationsError) Is(target error) bool {
+	return target == ErrPendingMigrations
+}
+
+func (e *PendingMigrationsError) Unwrap() error {
+	return ErrPendingMigrations
+}
 
 type Manager struct {
 	storageDir      string
@@ -17,7 +40,24 @@ type Manager struct {
 	mu              sync.RWMutex
 }
 
-func NewManager(storageDir string) *Manager {
+func NewManager(storageDir string) (*Manager, error) {
+	manager := &Manager{
+		storageDir:      storageDir,
+		storages:        make(map[string]*GenericStorage),
+		blockPrototypes: make(map[string]core.Block),
+	}
+
+	// Check for pending migrations in existing databases
+	if err := manager.checkPendingMigrations(); err != nil {
+		return nil, err
+	}
+
+	return manager, nil
+}
+
+// NewManagerWithoutMigrationCheck creates a storage manager without checking for pending migrations
+// This is used by the migrate command itself to avoid circular dependencies
+func NewManagerWithoutMigrationCheck(storageDir string) *Manager {
 	return &Manager{
 		storageDir:      storageDir,
 		storages:        make(map[string]*GenericStorage),
@@ -51,8 +91,54 @@ func (m *Manager) GetStorage(datasourceName string) (*GenericStorage, error) {
 	return storage, nil
 }
 
-func (m *Manager) InitializeDatasourceStorage(datasourceName string, schema map[string]any) error {
+// EnsureStorageWithMigrations gets storage and ensures migrations are applied for new databases
+func (m *Manager) EnsureStorageWithMigrations(datasourceName string) (*GenericStorage, error) {
+	dbPath := filepath.Join(m.storageDir, fmt.Sprintf("%s.db", datasourceName))
+
+	// Check if database file exists before creating storage
+	dbExists := true
+	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+		dbExists = false
+	}
+
 	storage, err := m.GetStorage(datasourceName)
+	if err != nil {
+		return nil, err
+	}
+
+	// For new databases, apply migrations automatically
+	// For existing databases, check for pending migrations and return error if any exist
+	if !dbExists {
+		migrationManager := db.NewMigrationManager(storage.GetDB())
+		if err := migrationManager.ApplyPendingMigrations(); err != nil {
+			return nil, fmt.Errorf("applying migrations for new database %s: %w", datasourceName, err)
+		}
+	} else {
+		// Check for pending migrations on existing databases
+		migrationManager := db.NewMigrationManager(storage.GetDB())
+
+		// Ensure migrations table exists before checking
+		if err := migrationManager.EnsureMigrationsTable(); err != nil {
+			return nil, fmt.Errorf("ensuring migrations table for %s: %w", datasourceName, err)
+		}
+
+		pending, err := migrationManager.GetPendingMigrations()
+		if err != nil {
+			return nil, fmt.Errorf("checking pending migrations for %s: %w", datasourceName, err)
+		}
+		if len(pending) > 0 {
+			return nil, &PendingMigrationsError{
+				Datasource: datasourceName,
+				Count:      len(pending),
+			}
+		}
+	}
+
+	return storage, nil
+}
+
+func (m *Manager) InitializeDatasourceStorage(datasourceName string, schema map[string]any) error {
+	storage, err := m.EnsureStorageWithMigrations(datasourceName)
 	if err != nil {
 		return err
 	}
@@ -67,7 +153,7 @@ func (m *Manager) RegisterBlockPrototype(datasourceName string, prototype core.B
 }
 
 func (m *Manager) SearchBlocks(datasourceName, query string, limit int) ([]core.Block, error) {
-	storage, err := m.GetStorage(datasourceName)
+	storage, err := m.EnsureStorageWithMigrations(datasourceName)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +169,7 @@ func (m *Manager) SearchBlocks(datasourceName, query string, limit int) ([]core.
 
 // SearchBlocksByTime searches blocks and orders them strictly by creation time (newest first)
 func (m *Manager) SearchBlocksByTime(datasourceName, query string, limit int) ([]core.Block, error) {
-	storage, err := m.GetStorage(datasourceName)
+	storage, err := m.EnsureStorageWithMigrations(datasourceName)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +185,7 @@ func (m *Manager) SearchBlocksByTime(datasourceName, query string, limit int) ([
 
 // SearchBlocksByTimeWithDateRange searches blocks within a date range and orders them strictly by creation time (newest first)
 func (m *Manager) SearchBlocksByTimeWithDateRange(datasourceName, query string, limit int, startDate, endDate *time.Time) ([]core.Block, error) {
-	storage, err := m.GetStorage(datasourceName)
+	storage, err := m.EnsureStorageWithMigrations(datasourceName)
 	if err != nil {
 		return nil, err
 	}
@@ -524,6 +610,53 @@ func (m *Manager) WALCheckpointAll() error {
 
 	if len(errors) > 0 {
 		return fmt.Errorf("errors in WAL checkpoint: %v", errors)
+	}
+
+	return nil
+}
+
+// checkPendingMigrations checks all existing databases for pending migrations
+func (m *Manager) checkPendingMigrations() error {
+	// Check if storage directory exists
+	if _, err := os.Stat(m.storageDir); os.IsNotExist(err) {
+		return nil // No storage directory means no databases to check
+	}
+
+	// Read all .db files in storage directory
+	entries, err := os.ReadDir(m.storageDir)
+	if err != nil {
+		return fmt.Errorf("reading storage directory: %w", err)
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() && filepath.Ext(entry.Name()) == ".db" {
+			datasourceName := entry.Name()[:len(entry.Name())-3] // Remove .db extension
+			dbPath := filepath.Join(m.storageDir, entry.Name())
+
+			// Open database connection to check migrations
+			storage, err := NewGenericStorage(dbPath, datasourceName)
+			if err != nil {
+				continue // Skip databases we can't open
+			}
+
+			migrationManager := db.NewMigrationManager(storage.GetDB())
+			pending, err := migrationManager.GetPendingMigrations()
+			if err := storage.Close(); err != nil {
+				// Log close error but continue checking other databases
+				fmt.Printf("Warning: failed to close storage during migration check: %v\n", err)
+			}
+
+			if err != nil {
+				continue // Skip databases we can't check
+			}
+
+			if len(pending) > 0 {
+				return &PendingMigrationsError{
+					Datasource: datasourceName,
+					Count:      len(pending),
+				}
+			}
+		}
 	}
 
 	return nil

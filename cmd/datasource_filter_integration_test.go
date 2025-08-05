@@ -27,7 +27,7 @@ import (
 func TestDatasourceFilteringIntegration(t *testing.T) {
 	// Setup test environment
 	tempDir := t.TempDir()
-	storageManager := storage.NewManager(tempDir)
+	storageManager := storage.NewManagerWithoutMigrationCheck(tempDir)
 	defer func() {
 		if err := storageManager.Close(); err != nil {
 			t.Logf("Warning: failed to close storage manager: %v", err)
@@ -78,7 +78,7 @@ func TestDatasourceFilteringIntegration(t *testing.T) {
 			t.Fatalf("Failed to initialize storage for %s: %v", datasourceName, err)
 		}
 
-		storage, err := storageManager.GetStorage(datasourceName)
+		storage, err := storageManager.EnsureStorageWithMigrations(datasourceName)
 		if err != nil {
 			t.Fatalf("Failed to get storage for %s: %v", datasourceName, err)
 		}

@@ -11,6 +11,7 @@ Welcome to the Ergs documentation! Ergs is a flexible, extensible data fetching 
 ## Architecture
 
 - **[Architecture Overview](architecture.md)** - System design and core concepts
+- **[Migration Guide](migration.md)** - Database schema evolution and migration management
 - **[System Components](../README.md#architecture-overview)** - Blocks, Datasources, Warehouse, and Registration
 
 ## Web Interface
@@ -42,6 +43,12 @@ ergs init
 # Add datasources
 ergs datasource add --name my-github --type github --token "your-token"
 
+# Check migration status
+ergs migrate --status
+
+# Apply migrations (for existing databases)
+ergs migrate
+
 # Fetch data
 ergs fetch
 
@@ -60,7 +67,7 @@ ergs serve --interval 30m
 1. **First Time Setup**
    - Initialize config with `ergs init`
    - Add datasources for your platforms
-   - Run initial fetch with `ergs fetch`
+   - Run initial fetch with `ergs fetch` (migrations applied automatically for new databases)
 
 2. **Daily Usage**
    - Search your data with `ergs search` (CLI)
@@ -78,6 +85,11 @@ ergs serve --interval 30m
    - Run daemon with `ergs serve`
    - Configure fetch intervals
    - Monitor logs for issues
+
+5. **Migration Management**
+   - Check status with `ergs migrate --status`
+   - Apply pending migrations with `ergs migrate`
+   - See [Migration Guide](migration.md) for detailed information
 
 ## Configuration Examples
 
@@ -129,6 +141,7 @@ type = 'zedthreads'
 - **Rate limit errors**: Add API tokens for higher rate limits
 - **No results found**: Check datasource configuration and permissions
 - **Build errors**: Ensure you're using `--tags fts5` for SQLite FTS5 support
+- **Pending migrations errors**: Run `ergs migrate` to apply database schema updates
 
 ### Debug Mode
 

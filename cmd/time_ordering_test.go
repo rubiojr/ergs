@@ -31,7 +31,7 @@ func setupTestData(t *testing.T, manager *storage.Manager, datasources map[strin
 			t.Fatalf("Failed to initialize storage for %s: %v", datasourceName, err)
 		}
 
-		storage, err := manager.GetStorage(datasourceName)
+		storage, err := manager.EnsureStorageWithMigrations(datasourceName)
 		if err != nil {
 			t.Fatalf("Failed to get storage for %s: %v", datasourceName, err)
 		}
@@ -52,7 +52,10 @@ func setupTestData(t *testing.T, manager *storage.Manager, datasources map[strin
 func TestTimeBasedOrderingIntegration(t *testing.T) {
 	// Setup test environment
 	tempDir := t.TempDir()
-	storageManager := storage.NewManager(tempDir)
+	storageManager, err := storage.NewManager(tempDir)
+	if err != nil {
+		t.Fatalf("Failed to create storage manager: %v", err)
+	}
 	defer func() {
 		if err := storageManager.Close(); err != nil {
 			t.Logf("Warning: failed to close storage manager: %v", err)
@@ -107,7 +110,7 @@ func TestTimeBasedOrderingIntegration(t *testing.T) {
 			t.Fatalf("Failed to initialize storage for %s: %v", datasourceName, err)
 		}
 
-		storage, err := storageManager.GetStorage(datasourceName)
+		storage, err := storageManager.EnsureStorageWithMigrations(datasourceName)
 		if err != nil {
 			t.Fatalf("Failed to get storage for %s: %v", datasourceName, err)
 		}
@@ -389,7 +392,10 @@ func TestTimeBasedOrderingIntegration(t *testing.T) {
 
 // TestStorageManagerTimeOrdering tests the storage manager's time-based ordering directly
 func TestStorageManagerTimeOrdering(t *testing.T) {
-	manager := storage.NewManager(t.TempDir())
+	manager, err := storage.NewManager(t.TempDir())
+	if err != nil {
+		t.Fatalf("Failed to create storage manager: %v", err)
+	}
 	defer func() {
 		if err := manager.Close(); err != nil {
 			t.Logf("Warning: failed to close manager: %v", err)
@@ -460,7 +466,10 @@ func TestStorageManagerTimeOrdering(t *testing.T) {
 
 // TestTimeOrderingPerformance tests that time-based ordering doesn't significantly impact performance
 func TestTimeOrderingPerformance(t *testing.T) {
-	manager := storage.NewManager(t.TempDir())
+	manager, err := storage.NewManager(t.TempDir())
+	if err != nil {
+		t.Fatalf("Failed to create storage manager: %v", err)
+	}
 	defer func() {
 		if err := manager.Close(); err != nil {
 			t.Logf("Warning: failed to close manager: %v", err)

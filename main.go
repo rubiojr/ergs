@@ -37,6 +37,7 @@ func main() {
 			cmd.WebCommand(),
 			cmd.StatsCommand(),
 			cmd.OptimizeCommand(),
+			cmd.MigrateCommand(),
 			cmd.VersionCommand(),
 		},
 	}

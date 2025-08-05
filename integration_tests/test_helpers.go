@@ -1,10 +1,6 @@
 package integration_tests
 
 import (
-	"os"
-	"path/filepath"
-	"testing"
-
 	"github.com/rubiojr/ergs/pkg/config"
 	"github.com/rubiojr/ergs/pkg/core"
 	"github.com/rubiojr/ergs/pkg/datasources/testrand"
@@ -64,21 +60,6 @@ func CreateTestConfigMinimal(tempDir string) *config.Config {
 				},
 			},
 		},
-	}
-}
-
-// SetupTestEnvironment creates a temporary directory using t.TempDir()
-func SetupTestEnvironment(t *testing.T) string {
-	return t.TempDir()
-}
-
-// VerifyDatabaseFiles checks that expected database files exist
-func VerifyDatabaseFiles(t *testing.T, tempDir string, expectedDatabases []string) {
-	for _, dbName := range expectedDatabases {
-		dbPath := filepath.Join(tempDir, dbName)
-		if _, err := os.Stat(dbPath); os.IsNotExist(err) {
-			t.Errorf("Database file %s does not exist", dbName)
-		}
 	}
 }
 
@@ -152,15 +133,6 @@ func toUpper(s string) string {
 	return result
 }
 
-// GetMapKeys returns the keys of a string map as a slice
-func GetMapKeys(m map[string]interface{}) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	return keys
-}
-
 // ContainsLocation checks if text contains the specified location keyword
 func ContainsLocation(text, location string) bool {
 	return SearchInText(text, location)
@@ -193,22 +165,6 @@ func CreateDatasourceWithConfig(registry *core.Registry, instanceName, dsType st
 		// For other datasources, just set the default config
 		return ds.SetConfig(configType)
 	}
-}
-
-// ConvertConfigToType converts raw config to the proper datasource config type
-func ConvertConfigToType(ds core.Datasource, rawConfig interface{}) (interface{}, error) {
-	configType := ds.ConfigType()
-
-	if rawConfig == nil {
-		return configType, nil
-	}
-
-	// Use a simple field-by-field copy for map[string]interface{} to struct
-	if configMap, ok := rawConfig.(map[string]interface{}); ok {
-		return convertMapToStruct(configMap, configType)
-	}
-
-	return configType, nil
 }
 
 // setTestrandConfig sets the testrand config using the actual Config type
@@ -250,10 +206,4 @@ func setTimestampConfig(ds core.Datasource, configMap map[string]interface{}) er
 	}
 
 	return ds.SetConfig(config)
-}
-
-// convertMapToStruct converts a map[string]interface{} to a struct
-func convertMapToStruct(configMap map[string]interface{}, target interface{}) (interface{}, error) {
-	// If we can't convert, return the target type (default config)
-	return target, nil
 }

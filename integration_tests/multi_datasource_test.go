@@ -62,7 +62,7 @@ func TestMultipleDatasourceIsolation(t *testing.T) {
 	}
 
 	// Create storage manager and warehouse
-	storageManager := storage.NewManager(testConfig.StorageDir)
+	storageManager := storage.NewManagerWithoutMigrationCheck(testConfig.StorageDir)
 	defer func() {
 		if err := storageManager.Close(); err != nil {
 			t.Logf("Warning: failed to close storage manager: %v", err)

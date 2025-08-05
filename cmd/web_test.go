@@ -46,7 +46,7 @@ func (b *mockBlock) Factory(genericBlock *core.GenericBlock, source string) core
 
 func setupTestWebServer(t *testing.T) (*WebServer, func()) {
 	tempDir := t.TempDir()
-	storageManager := storage.NewManager(tempDir)
+	storageManager := storage.NewManagerWithoutMigrationCheck(tempDir)
 	registry := core.GetGlobalRegistry()
 
 	// Create test data
@@ -91,7 +91,7 @@ func setupTestWebServer(t *testing.T) (*WebServer, func()) {
 			t.Fatalf("Failed to initialize storage for %s: %v", datasourceName, err)
 		}
 
-		storage, err := storageManager.GetStorage(datasourceName)
+		storage, err := storageManager.EnsureStorageWithMigrations(datasourceName)
 		if err != nil {
 			t.Fatalf("Failed to get storage for %s: %v", datasourceName, err)
 		}
@@ -703,7 +703,7 @@ func TestAPISearchDatasourceAlphabeticalOrder(t *testing.T) {
 
 	// Add a third datasource with a name that will test alphabetical ordering
 	tempDir := t.TempDir()
-	storageManager := storage.NewManager(tempDir)
+	storageManager := storage.NewManagerWithoutMigrationCheck(tempDir)
 	defer func() {
 		if err := storageManager.Close(); err != nil {
 			t.Logf("Warning: failed to close storage manager: %v", err)
@@ -744,7 +744,7 @@ func TestAPISearchDatasourceAlphabeticalOrder(t *testing.T) {
 			t.Fatalf("Failed to initialize storage for %s: %v", datasourceName, err)
 		}
 
-		storage, err := storageManager.GetStorage(datasourceName)
+		storage, err := storageManager.EnsureStorageWithMigrations(datasourceName)
 		if err != nil {
 			t.Fatalf("Failed to get storage for %s: %v", datasourceName, err)
 		}
@@ -806,7 +806,7 @@ func TestAPISearchDatasourceAlphabeticalOrder(t *testing.T) {
 
 func TestAPIPaginationAccuracy(t *testing.T) {
 	tempDir := t.TempDir()
-	storageManager := storage.NewManager(tempDir)
+	storageManager := storage.NewManagerWithoutMigrationCheck(tempDir)
 	defer func() {
 		if err := storageManager.Close(); err != nil {
 			t.Logf("Warning: failed to close storage manager: %v", err)
@@ -843,7 +843,7 @@ func TestAPIPaginationAccuracy(t *testing.T) {
 			t.Fatalf("Failed to initialize storage for %s: %v", datasourceName, err)
 		}
 
-		storage, err := storageManager.GetStorage(datasourceName)
+		storage, err := storageManager.EnsureStorageWithMigrations(datasourceName)
 		if err != nil {
 			t.Fatalf("Failed to get storage for %s: %v", datasourceName, err)
 		}
@@ -937,7 +937,7 @@ func TestAPIPaginationAccuracy(t *testing.T) {
 // TestAPISearchDateFiltering tests date filtering functionality in API search
 func TestAPISearchDateFiltering(t *testing.T) {
 	tempDir := t.TempDir()
-	storageManager := storage.NewManager(tempDir)
+	storageManager := storage.NewManagerWithoutMigrationCheck(tempDir)
 
 	// Create test data with specific dates
 	baseTime := time.Date(2024, 5, 15, 12, 0, 0, 0, time.UTC)
@@ -962,7 +962,7 @@ func TestAPISearchDateFiltering(t *testing.T) {
 			t.Fatalf("Failed to initialize storage for %s: %v", datasourceName, err)
 		}
 
-		storage, err := storageManager.GetStorage(datasourceName)
+		storage, err := storageManager.EnsureStorageWithMigrations(datasourceName)
 		if err != nil {
 			t.Fatalf("Failed to get storage for %s: %v", datasourceName, err)
 		}
@@ -1136,7 +1136,7 @@ func TestAPISearchDateFiltering(t *testing.T) {
 // TestWebSearchDateFiltering tests date filtering functionality in web search
 func TestWebSearchDateFiltering(t *testing.T) {
 	tempDir := t.TempDir()
-	storageManager := storage.NewManager(tempDir)
+	storageManager := storage.NewManagerWithoutMigrationCheck(tempDir)
 
 	// Create test data with specific dates
 	baseTime := time.Date(2024, 6, 15, 12, 0, 0, 0, time.UTC)
@@ -1161,7 +1161,7 @@ func TestWebSearchDateFiltering(t *testing.T) {
 			t.Fatalf("Failed to initialize storage for %s: %v", datasourceName, err)
 		}
 
-		storage, err := storageManager.GetStorage(datasourceName)
+		storage, err := storageManager.EnsureStorageWithMigrations(datasourceName)
 		if err != nil {
 			t.Fatalf("Failed to get storage for %s: %v", datasourceName, err)
 		}
@@ -1246,7 +1246,7 @@ func TestWebSearchDateFiltering(t *testing.T) {
 // TestDateFilterParameterParsing tests the parameter parsing for date filters
 func TestDateFilterParameterParsing(t *testing.T) {
 	tempDir := t.TempDir()
-	storageManager := storage.NewManager(tempDir)
+	storageManager := storage.NewManagerWithoutMigrationCheck(tempDir)
 	defer func() {
 		if err := storageManager.Close(); err != nil {
 			t.Errorf("Failed to close storage manager: %v", err)

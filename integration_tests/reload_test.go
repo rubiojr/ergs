@@ -52,7 +52,7 @@ func TestSIGHUPReload(t *testing.T) {
 
 	// Create registry and warehouse
 	registry := core.GetGlobalRegistry()
-	storageManager := storage.NewManager(storageDir)
+	storageManager := storage.NewManagerWithoutMigrationCheck(storageDir)
 	defer func() {
 		if err := storageManager.Close(); err != nil {
 			t.Errorf("Failed to close storage manager: %v", err)
@@ -212,7 +212,7 @@ func TestReloadWithInvalidConfig(t *testing.T) {
 
 	// Create registry and warehouse
 	registry := core.GetGlobalRegistry()
-	storageManager := storage.NewManager(storageDir)
+	storageManager := storage.NewManagerWithoutMigrationCheck(storageDir)
 	defer func() {
 		if err := storageManager.Close(); err != nil {
 			t.Errorf("Failed to close storage manager: %v", err)
@@ -295,7 +295,7 @@ func TestReloadEmptyConfig(t *testing.T) {
 
 	// Create registry and warehouse
 	registry := core.GetGlobalRegistry()
-	storageManager := storage.NewManager(storageDir)
+	storageManager := storage.NewManagerWithoutMigrationCheck(storageDir)
 	defer func() {
 		if err := storageManager.Close(); err != nil {
 			t.Errorf("Failed to close storage manager: %v", err)
@@ -483,7 +483,7 @@ func TestConfigFileWatching(t *testing.T) {
 
 	// Create registry and warehouse
 	registry := core.GetGlobalRegistry()
-	storageManager := storage.NewManager(storageDir)
+	storageManager := storage.NewManagerWithoutMigrationCheck(storageDir)
 	defer func() {
 		if err := storageManager.Close(); err != nil {
 			t.Errorf("Failed to close storage manager: %v", err)
@@ -672,7 +672,7 @@ func TestConfigFileWatchingWithInvalidFile(t *testing.T) {
 
 	// Create registry and warehouse
 	registry := core.GetGlobalRegistry()
-	storageManager := storage.NewManager(storageDir)
+	storageManager := storage.NewManagerWithoutMigrationCheck(storageDir)
 	defer func() {
 		if err := storageManager.Close(); err != nil {
 			t.Errorf("Failed to close storage manager: %v", err)
@@ -804,7 +804,7 @@ func TestConfigFileWatchingWithAtomicWrites(t *testing.T) {
 
 	// Create registry and warehouse
 	registry := core.GetGlobalRegistry()
-	storageManager := storage.NewManager(storageDir)
+	storageManager := storage.NewManagerWithoutMigrationCheck(storageDir)
 	defer func() {
 		if err := storageManager.Close(); err != nil {
 			t.Errorf("Failed to close storage manager: %v", err)
@@ -986,7 +986,7 @@ func TestConfigFileRemovalWithoutReplacement(t *testing.T) {
 
 	// Create registry and warehouse
 	registry := core.GetGlobalRegistry()
-	storageManager := storage.NewManager(storageDir)
+	storageManager := storage.NewManagerWithoutMigrationCheck(storageDir)
 	defer func() {
 		if err := storageManager.Close(); err != nil {
 			t.Errorf("Failed to close storage manager: %v", err)

@@ -2,6 +2,12 @@
 
 Ergs is a generic data fetching and indexing system built around four core concepts: **Blocks**, **Datasources**, **Self-Registration**, and **Streaming Warehouse**. This document provides a comprehensive overview of the system's architecture, design decisions, and component interactions.
 
+## Related Documentation
+
+- **[Migration Guide](migration.md)** - Database schema evolution and migration management
+- **[Configuration Guide](configuration.md)** - System configuration options
+- **[Development Guide](development.md)** - Development environment setup
+
 ## Core Concepts
 
 ### 1. Block Interface
@@ -27,10 +33,18 @@ type Block interface {
 - **Metadata()**: Flexible key-value data for filtering and analysis
 - **PrettyText()**: Rich formatted display with emojis and structured metadata
 
+**GenericBlock Implementation:**
+Ergs provides a `GenericBlock` struct that implements the Block interface with additional functionality:
+- **Hostname tracking**: Automatically captures the hostname where data was collected
+- **Auto-hostname detection**: Uses `os.Hostname()` when hostname is not explicitly set
+- **Storage integration**: Handles conversion to/from database storage format
+- **Factory pattern**: Creates typed blocks from stored generic data
+
 **Design Principles:**
 - Each block type implements the interface directly (no base classes)
 - Text content is optimized for full-text search
 - Metadata supports arbitrary structured data
+- Hostname enables multi-machine deployment tracking
 - Immutable once created
 
 ### 2. Datasource Interface
@@ -268,11 +282,11 @@ Each datasource gets its own SQLite database with performance enhancements:
 - **Performance**: Smaller, focused databases
 - **Maintainability**: Clear data ownership
 
-### Database Schema
+### Database Schema and Migration System
 
 Each datasource database contains:
 
-1. **blocks table**: Core block data
+1. **blocks table**: Core block data with hostname tracking
 ```sql
 CREATE TABLE blocks (
     id TEXT PRIMARY KEY,
@@ -280,17 +294,19 @@ CREATE TABLE blocks (
     created_at DATETIME NOT NULL,
     source TEXT NOT NULL,
     datasource TEXT NOT NULL,
-    metadata TEXT
+    metadata TEXT,
+    hostname TEXT  -- Added in migration 002
 );
 ```
 
-2. **blocks_fts table**: FTS5 virtual table with query escaping
+2. **blocks_fts table**: FTS5 virtual table with hostname support
 ```sql
 CREATE VIRTUAL TABLE blocks_fts USING fts5(
     text,
     source,
     datasource,
     metadata,
+    hostname,  -- Added in migration 002
     content='blocks',
     content_rowid='rowid',
     tokenize='porter'
@@ -306,6 +322,34 @@ CREATE TABLE fetch_metadata (
 );
 ```
 
+4. **migrations table**: Schema version tracking
+```sql
+CREATE TABLE migrations (
+    version INTEGER PRIMARY KEY,
+    applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### Migration System
+
+The storage system includes a robust migration framework:
+
+- **Versioned Schema Evolution**: Incremental schema changes via numbered SQL migrations
+- **Automatic New Databases**: Fresh installations get the latest schema automatically
+- **Manual Existing Databases**: Existing databases require explicit `ergs migrate` command
+- **Transactional Safety**: Each migration runs in a transaction with automatic rollback on failure
+- **Embedded Migrations**: SQL files embedded in binary for production deployment
+- **Migration Status**: `ergs migrate --status` shows applied and pending migrations without side effects
+- **Per-Datasource Tracking**: Each database tracks its own migration state independently
+
+Key migration behaviors:
+- `NewGenericStorage()` creates storage without applying migrations
+- `EnsureStorageWithMigrations()` applies migrations for new databases only
+- Commands that require database access check for pending migrations first
+- Migration commands are isolated and never auto-apply migrations during status checks
+
+For detailed migration documentation, see [Migration Guide](migration.md).
+
 ### Block Factory System
 
 The storage system uses block prototypes to reconstruct original block types:
@@ -318,11 +362,12 @@ The storage system uses block prototypes to reconstruct original block types:
 ### FTS5 Integration with Query Escaping
 
 The storage system automatically:
-- Creates FTS5 virtual tables for each datasource
+- Creates FTS5 virtual tables for each datasource with hostname support
 - Escapes special characters in search queries (`=`, `<`, `>`, `!`, etc.)
 - Wraps problematic queries in double quotes
 - Enables Porter stemming for better search recall
 - Maintains synchronized indexes with automatic triggers
+- Supports column-specific searches including `hostname:workstation` filtering
 
 ## Configuration System
 
@@ -405,16 +450,18 @@ language = 'rust'
 - Allows datasource-specific optimizations
 - Reduces coupling between warehouse and datasources
 
-### 6. Per-Datasource Databases with WAL
+### 6. Per-Datasource Databases with WAL and Migrations
 
-**Decision**: Each datasource gets its own SQLite database with WAL mode and performance optimizations.
+**Decision**: Each datasource gets its own SQLite database with WAL mode, performance optimizations, and independent migration tracking.
 
 **Rationale**:
 - Better concurrent read/write performance
-- Schema evolution independence
+- Schema evolution independence with per-database migration state
 - Performance isolation with optimized pragmas
-- Clearer data ownership
+- Clearer data ownership and migration scope
 - Simpler backup/restore procedures
+- Safe schema evolution without cross-datasource dependencies
+- Ability to migrate datasources independently as needed
 
 ### 7. Configuration Self-Management
 
@@ -445,6 +492,18 @@ language = 'rust'
 - Transparent handling of problematic characters
 - Maintains search functionality for complex queries
 - Better user experience with no query restrictions
+
+### 10. Separation of Migration Application from Storage Creation
+
+**Decision**: Storage creation (`NewGenericStorage`) never applies migrations; migration application is explicit via `EnsureStorageWithMigrations` or migration commands.
+
+**Rationale**:
+- Clear separation of concerns between storage access and schema management
+- Prevents accidental migration application during status checks
+- Enables safe read-only database operations (like migration status)
+- Explicit migration control for operational safety
+- Supports testing scenarios without triggering migrations
+- Better error handling and user control over schema changes
 
 ## Extensibility Points
 

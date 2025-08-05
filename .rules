@@ -8,3 +8,8 @@
 * Always run "make lint" to find linting issues when you are done with the code changes
 * When creating new web renderers for blocks, read the README.md in the renderers package
 
+# IMPORTANT
+
+* Don't work around issues
+* Don't be creative adding things that haven't been requested
+

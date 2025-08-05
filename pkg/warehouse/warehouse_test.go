@@ -98,7 +98,10 @@ func (b *mockBlock) Factory(genericBlock *core.GenericBlock, source string) core
 }
 
 func TestWarehouseStreaming(t *testing.T) {
-	storageManager := storage.NewManager(t.TempDir())
+	storageManager, err := storage.NewManager(t.TempDir())
+	if err != nil {
+		t.Fatalf("Failed to create storage manager: %v", err)
+	}
 	defer func() {
 		if err := storageManager.Close(); err != nil {
 			t.Logf("Warning: failed to close storage manager: %v", err)
@@ -138,7 +141,7 @@ func TestWarehouseStreaming(t *testing.T) {
 		blocks: testBlocks,
 	}
 
-	err := wh.AddDatasource("test-datasource", mockDS)
+	err = wh.AddDatasource("test-datasource", mockDS)
 	if err != nil {
 		t.Fatalf("Failed to add datasource: %v", err)
 	}
