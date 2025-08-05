@@ -12,4 +12,4 @@
 
 * Don't work around issues
 * Don't be creative adding things that haven't been requested
-
+* Don't ignore failing tests, always fix

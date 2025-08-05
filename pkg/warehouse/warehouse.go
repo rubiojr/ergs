@@ -124,37 +124,6 @@ func (w *Warehouse) RemoveDatasource(name string) error {
 	return nil
 }
 
-// UpdateDatasourceInterval updates the fetch interval for an existing datasource
-func (w *Warehouse) UpdateDatasourceInterval(name string, newInterval time.Duration) error {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
-	// Check if datasource exists
-	if _, exists := w.datasourceIntervals[name]; !exists {
-		return fmt.Errorf("datasource %s not found", name)
-	}
-
-	// Update the interval
-	w.datasourceIntervals[name] = newInterval
-
-	// If warehouse is running, restart the ticker
-	if w.running && w.ctx != nil {
-		// Stop the old ticker
-		if ticker, exists := w.datasourceTickers[name]; exists {
-			ticker.Stop()
-		}
-
-		// Start a new ticker with the new interval
-		ticker := time.NewTicker(newInterval)
-		w.datasourceTickers[name] = ticker
-		w.wg.Add(1)
-		go w.runDatasource(w.ctx, name, ticker)
-		log.Printf("Updated interval for datasource %s to %v", name, newInterval)
-	}
-
-	return nil
-}
-
 func (w *Warehouse) Start(ctx context.Context) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -439,7 +408,13 @@ func (w *Warehouse) IsRunning() bool {
 	return w.running
 }
 
-func (w *Warehouse) FetchOnce(ctx context.Context) error {
+// FetchOnce fetches data once with configurable options
+func (w *Warehouse) FetchOnce(ctx context.Context, options ...FetchOption) error {
+	opts := &fetchOptions{}
+	for _, opt := range options {
+		opt(opts)
+	}
+
 	w.mu.RLock()
 	datasources := make([]core.Datasource, len(w.datasources))
 	copy(datasources, w.datasources)
@@ -454,7 +429,7 @@ func (w *Warehouse) FetchOnce(ctx context.Context) error {
 	var fetchWg sync.WaitGroup
 	var processorWg sync.WaitGroup
 
-	// Start block processor
+	// Start block processor with streaming callback
 	processorWg.Add(1)
 	go func() {
 		defer processorWg.Done()
@@ -466,6 +441,11 @@ func (w *Warehouse) FetchOnce(ctx context.Context) error {
 				if !ok {
 					return
 				}
+				// Call the streaming callback first
+				if opts.onBlock != nil {
+					opts.onBlock(block)
+				}
+				// Then store the block
 				if err := w.storeBlock(block); err != nil {
 					log.Printf("Error storing block %s: %v", block.ID(), err)
 				}
@@ -501,71 +481,18 @@ func (w *Warehouse) FetchOnce(ctx context.Context) error {
 	return nil
 }
 
-func (w *Warehouse) FetchOnceWithStreaming(ctx context.Context, onBlock func(core.Block)) error {
-	w.mu.RLock()
-	datasources := make([]core.Datasource, len(w.datasources))
-	copy(datasources, w.datasources)
-	w.mu.RUnlock()
+// FetchOption defines options for the fetch operation
+type FetchOption func(*fetchOptions)
 
-	if len(datasources) == 0 {
-		return fmt.Errorf("no datasources configured")
+type fetchOptions struct {
+	onBlock func(core.Block)
+}
+
+// WithStreaming enables streaming blocks to a callback function
+func WithStreaming(callback func(core.Block)) FetchOption {
+	return func(opts *fetchOptions) {
+		opts.onBlock = callback
 	}
-
-	// Create a new channel for this fetch cycle
-	blockCh := make(chan core.Block, 1000)
-	var fetchWg sync.WaitGroup
-	var processorWg sync.WaitGroup
-
-	// Start block processor with streaming callback
-	processorWg.Add(1)
-	go func() {
-		defer processorWg.Done()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case block, ok := <-blockCh:
-				if !ok {
-					return
-				}
-				// Call the streaming callback first
-				if onBlock != nil {
-					onBlock(block)
-				}
-				// Then store the block
-				if err := w.storeBlock(block); err != nil {
-					log.Printf("Error storing block %s: %v", block.ID(), err)
-				}
-			}
-		}
-	}()
-
-	// Start fetching from all datasources
-	for _, ds := range datasources {
-		fetchWg.Add(1)
-		go func(ds core.Datasource) {
-			defer fetchWg.Done()
-			name := w.datasourceNames[ds]
-			log.Printf("Starting to fetch blocks from datasource: %s", name)
-			err := ds.FetchBlocks(ctx, blockCh)
-			if err != nil && err != context.Canceled {
-				log.Printf("Error fetching blocks from datasource %s: %v", name, err)
-			}
-			log.Printf("Finished fetching blocks from datasource: %s", name)
-		}(ds)
-	}
-
-	// Wait for all datasources to complete, then close the channel
-	go func() {
-		fetchWg.Wait()
-		close(blockCh)
-	}()
-
-	// Wait for the block processor to finish
-	processorWg.Wait()
-
-	log.Printf("Streaming fetch completed from %d datasources", len(datasources))
-	return nil
 }
 
 func (w *Warehouse) Close() error {
@@ -581,14 +508,10 @@ func (w *Warehouse) Close() error {
 	return nil
 }
 
-func (w *Warehouse) GetStats() (map[string]interface{}, error) {
-	return w.storageManager.GetStats()
-}
-
 func (w *Warehouse) SearchBlocks(datasourceName, query string, limit int) ([]core.Block, error) {
 	return w.storageManager.SearchBlocks(datasourceName, query, limit)
 }
 
 func (w *Warehouse) SearchAllDatasources(query string, limit int) (map[string][]core.Block, error) {
-	return w.storageManager.SearchAllDatasources(query, limit)
+	return w.storageManager.SearchAllDatasourcesPaged(query, limit, 1, limit)
 }

@@ -243,7 +243,7 @@ func TestManagerSearchAllDatasources(t *testing.T) {
 
 	setupTestData(t, manager, testData)
 
-	results, err := manager.SearchAllDatasources("programming", 9)
+	results, err := manager.SearchAllDatasourcesPaged("programming", 9, 1, 9)
 	if err != nil {
 		t.Fatalf("Failed to search all datasources: %v", err)
 	}
@@ -305,7 +305,7 @@ func TestManagerSearchAllDatasourcesParallelization(t *testing.T) {
 	setupTestData(t, manager, testData)
 
 	start := time.Now()
-	results, err := manager.SearchAllDatasources("programming", 30)
+	results, err := manager.SearchAllDatasourcesPaged("programming", 30, 1, 30)
 	duration := time.Since(start)
 
 	if err != nil {
@@ -364,7 +364,7 @@ func TestManagerSearchAllDatasourcesWithError(t *testing.T) {
 	manager.storages["bad-datasource"] = badStorage
 	manager.mu.Unlock()
 
-	_, err = manager.SearchAllDatasources("test", 10)
+	_, err = manager.SearchAllDatasourcesPaged("test", 10, 1, 10)
 	if err == nil {
 		t.Error("Expected error when searching with closed storage, got nil")
 	}
@@ -378,7 +378,7 @@ func TestManagerSearchAllDatasourcesEmpty(t *testing.T) {
 	manager := createTestManager(t)
 	defer manager.Close() //nolint:errcheck
 
-	results, err := manager.SearchAllDatasources("test", 10)
+	results, err := manager.SearchAllDatasourcesPaged("test", 10, 1, 10)
 	if err != nil {
 		t.Fatalf("Failed to search empty manager: %v", err)
 	}
@@ -414,7 +414,7 @@ func TestManagerSearchAllDatasourcesNoMatches(t *testing.T) {
 
 	setupTestData(t, manager, testData)
 
-	results, err := manager.SearchAllDatasources("nonexistent", 10)
+	results, err := manager.SearchAllDatasourcesPaged("test", 2, 1, 2)
 	if err != nil {
 		t.Fatalf("Failed to search: %v", err)
 	}
@@ -459,7 +459,7 @@ func TestManagerSearchAllDatasourcesConcurrentAccess(t *testing.T) {
 		wg.Add(1)
 		go func(index int) {
 			defer wg.Done()
-			result, err := manager.SearchAllDatasources("test", 10)
+			result, err := manager.SearchAllDatasourcesPaged("test", 5, 1, 5)
 			results[index] = result
 			errors[index] = err
 		}(i)
@@ -628,7 +628,7 @@ func BenchmarkSearchAllDatasourcesParallel(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := manager.SearchAllDatasources("programming", 50)
+		_, err := manager.SearchAllDatasourcesPaged("programming", 50, 1, 50)
 		if err != nil {
 			b.Fatalf("Search failed: %v", err)
 		}
@@ -664,7 +664,7 @@ func TestSearchAllDatasourcesParallelBenefit(t *testing.T) {
 
 	// Measure parallel execution time
 	start := time.Now()
-	results, err := manager.SearchAllDatasources("programming", 10)
+	results, err := manager.SearchAllDatasourcesPaged("programming", 10, 1, 10)
 	parallelDuration := time.Since(start)
 
 	if err != nil {
@@ -695,7 +695,7 @@ func TestSearchAllDatasourcesParallelBenefit(t *testing.T) {
 		wg.Add(1)
 		go func(index int) {
 			defer wg.Done()
-			result, err := manager.SearchAllDatasources("programming", 10)
+			result, err := manager.SearchAllDatasourcesPaged("test", 10, 1, 10)
 			callResults[index] = result
 			callErrors[index] = err
 		}(i)
@@ -1074,7 +1074,7 @@ func BenchmarkSearchAllDatasourcesSmall(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := manager.SearchAllDatasources("programming", 50)
+		_, err := manager.SearchAllDatasourcesPaged("programming", 50, 1, 50)
 		if err != nil {
 			b.Fatalf("Search failed: %v", err)
 		}
@@ -1109,7 +1109,7 @@ func BenchmarkSearchAllDatasourcesLarge(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := manager.SearchAllDatasources("programming", 50)
+		_, err := manager.SearchAllDatasourcesPaged("programming", 50, 1, 50)
 		if err != nil {
 			b.Fatalf("Search failed: %v", err)
 		}
@@ -1267,108 +1267,6 @@ func TestSearchDatasourcesPagedMixedExistingAndNonexistent(t *testing.T) {
 	}
 }
 
-// TestSearchBlocksByTimeWithDateRange tests the date filtering functionality
-func TestSearchBlocksByTimeWithDateRange(t *testing.T) {
-	manager := createTestManager(t)
-	defer manager.Close() //nolint:errcheck
-
-	// Create test data with specific dates
-	baseTime := time.Date(2024, 1, 15, 12, 0, 0, 0, time.UTC)
-	testData := map[string][]core.Block{
-		"datasource_a": {
-			&mockBlock{id: "a1", text: "old content", createdAt: baseTime.AddDate(0, 0, -10), source: "datasource_a"},  // Jan 5
-			&mockBlock{id: "a2", text: "target content", createdAt: baseTime, source: "datasource_a"},                  // Jan 15
-			&mockBlock{id: "a3", text: "recent content", createdAt: baseTime.AddDate(0, 0, 5), source: "datasource_a"}, // Jan 20
-		},
-		"datasource_b": {
-			&mockBlock{id: "b1", text: "old content", createdAt: baseTime.AddDate(0, 0, -5), source: "datasource_b"},    // Jan 10
-			&mockBlock{id: "b2", text: "target content", createdAt: baseTime.AddDate(0, 0, 2), source: "datasource_b"},  // Jan 17
-			&mockBlock{id: "b3", text: "future content", createdAt: baseTime.AddDate(0, 0, 10), source: "datasource_b"}, // Jan 25
-		},
-	}
-
-	setupTestData(t, manager, testData)
-
-	tests := []struct {
-		name      string
-		query     string
-		startDate *time.Time
-		endDate   *time.Time
-		expected  map[string][]string // datasource -> expected block IDs
-	}{
-		{
-			name:      "no date filter",
-			query:     "content",
-			startDate: nil,
-			endDate:   nil,
-			expected: map[string][]string{
-				"datasource_a": {"a3", "a2", "a1"}, // all blocks, newest first
-				"datasource_b": {"b3", "b2", "b1"},
-			},
-		},
-		{
-			name:      "start date only",
-			query:     "content",
-			startDate: &baseTime,
-			endDate:   nil,
-			expected: map[string][]string{
-				"datasource_a": {"a3", "a2"}, // Jan 15 and later
-				"datasource_b": {"b3", "b2"}, // Jan 17 and later
-			},
-		},
-		{
-			name:      "end date only",
-			query:     "content",
-			startDate: nil,
-			endDate:   &baseTime,
-			expected: map[string][]string{
-				"datasource_a": {"a2", "a1"}, // Jan 15 and earlier
-				"datasource_b": {"b1"},       // Jan 10 only
-			},
-		},
-		{
-			name:      "date range",
-			query:     "content",
-			startDate: func() *time.Time { d := baseTime.AddDate(0, 0, -2); return &d }(), // Jan 13
-			endDate:   func() *time.Time { d := baseTime.AddDate(0, 0, 3); return &d }(),  // Jan 18
-			expected: map[string][]string{
-				"datasource_a": {"a2"}, // Jan 15 only
-				"datasource_b": {"b2"}, // Jan 17 only
-			},
-		},
-		{
-			name:      "no results in date range",
-			query:     "content",
-			startDate: func() *time.Time { d := baseTime.AddDate(0, 0, 30); return &d }(), // Feb 14
-			endDate:   func() *time.Time { d := baseTime.AddDate(0, 0, 40); return &d }(), // Feb 24
-			expected:  map[string][]string{},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Test individual datasource search
-			for dsName, expectedIDs := range tt.expected {
-				blocks, err := manager.SearchBlocksByTimeWithDateRange(dsName, tt.query, 10, tt.startDate, tt.endDate)
-				if err != nil {
-					t.Fatalf("Failed to search %s: %v", dsName, err)
-				}
-
-				if len(blocks) != len(expectedIDs) {
-					t.Errorf("Expected %d blocks for %s, got %d", len(expectedIDs), dsName, len(blocks))
-					continue
-				}
-
-				for i, block := range blocks {
-					if block.ID() != expectedIDs[i] {
-						t.Errorf("Expected block ID %s at position %d for %s, got %s", expectedIDs[i], i, dsName, block.ID())
-					}
-				}
-			}
-		})
-	}
-}
-
 // TestSearchAllDatasourcesPagedWithDateRange tests paginated search with date filtering across all datasources
 func TestSearchAllDatasourcesPagedWithDateRange(t *testing.T) {
 	manager := createTestManager(t)
@@ -1488,73 +1386,6 @@ func TestSearchDatasourcesPagedWithDateRange(t *testing.T) {
 	// Verify datasource_c is not included (not in the filter list)
 	if _, exists := results["datasource_c"]; exists {
 		t.Error("datasource_c should not be included in filtered search")
-	}
-}
-
-// TestDateFilterEdgeCases tests edge cases for date filtering
-func TestDateFilterEdgeCases(t *testing.T) {
-	manager := createTestManager(t)
-	defer manager.Close() //nolint:errcheck
-
-	// Create test data with very specific times
-	exactTime := time.Date(2024, 4, 15, 14, 30, 45, 0, time.UTC)
-	testData := map[string][]core.Block{
-		"datasource_a": {
-			&mockBlock{id: "a1", text: "edge case", createdAt: exactTime.Add(-time.Second), source: "datasource_a"}, // 1 second before
-			&mockBlock{id: "a2", text: "edge case", createdAt: exactTime, source: "datasource_a"},                   // exact time
-			&mockBlock{id: "a3", text: "edge case", createdAt: exactTime.Add(time.Second), source: "datasource_a"},  // 1 second after
-		},
-	}
-
-	setupTestData(t, manager, testData)
-
-	tests := []struct {
-		name      string
-		startDate *time.Time
-		endDate   *time.Time
-		expected  []string
-	}{
-		{
-			name:      "exact start time inclusive",
-			startDate: &exactTime,
-			endDate:   nil,
-			expected:  []string{"a3", "a2"}, // exact time and after
-		},
-		{
-			name:      "exact end time inclusive",
-			startDate: nil,
-			endDate:   &exactTime,
-			expected:  []string{"a2", "a1"}, // exact time and before
-		},
-		{
-			name:      "same start and end time",
-			startDate: &exactTime,
-			endDate:   &exactTime,
-			expected:  []string{"a2"}, // only exact time
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			blocks, err := manager.SearchBlocksByTimeWithDateRange("datasource_a", "edge", 10, tt.startDate, tt.endDate)
-			if err != nil {
-				t.Fatalf("Failed to search: %v", err)
-			}
-
-			if len(blocks) != len(tt.expected) {
-				t.Errorf("Expected %d blocks, got %d", len(tt.expected), len(blocks))
-				for i, block := range blocks {
-					t.Logf("Block %d: %s at %v", i, block.ID(), block.CreatedAt())
-				}
-				return
-			}
-
-			for i, block := range blocks {
-				if block.ID() != tt.expected[i] {
-					t.Errorf("Expected block ID %s at position %d, got %s", tt.expected[i], i, block.ID())
-				}
-			}
-		})
 	}
 }
 

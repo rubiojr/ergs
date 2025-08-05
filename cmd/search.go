@@ -6,7 +6,6 @@ import (
 
 	"github.com/rubiojr/ergs/pkg/config"
 	"github.com/rubiojr/ergs/pkg/core"
-	"github.com/rubiojr/ergs/pkg/search"
 	"github.com/rubiojr/ergs/pkg/storage"
 	"github.com/urfave/cli/v3"
 )
@@ -70,10 +69,10 @@ func searchData(configPath, query, datasourceName string, limit int) error {
 	}
 
 	// Use search service for consistent behavior
-	searchService := search.NewSearchService(storageManager)
+	searchService := storageManager.GetSearchService()
 
 	// Build search parameters
-	params := search.SearchParams{
+	params := storage.SearchParams{
 		Query: query,
 		Page:  1,
 		Limit: limit,

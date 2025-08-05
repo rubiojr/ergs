@@ -47,25 +47,16 @@ fmt:
 vet:
 	go vet ./...
 
-# Run unit tests only (exclude integration tests)
-test-unit:
-	CGO_ENABLED=$(CGO_ENABLED) go test -tags $(BUILD_TAGS) -v ./pkg/... ./cmd/...
+test:
+	CGO_ENABLED=$(CGO_ENABLED) go test -tags $(BUILD_TAGS) ./...
 
-# Run integration tests
-test-integration:
-	CGO_ENABLED=$(CGO_ENABLED) go test -tags $(BUILD_TAGS) -v ./integration_tests/...
-
-# Run quick integration tests (for CI/CD)
-test-integration-quick:
-	CGO_ENABLED=$(CGO_ENABLED) go test -tags $(BUILD_TAGS) -v -run "TestQuick.*|TestDatasourceFactory.*" ./integration_tests/...
+test-verbose:
+	CGO_ENABLED=$(CGO_ENABLED) go test -tags $(BUILD_TAGS) -v ./...
 
 # Run tests with coverage
 test-coverage:
 	CGO_ENABLED=$(CGO_ENABLED) go test -tags $(BUILD_TAGS) -v -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out -o coverage.html
-
-# Run all tests including integration tests
-test: test-unit test-integration
 
 # Install binary to ~/.local/bin
 install: build
@@ -124,9 +115,7 @@ help:
 	@echo "  fmt          - Format code"
 	@echo "  vet          - Vet code"
 	@echo "  test         - Run tests"
-	@echo "  test-unit    - Run unit tests only"
-	@echo "  test-integration - Run integration tests"
-	@echo "  test-integration-quick - Run quick integration tests"
+	@echo "  test-verbose - Run tests"
 	@echo "  test-coverage- Run tests with coverage"
 	@echo "  install      - Install binary to ~/.local/bin"
 	@echo "  uninstall    - Remove binary from ~/.local/bin"

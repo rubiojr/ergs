@@ -37,6 +37,7 @@ type Manager struct {
 	storageDir      string
 	storages        map[string]*GenericStorage
 	blockPrototypes map[string]core.Block
+	searchService   *SearchService
 	mu              sync.RWMutex
 }
 
@@ -46,6 +47,7 @@ func NewManager(storageDir string) (*Manager, error) {
 		storages:        make(map[string]*GenericStorage),
 		blockPrototypes: make(map[string]core.Block),
 	}
+	manager.searchService = NewSearchService(manager)
 
 	// Check for pending migrations in existing databases
 	if err := manager.checkPendingMigrations(); err != nil {
@@ -58,11 +60,13 @@ func NewManager(storageDir string) (*Manager, error) {
 // NewManagerWithoutMigrationCheck creates a storage manager without checking for pending migrations
 // This is used by the migrate command itself to avoid circular dependencies
 func NewManagerWithoutMigrationCheck(storageDir string) *Manager {
-	return &Manager{
+	m := &Manager{
 		storageDir:      storageDir,
 		storages:        make(map[string]*GenericStorage),
 		blockPrototypes: make(map[string]core.Block),
 	}
+	m.searchService = NewSearchService(m)
+	return m
 }
 
 func (m *Manager) GetStorage(datasourceName string) (*GenericStorage, error) {
@@ -152,330 +156,150 @@ func (m *Manager) RegisterBlockPrototype(datasourceName string, prototype core.B
 	m.blockPrototypes[datasourceName] = prototype
 }
 
+// GetSearchService returns the search service for external access
+func (m *Manager) GetSearchService() *SearchService {
+	return m.searchService
+}
+
 func (m *Manager) SearchBlocks(datasourceName, query string, limit int) ([]core.Block, error) {
-	storage, err := m.EnsureStorageWithMigrations(datasourceName)
+	params := SearchParams{
+		Query:             query,
+		DatasourceFilters: []string{datasourceName},
+		Page:              1,
+		Limit:             limit,
+	}
+
+	results, err := m.searchService.Search(params)
 	if err != nil {
 		return nil, err
 	}
 
-	blocks, err := storage.SearchBlocks(query, limit)
-	if err != nil {
-		return nil, err
+	// Flatten results from all datasources
+	var allBlocks []core.Block
+	for _, blocks := range results.Results {
+		allBlocks = append(allBlocks, blocks...)
 	}
 
-	// Convert blocks to their proper types using registered factories
-	return m.convertBlocksToProperTypes(datasourceName, blocks), nil
+	return allBlocks, nil
 }
 
-// SearchBlocksByTime searches blocks and orders them strictly by creation time (newest first)
-func (m *Manager) SearchBlocksByTime(datasourceName, query string, limit int) ([]core.Block, error) {
-	storage, err := m.EnsureStorageWithMigrations(datasourceName)
-	if err != nil {
-		return nil, err
-	}
-
-	blocks, err := storage.SearchBlocksByTime(query, limit)
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert blocks to their proper types using registered factories
-	return m.convertBlocksToProperTypes(datasourceName, blocks), nil
-}
-
-// SearchBlocksByTimeWithDateRange searches blocks within a date range and orders them strictly by creation time (newest first)
-func (m *Manager) SearchBlocksByTimeWithDateRange(datasourceName, query string, limit int, startDate, endDate *time.Time) ([]core.Block, error) {
-	storage, err := m.EnsureStorageWithMigrations(datasourceName)
-	if err != nil {
-		return nil, err
-	}
-
-	blocks, err := storage.SearchBlocksByTimeWithDateRange(query, limit, startDate, endDate)
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert blocks to their proper types using registered factories
-	return m.convertBlocksToProperTypes(datasourceName, blocks), nil
-}
-
-func (m *Manager) convertBlocksToProperTypes(datasourceName string, blocks []core.Block) []core.Block {
-	m.mu.RLock()
-	prototype, exists := m.blockPrototypes[datasourceName]
-	m.mu.RUnlock()
-
-	if !exists {
-		// No prototype registered, return blocks as-is
-		return blocks
-	}
-
+func (m *Manager) convertBlocksToProperTypes(blocks []core.Block) ([]core.Block, error) {
 	convertedBlocks := make([]core.Block, len(blocks))
 	for i, block := range blocks {
-		// Convert block to GenericBlock and extract source from metadata
 		genericBlock, ok := block.(*core.GenericBlock)
-		var source string
-
 		if !ok {
-			// If it's not a GenericBlock, create one
-			metadata := block.Metadata()
-			if sourceVal, exists := metadata["source"]; exists {
-				if sourceStr, ok := sourceVal.(string); ok {
-					source = sourceStr
-				}
+			convertedBlocks[i] = block
+			continue
+		}
+
+		// Get datasource type from the generic block
+		datasourceType := genericBlock.DSType()
+
+		m.mu.RLock()
+		prototype, exists := m.blockPrototypes[datasourceType]
+		m.mu.RUnlock()
+
+		if !exists {
+			// No prototype registered, return block as-is
+			convertedBlocks[i] = block
+			continue
+		}
+
+		// Extract source from metadata
+		source := genericBlock.Source()
+		metadata := genericBlock.Metadata()
+		if sourceVal, exists := metadata["source"]; exists {
+			if sourceStr, ok := sourceVal.(string); ok {
+				source = sourceStr
 			}
-			if source == "" {
-				source = datasourceName // fallback
-			}
-			genericBlock = core.NewGenericBlock(
-				block.ID(),
-				block.Text(),
-				block.Source(),
-				"unknown", // datasource type - will be set properly during storage
-				block.CreatedAt(),
-				metadata,
-			)
-		} else {
-			// Extract source from metadata
-			metadata := genericBlock.Metadata()
-			if sourceVal, exists := metadata["source"]; exists {
-				if sourceStr, ok := sourceVal.(string); ok {
-					source = sourceStr
-				}
-			}
-			if source == "" {
-				source = datasourceName // fallback
-			}
+		}
+		if source == "" {
+			source = datasourceType // fallback
 		}
 
 		// Use the prototype's Factory method to create the proper type
 		convertedBlocks[i] = prototype.Factory(genericBlock, source)
 	}
-	return convertedBlocks
+	return convertedBlocks, nil
 }
 
-type searchResult struct {
-	datasource string
-	blocks     []core.Block
-	err        error
-}
-
-func (m *Manager) searchDatasourcesInParallel(datasourceNames []string, query string, requestLimit int) (map[string][]core.Block, error) {
-	resultCh := make(chan searchResult, len(datasourceNames))
-	var wg sync.WaitGroup
-
-	for _, name := range datasourceNames {
-		wg.Add(1)
-		go func(datasourceName string) {
-			defer wg.Done()
-			blocks, err := m.SearchBlocksByTime(datasourceName, query, requestLimit)
-			resultCh <- searchResult{
-				datasource: datasourceName,
-				blocks:     blocks,
-				err:        err,
-			}
-		}(name)
-	}
-
-	go func() {
-		wg.Wait()
-		close(resultCh)
-	}()
-
-	allResults := make(map[string][]core.Block)
-	for result := range resultCh {
-		if result.err != nil {
-			return nil, fmt.Errorf("searching %s: %w", result.datasource, result.err)
-		}
-		if len(result.blocks) > 0 {
-			allResults[result.datasource] = result.blocks
-		}
-	}
-
-	return allResults, nil
-}
-
-func (m *Manager) searchDatasourcesInParallelWithDateRange(datasourceNames []string, query string, requestLimit int, startDate, endDate *time.Time) (map[string][]core.Block, error) {
-	resultCh := make(chan searchResult, len(datasourceNames))
-	var wg sync.WaitGroup
-
-	for _, name := range datasourceNames {
-		wg.Add(1)
-		go func(datasourceName string) {
-			defer wg.Done()
-			blocks, err := m.SearchBlocksByTimeWithDateRange(datasourceName, query, requestLimit, startDate, endDate)
-			resultCh <- searchResult{
-				datasource: datasourceName,
-				blocks:     blocks,
-				err:        err,
-			}
-		}(name)
-	}
-
-	go func() {
-		wg.Wait()
-		close(resultCh)
-	}()
-
-	allResults := make(map[string][]core.Block)
-	for result := range resultCh {
-		if result.err != nil {
-			return nil, fmt.Errorf("searching %s: %w", result.datasource, result.err)
-		}
-		if len(result.blocks) > 0 {
-			allResults[result.datasource] = result.blocks
-		}
-	}
-
-	return allResults, nil
-}
-
-func (m *Manager) SearchAllDatasources(query string, limit int) (map[string][]core.Block, error) {
-	return m.SearchAllDatasourcesPaged(query, limit, 1, limit)
-}
-
-func (m *Manager) SearchAllDatasourcesPaged(query string, limit, page, pageSize int) (map[string][]core.Block, error) {
+func (m *Manager) SearchAllDatasources() []string {
 	m.mu.RLock()
 	datasourceNames := make([]string, 0, len(m.storages))
 	for name := range m.storages {
 		datasourceNames = append(datasourceNames, name)
 	}
 	m.mu.RUnlock()
+	return datasourceNames
+}
 
-	return m.SearchDatasourcesPaged(datasourceNames, query, limit, page, pageSize)
+func (m *Manager) SearchAllDatasourcesPaged(query string, limit, page, pageSize int) (map[string][]core.Block, error) {
+	params := SearchParams{
+		Query: query,
+		Page:  page,
+		Limit: pageSize,
+	}
+
+	results, err := m.searchService.Search(params)
+	if err != nil {
+		return nil, err
+	}
+
+	return results.Results, nil
 }
 
 // SearchAllDatasourcesPagedWithDateRange searches all datasources with date filtering and pagination
 func (m *Manager) SearchAllDatasourcesPagedWithDateRange(query string, limit, page, pageSize int, startDate, endDate *time.Time) (map[string][]core.Block, error) {
-	m.mu.RLock()
-	datasourceNames := make([]string, 0, len(m.storages))
-	for name := range m.storages {
-		datasourceNames = append(datasourceNames, name)
+	params := SearchParams{
+		Query:     query,
+		Page:      page,
+		Limit:     pageSize,
+		StartDate: startDate,
+		EndDate:   endDate,
 	}
-	m.mu.RUnlock()
 
-	return m.SearchDatasourcesPagedWithDateRange(datasourceNames, query, limit, page, pageSize, startDate, endDate)
+	results, err := m.searchService.Search(params)
+	if err != nil {
+		return nil, err
+	}
+
+	return results.Results, nil
 }
 
 // SearchDatasourcesPaged searches specific datasources with pagination ordered by creation time
 func (m *Manager) SearchDatasourcesPaged(datasourceNames []string, query string, limit, page, pageSize int) (map[string][]core.Block, error) {
-	// Filter to only include datasources that actually exist
-	m.mu.RLock()
-	validDatasources := make([]string, 0, len(datasourceNames))
-	for _, name := range datasourceNames {
-		if _, exists := m.storages[name]; exists {
-			validDatasources = append(validDatasources, name)
-		}
+	params := SearchParams{
+		Query:             query,
+		DatasourceFilters: datasourceNames,
+		Page:              page,
+		Limit:             pageSize,
 	}
-	m.mu.RUnlock()
 
-	if len(validDatasources) == 0 {
-		return make(map[string][]core.Block), nil
-	}
-	// Get enough results to support paging
-	requestLimit := page * pageSize
-	allResults, err := m.searchDatasourcesInParallel(validDatasources, query, requestLimit)
+	results, err := m.searchService.Search(params)
 	if err != nil {
 		return nil, err
 	}
 
-	// Sort datasources by the creation time of their newest block
-	sortedDatasources := m.sortDatasourcesByNewestBlock(allResults)
-
-	// Flatten results in datasource order (ordered by newest block per datasource)
-	var allBlocks []core.Block
-	var blockToDatasource []string
-
-	for _, dsName := range sortedDatasources {
-		if blocks, exists := allResults[dsName]; exists {
-			for _, block := range blocks {
-				allBlocks = append(allBlocks, block)
-				blockToDatasource = append(blockToDatasource, dsName)
-			}
-		}
-	}
-
-	// Apply pagination to the flattened list
-	startIndex := (page - 1) * pageSize
-	endIndex := startIndex + pageSize
-
-	if startIndex >= len(allBlocks) {
-		return make(map[string][]core.Block), nil
-	}
-
-	if endIndex > len(allBlocks) {
-		endIndex = len(allBlocks)
-	}
-
-	// Group the paginated results back by datasource
-	results := make(map[string][]core.Block)
-	for i := startIndex; i < endIndex; i++ {
-		dsName := blockToDatasource[i]
-		block := allBlocks[i]
-		results[dsName] = append(results[dsName], block)
-	}
-
-	return results, nil
+	return results.Results, nil
 }
 
 // SearchDatasourcesPagedWithDateRange searches specific datasources with date filtering and pagination ordered by creation time
 func (m *Manager) SearchDatasourcesPagedWithDateRange(datasourceNames []string, query string, limit, page, pageSize int, startDate, endDate *time.Time) (map[string][]core.Block, error) {
-	// Filter to only include datasources that actually exist
-	m.mu.RLock()
-	validDatasources := make([]string, 0, len(datasourceNames))
-	for _, name := range datasourceNames {
-		if _, exists := m.storages[name]; exists {
-			validDatasources = append(validDatasources, name)
-		}
+	params := SearchParams{
+		Query:             query,
+		DatasourceFilters: datasourceNames,
+		Page:              page,
+		Limit:             pageSize,
+		StartDate:         startDate,
+		EndDate:           endDate,
 	}
-	m.mu.RUnlock()
 
-	if len(validDatasources) == 0 {
-		return make(map[string][]core.Block), nil
-	}
-	// Get enough results to support paging
-	requestLimit := page * pageSize
-	allResults, err := m.searchDatasourcesInParallelWithDateRange(validDatasources, query, requestLimit, startDate, endDate)
+	results, err := m.searchService.Search(params)
 	if err != nil {
 		return nil, err
 	}
 
-	// Sort datasources by the creation time of their newest block
-	sortedDatasources := m.sortDatasourcesByNewestBlock(allResults)
-
-	// Flatten results in datasource order (ordered by newest block per datasource)
-	var allBlocks []core.Block
-	var blockToDatasource []string
-
-	for _, dsName := range sortedDatasources {
-		if blocks, exists := allResults[dsName]; exists {
-			for _, block := range blocks {
-				allBlocks = append(allBlocks, block)
-				blockToDatasource = append(blockToDatasource, dsName)
-			}
-		}
-	}
-
-	// Apply pagination to the flattened list
-	startIndex := (page - 1) * pageSize
-	endIndex := startIndex + pageSize
-
-	if startIndex >= len(allBlocks) {
-		return make(map[string][]core.Block), nil
-	}
-
-	if endIndex > len(allBlocks) {
-		endIndex = len(allBlocks)
-	}
-
-	// Group the paginated results back by datasource
-	results := make(map[string][]core.Block)
-	for i := startIndex; i < endIndex; i++ {
-		dsName := blockToDatasource[i]
-		block := allBlocks[i]
-		results[dsName] = append(results[dsName], block)
-	}
-
-	return results, nil
+	return results.Results, nil
 }
 
 // sortDatasourcesByNewestBlock sorts datasources by the creation time of their newest block

@@ -20,7 +20,7 @@ import (
 	"github.com/rubiojr/ergs/pkg/api"
 	"github.com/rubiojr/ergs/pkg/config"
 	"github.com/rubiojr/ergs/pkg/core"
-	"github.com/rubiojr/ergs/pkg/search"
+
 	"github.com/rubiojr/ergs/pkg/shared"
 	"github.com/rubiojr/ergs/pkg/storage"
 	"github.com/urfave/cli/v3"
@@ -224,7 +224,7 @@ func (s *WebServer) handleHome(w http.ResponseWriter, r *http.Request) {
 // handleSearch handles search requests with distributed results
 func (s *WebServer) handleSearch(w http.ResponseWriter, r *http.Request) {
 	// Parse search parameters using search service
-	params, err := search.ParseSearchParams(r.URL.Query())
+	params, err := storage.ParseSearchParams(r.URL.Query())
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Invalid parameters: %v", err), http.StatusBadRequest)
 		return
@@ -249,7 +249,7 @@ func (s *WebServer) handleSearch(w http.ResponseWriter, r *http.Request) {
 	// Web allows empty queries (shows search page)
 	if params.Query != "" {
 		// Perform search using search service
-		searchService := search.NewSearchService(s.storageManager)
+		searchService := s.storageManager.GetSearchService()
 		results, err := searchService.Search(params)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Search failed: %v", err), http.StatusInternalServerError)
@@ -321,8 +321,8 @@ func (s *WebServer) handleDatasource(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Use search service for consistent pagination behavior
-	searchService := search.NewSearchService(s.storageManager)
-	params := search.SearchParams{
+	searchService := s.storageManager.GetSearchService()
+	params := storage.SearchParams{
 		Query:             "", // Empty query for browsing all blocks
 		DatasourceFilters: []string{datasourceName},
 		Page:              page,

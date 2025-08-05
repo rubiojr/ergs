@@ -215,7 +215,7 @@ func TestMultipleDatasourceIsolation(t *testing.T) {
 	// Test 4: Verify cross-datasource search doesn't mix results incorrectly
 	t.Run("CrossDatasourceSearch", func(t *testing.T) {
 		// Search across all datasources for a term that should only appear in one
-		results, err := storageManager.SearchAllDatasources("SORIA", 50)
+		results, err := storageManager.SearchAllDatasourcesPaged("SORIA", 50, 1, 50)
 		if err != nil {
 			t.Fatalf("Failed to perform cross-datasource search: %v", err)
 		}

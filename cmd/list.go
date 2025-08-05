@@ -6,7 +6,6 @@ import (
 
 	"github.com/rubiojr/ergs/pkg/config"
 	"github.com/rubiojr/ergs/pkg/core"
-	"github.com/rubiojr/ergs/pkg/search"
 	"github.com/rubiojr/ergs/pkg/storage"
 	"github.com/urfave/cli/v3"
 )
@@ -67,10 +66,10 @@ func listBlocks(configPath, datasourceName string, limit int) error {
 	}
 
 	// Use search service for consistent behavior
-	searchService := search.NewSearchService(storageManager)
+	searchService := storageManager.GetSearchService()
 
 	// Build search parameters (empty query lists all blocks)
-	params := search.SearchParams{
+	params := storage.SearchParams{
 		Query:             "", // Empty query to list all blocks
 		DatasourceFilters: []string{datasourceName},
 		Page:              1,

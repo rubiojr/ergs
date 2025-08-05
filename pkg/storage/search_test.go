@@ -1,12 +1,10 @@
-package search
+package storage
 
 import (
 	"fmt"
 	"net/url"
 	"testing"
 	"time"
-
-	"github.com/rubiojr/ergs/pkg/storage"
 )
 
 func TestParseSearchParams(t *testing.T) {
@@ -172,7 +170,7 @@ func datesEqual(a, b *time.Time) bool {
 func ExampleNewSearchService() {
 	// Create a search service with a storage manager
 	// In real usage, storageManager would be properly initialized
-	var storageManager *storage.Manager
+	var storageManager *Manager
 	service := NewSearchService(storageManager)
 
 	// Service is ready to execute searches

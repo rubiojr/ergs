@@ -170,3 +170,177 @@ func TestWarehouseStreaming(t *testing.T) {
 		}
 	}
 }
+
+func TestWarehouseStreamingCallback(t *testing.T) {
+	storageManager, err := storage.NewManager(t.TempDir())
+	if err != nil {
+		t.Fatalf("Failed to create storage manager: %v", err)
+	}
+	defer func() {
+		if err := storageManager.Close(); err != nil {
+			t.Logf("Warning: failed to close storage manager: %v", err)
+		}
+	}()
+
+	config := Config{
+		OptimizeInterval: 0,
+	}
+	wh := NewWarehouse(config, storageManager)
+	defer func() {
+		if err := wh.Close(); err != nil {
+			t.Logf("Warning: failed to close warehouse: %v", err)
+		}
+	}()
+
+	now := time.Now()
+	testBlocks := []core.Block{
+		&mockBlock{
+			id:        "stream1",
+			text:      "Stream test block 1",
+			createdAt: now,
+			source:    "test-datasource",
+			metadata:  map[string]interface{}{"type": "stream"},
+		},
+		&mockBlock{
+			id:        "stream2",
+			text:      "Stream test block 2",
+			createdAt: now.Add(time.Minute),
+			source:    "test-datasource",
+			metadata:  map[string]interface{}{"type": "stream"},
+		},
+	}
+
+	mockDS := &mockDatasource{
+		name:   "test-datasource",
+		blocks: testBlocks,
+	}
+
+	err = wh.AddDatasource("test-datasource", mockDS)
+	if err != nil {
+		t.Fatalf("Failed to add datasource: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Track blocks received via streaming callback
+	var streamedBlocks []core.Block
+	streamingCallback := func(block core.Block) {
+		streamedBlocks = append(streamedBlocks, block)
+	}
+
+	err = wh.FetchOnce(ctx, WithStreaming(streamingCallback))
+	if err != nil {
+		t.Fatalf("Failed to fetch with streaming: %v", err)
+	}
+
+	// Verify streaming callback received blocks
+	if len(streamedBlocks) != 2 {
+		t.Errorf("Expected 2 streamed blocks, got %d", len(streamedBlocks))
+	}
+
+	// Verify blocks were also stored in database
+	blocks, err := wh.SearchBlocks("test-datasource", "", 10)
+	if err != nil {
+		t.Fatalf("Failed to search blocks: %v", err)
+	}
+
+	if len(blocks) != 2 {
+		t.Errorf("Expected 2 stored blocks, got %d", len(blocks))
+	}
+
+	// Verify streamed blocks match the test data
+	for i, streamedBlock := range streamedBlocks {
+		expectedText := testBlocks[i].Text()
+		if streamedBlock.Text() != expectedText {
+			t.Errorf("Streamed block %d text mismatch. Expected %s, got %s", i, expectedText, streamedBlock.Text())
+		}
+	}
+}
+
+func TestFetchOnceAPIVariations(t *testing.T) {
+	storageManager, err := storage.NewManager(t.TempDir())
+	if err != nil {
+		t.Fatalf("Failed to create storage manager: %v", err)
+	}
+	defer func() {
+		if err := storageManager.Close(); err != nil {
+			t.Logf("Warning: failed to close storage manager: %v", err)
+		}
+	}()
+
+	config := Config{
+		OptimizeInterval: 0,
+	}
+	wh := NewWarehouse(config, storageManager)
+	defer func() {
+		if err := wh.Close(); err != nil {
+			t.Logf("Warning: failed to close warehouse: %v", err)
+		}
+	}()
+
+	now := time.Now()
+	testBlocks := []core.Block{
+		&mockBlock{
+			id:        "api1",
+			text:      "API test block 1",
+			createdAt: now,
+			source:    "test-datasource",
+			metadata:  map[string]interface{}{"test": "api"},
+		},
+		&mockBlock{
+			id:        "api2",
+			text:      "API test block 2",
+			createdAt: now.Add(time.Minute),
+			source:    "test-datasource",
+			metadata:  map[string]interface{}{"test": "api"},
+		},
+	}
+
+	mockDS := &mockDatasource{
+		name:   "test-datasource",
+		blocks: testBlocks,
+	}
+
+	err = wh.AddDatasource("test-datasource", mockDS)
+	if err != nil {
+		t.Fatalf("Failed to add datasource: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Test 1: Silent fetch (no options)
+	t.Run("SilentFetch", func(t *testing.T) {
+		err := wh.FetchOnce(ctx)
+		if err != nil {
+			t.Fatalf("Failed silent fetch: %v", err)
+		}
+	})
+
+	// Test 2: Streaming fetch with callback
+	t.Run("StreamingFetch", func(t *testing.T) {
+		var capturedBlocks []string
+		err := wh.FetchOnce(ctx, WithStreaming(func(block core.Block) {
+			capturedBlocks = append(capturedBlocks, block.Text())
+		}))
+		if err != nil {
+			t.Fatalf("Failed streaming fetch: %v", err)
+		}
+
+		if len(capturedBlocks) != 2 {
+			t.Errorf("Expected 2 captured blocks, got %d", len(capturedBlocks))
+		}
+	})
+
+	// Verify all blocks were stored
+	blocks, err := wh.SearchBlocks("test-datasource", "", 10)
+	if err != nil {
+		t.Fatalf("Failed to search blocks: %v", err)
+	}
+
+	// Should have blocks from both runs (but deduplicated by ID)
+	if len(blocks) != 2 {
+		t.Errorf("Expected 2 total blocks, got %d", len(blocks))
+	}
+}

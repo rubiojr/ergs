@@ -6,7 +6,8 @@ import (
 	"time"
 
 	"github.com/rubiojr/ergs/pkg/core"
-	"github.com/rubiojr/ergs/pkg/search"
+	"github.com/rubiojr/ergs/pkg/storage"
+
 	"github.com/rubiojr/ergs/pkg/version"
 )
 
@@ -37,7 +38,7 @@ func (s *Server) HandleDatasourceBlocks(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Parse parameters using search service
-	params, err := search.ParseSearchParams(r.URL.Query())
+	params, err := storage.ParseSearchParams(r.URL.Query())
 	if err != nil {
 		s.writeError(w, http.StatusBadRequest, "Invalid date format", err.Error())
 		return
@@ -50,7 +51,7 @@ func (s *Server) HandleDatasourceBlocks(w http.ResponseWriter, r *http.Request) 
 	params.DatasourceFilters = []string{datasourceName}
 
 	// Perform search using search service
-	searchService := search.NewSearchService(s.storageManager)
+	searchService := s.storageManager.GetSearchService()
 	results, err := searchService.Search(params)
 	if err != nil {
 		s.writeError(w, http.StatusInternalServerError, "Failed to retrieve blocks", err.Error())
@@ -86,7 +87,7 @@ func (s *Server) HandleDatasourceBlocks(w http.ResponseWriter, r *http.Request) 
 
 func (s *Server) HandleSearch(w http.ResponseWriter, r *http.Request) {
 	// Parse search parameters
-	params, err := search.ParseSearchParams(r.URL.Query())
+	params, err := storage.ParseSearchParams(r.URL.Query())
 	if err != nil {
 		s.writeError(w, http.StatusBadRequest, "Invalid date format", err.Error())
 		return
@@ -98,8 +99,8 @@ func (s *Server) HandleSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Perform search using shared service
-	searchService := search.NewSearchService(s.storageManager)
+	// Perform search using search service
+	searchService := s.storageManager.GetSearchService()
 	results, err := searchService.Search(params)
 	if err != nil {
 		s.writeError(w, http.StatusInternalServerError, "Search failed", err.Error())

@@ -95,9 +95,9 @@ func fetchData(ctx context.Context, configPath string, stream bool, datasourceNa
 		} else {
 			fmt.Println("Streaming blocks as they are received...")
 		}
-		if err := wh.FetchOnceWithStreaming(ctx, func(block core.Block) {
+		if err := wh.FetchOnce(ctx, warehouse.WithStreaming(func(block core.Block) {
 			fmt.Printf("%s\n\n", block.PrettyText())
-		}); err != nil {
+		})); err != nil {
 			return fmt.Errorf("fetching data: %w", err)
 		}
 	} else {
