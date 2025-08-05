@@ -2,6 +2,15 @@
 
 All notable changes to Ergs will be documented in this file.
 
+## [1.6.0] - 2025-08-05
+
+### ✨ New Features
+
+- **Date Filtering**: Added date range filtering to search with `start_date` and `end_date` parameters (YYYY-MM-DD format)
+- **Advanced Search**: Collapsible advanced search section in web interface with date pickers, datasource filters, and results per page selector
+
+---
+
 ## [1.5.0] - 2025-08-05
 
 ### ✨ New Features

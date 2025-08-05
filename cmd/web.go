@@ -302,11 +302,32 @@ func (s *WebServer) handleAPISearch(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Parse date filter parameters
+	var startDate, endDate *time.Time
+	if startDateStr := r.URL.Query().Get("start_date"); startDateStr != "" {
+		if parsed, err := time.Parse("2006-01-02", startDateStr); err == nil {
+			startDate = &parsed
+		} else {
+			s.writeError(w, http.StatusBadRequest, "Invalid start_date format", "start_date must be in YYYY-MM-DD format")
+			return
+		}
+	}
+	if endDateStr := r.URL.Query().Get("end_date"); endDateStr != "" {
+		if parsed, err := time.Parse("2006-01-02", endDateStr); err == nil {
+			// Set to end of day
+			endOfDay := time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 23, 59, 59, 999999999, parsed.Location())
+			endDate = &endOfDay
+		} else {
+			s.writeError(w, http.StatusBadRequest, "Invalid end_date format", "end_date must be in YYYY-MM-DD format")
+			return
+		}
+	}
+
 	// Parse datasource filters
 	datasourceFilters := r.URL.Query()["datasource"]
 
-	// Use the same pagination logic as web interface
-	results, totalResults, hasMoreResults, totalPages := s.getSearchResults(query, datasourceFilters, page, limit)
+	// Use the same pagination logic as web interface with date filtering
+	results, totalResults, hasMoreResults, totalPages := s.getSearchResultsWithDateRange(query, datasourceFilters, page, limit, startDate, endDate)
 
 	// Convert results to response format
 	searchResults := make(map[string]ListBlocksResponse)
@@ -458,6 +479,21 @@ func (s *WebServer) handleSearch(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Parse date filter parameters
+	var startDate, endDate *time.Time
+	if startDateStr := r.URL.Query().Get("start_date"); startDateStr != "" {
+		if parsed, err := time.Parse("2006-01-02", startDateStr); err == nil {
+			startDate = &parsed
+		}
+	}
+	if endDateStr := r.URL.Query().Get("end_date"); endDateStr != "" {
+		if parsed, err := time.Parse("2006-01-02", endDateStr); err == nil {
+			// Set to end of day
+			endOfDay := time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 23, 59, 59, 999999999, parsed.Location())
+			endDate = &endOfDay
+		}
+	}
+
 	data := types.PageData{
 		Title:               "Search - Ergs",
 		Query:               query,
@@ -465,11 +501,13 @@ func (s *WebServer) handleSearch(w http.ResponseWriter, r *http.Request) {
 		Datasources:         s.getDatasourceList(),
 		CurrentPage:         page,
 		PageSize:            limit,
+		StartDate:           startDate,
+		EndDate:             endDate,
 	}
 
 	if query != "" {
-		// Get search results (distributed or multiple datasources)
-		results, totalCount, hasNextPage, totalPages := s.getSearchResults(query, selectedDatasources, page, limit)
+		// Get search results (distributed or multiple datasources) with date filtering
+		results, totalCount, hasNextPage, totalPages := s.getSearchResultsWithDateRange(query, selectedDatasources, page, limit, startDate, endDate)
 
 		data.Results = s.convertBlocksToWebBlocks(results)
 		data.TotalCount = totalCount
@@ -482,16 +520,24 @@ func (s *WebServer) handleSearch(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// getSearchResults searches across specified datasource(s) with efficient pagination ordered by time
-func (s *WebServer) getSearchResults(query string, datasourceFilters []string, page, totalLimit int) (map[string][]core.Block, int, bool, int) {
+// getSearchResultsWithDateRange searches across specified datasource(s) with efficient pagination and date filtering ordered by time
+func (s *WebServer) getSearchResultsWithDateRange(query string, datasourceFilters []string, page, totalLimit int, startDate, endDate *time.Time) (map[string][]core.Block, int, bool, int) {
 	var results map[string][]core.Block
 	var err error
 
-	// Search either specific datasources or all datasources
+	// Search either specific datasources or all datasources with date filtering
 	if len(datasourceFilters) > 0 {
-		results, err = s.storageManager.SearchDatasourcesPaged(datasourceFilters, query, totalLimit*page*2, page, totalLimit)
+		if startDate != nil || endDate != nil {
+			results, err = s.storageManager.SearchDatasourcesPagedWithDateRange(datasourceFilters, query, totalLimit*page*2, page, totalLimit, startDate, endDate)
+		} else {
+			results, err = s.storageManager.SearchDatasourcesPaged(datasourceFilters, query, totalLimit*page*2, page, totalLimit)
+		}
 	} else {
-		results, err = s.storageManager.SearchAllDatasourcesPaged(query, totalLimit*page*2, page, totalLimit)
+		if startDate != nil || endDate != nil {
+			results, err = s.storageManager.SearchAllDatasourcesPagedWithDateRange(query, totalLimit*page*2, page, totalLimit, startDate, endDate)
+		} else {
+			results, err = s.storageManager.SearchAllDatasourcesPaged(query, totalLimit*page*2, page, totalLimit)
+		}
 	}
 	if err != nil {
 		return make(map[string][]core.Block), 0, false, 1
@@ -514,9 +560,17 @@ func (s *WebServer) getSearchResults(query string, datasourceFilters []string, p
 		// Try to get the next page to see if it has results
 		var nextPageResults map[string][]core.Block
 		if len(datasourceFilters) > 0 {
-			nextPageResults, err = s.storageManager.SearchDatasourcesPaged(datasourceFilters, query, totalLimit*(page+1)*2, page+1, 1)
+			if startDate != nil || endDate != nil {
+				nextPageResults, err = s.storageManager.SearchDatasourcesPagedWithDateRange(datasourceFilters, query, totalLimit*(page+1)*2, page+1, 1, startDate, endDate)
+			} else {
+				nextPageResults, err = s.storageManager.SearchDatasourcesPaged(datasourceFilters, query, totalLimit*(page+1)*2, page+1, 1)
+			}
 		} else {
-			nextPageResults, err = s.storageManager.SearchAllDatasourcesPaged(query, totalLimit*(page+1)*2, page+1, 1)
+			if startDate != nil || endDate != nil {
+				nextPageResults, err = s.storageManager.SearchAllDatasourcesPagedWithDateRange(query, totalLimit*(page+1)*2, page+1, 1, startDate, endDate)
+			} else {
+				nextPageResults, err = s.storageManager.SearchAllDatasourcesPaged(query, totalLimit*(page+1)*2, page+1, 1)
+			}
 		}
 		if err == nil {
 			nextPageCount := 0

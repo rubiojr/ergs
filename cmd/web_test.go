@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -928,6 +929,383 @@ func TestAPIPaginationAccuracy(t *testing.T) {
 
 			if limit != tc.limit {
 				t.Errorf("Expected limit=%d, got %d", tc.limit, limit)
+			}
+		})
+	}
+}
+
+// TestAPISearchDateFiltering tests date filtering functionality in API search
+func TestAPISearchDateFiltering(t *testing.T) {
+	tempDir := t.TempDir()
+	storageManager := storage.NewManager(tempDir)
+
+	// Create test data with specific dates
+	baseTime := time.Date(2024, 5, 15, 12, 0, 0, 0, time.UTC)
+	testData := map[string][]core.Block{
+		"test_datasource": {
+			&mockBlock{id: "old_block", text: "test content", createdAt: baseTime.AddDate(0, 0, -10), source: "test_datasource"},  // May 5
+			&mockBlock{id: "target_block", text: "test content", createdAt: baseTime, source: "test_datasource"},                  // May 15
+			&mockBlock{id: "recent_block", text: "test content", createdAt: baseTime.AddDate(0, 0, 5), source: "test_datasource"}, // May 20
+		},
+	}
+
+	// Setup storage with test data
+	for datasourceName, blocks := range testData {
+		schema := map[string]any{
+			"text":       "TEXT",
+			"created_at": "DATETIME",
+			"metadata":   "TEXT",
+		}
+
+		err := storageManager.InitializeDatasourceStorage(datasourceName, schema)
+		if err != nil {
+			t.Fatalf("Failed to initialize storage for %s: %v", datasourceName, err)
+		}
+
+		storage, err := storageManager.GetStorage(datasourceName)
+		if err != nil {
+			t.Fatalf("Failed to get storage for %s: %v", datasourceName, err)
+		}
+
+		for _, block := range blocks {
+			err = storage.StoreBlock(block, "mock")
+			if err != nil {
+				t.Fatalf("Failed to store block: %v", err)
+			}
+		}
+	}
+
+	rendererRegistry := renderers.NewRendererRegistry()
+	registry := core.GetGlobalRegistry()
+	server := &WebServer{
+		registry:         registry,
+		storageManager:   storageManager,
+		rendererRegistry: rendererRegistry,
+	}
+	defer func() {
+		if err := storageManager.Close(); err != nil {
+			t.Errorf("Failed to close storage manager: %v", err)
+		}
+	}()
+
+	tests := []struct {
+		name           string
+		startDate      string
+		endDate        string
+		expectedBlocks []string
+		shouldError    bool
+	}{
+		{
+			name:           "no date filter",
+			startDate:      "",
+			endDate:        "",
+			expectedBlocks: []string{"recent_block", "target_block", "old_block"}, // all blocks, newest first
+			shouldError:    false,
+		},
+		{
+			name:           "start date only",
+			startDate:      "2024-05-15",
+			endDate:        "",
+			expectedBlocks: []string{"recent_block", "target_block"}, // May 15 and later
+			shouldError:    false,
+		},
+		{
+			name:           "end date only",
+			startDate:      "",
+			endDate:        "2024-05-15",
+			expectedBlocks: []string{"target_block", "old_block"}, // May 15 and earlier
+			shouldError:    false,
+		},
+		{
+			name:           "date range",
+			startDate:      "2024-05-14",
+			endDate:        "2024-05-16",
+			expectedBlocks: []string{"target_block"}, // only May 15
+			shouldError:    false,
+		},
+		{
+			name:           "no results in date range",
+			startDate:      "2024-06-01",
+			endDate:        "2024-06-10",
+			expectedBlocks: []string{}, // no blocks in June
+			shouldError:    false,
+		},
+		{
+			name:        "invalid start date format",
+			startDate:   "invalid-date",
+			endDate:     "",
+			shouldError: true,
+		},
+		{
+			name:        "invalid end date format",
+			startDate:   "",
+			endDate:     "invalid-date",
+			shouldError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Build URL with parameters
+			url := "/api/search?q=test"
+			if tt.startDate != "" {
+				url += "&start_date=" + tt.startDate
+			}
+			if tt.endDate != "" {
+				url += "&end_date=" + tt.endDate
+			}
+
+			req, err := http.NewRequest("GET", url, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			rr := httptest.NewRecorder()
+			server.handleAPISearch(rr, req)
+
+			if tt.shouldError {
+				if rr.Code != http.StatusBadRequest {
+					t.Errorf("Expected status 400 for invalid date, got %d", rr.Code)
+				}
+				return
+			}
+
+			if rr.Code != http.StatusOK {
+				t.Errorf("Expected status 200, got %d", rr.Code)
+				t.Logf("Response body: %s", rr.Body.String())
+				return
+			}
+
+			var response map[string]interface{}
+			if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
+				t.Fatalf("Failed to parse JSON response: %v", err)
+			}
+
+			results, ok := response["results"].(map[string]interface{})
+			if !ok {
+				t.Fatal("Invalid results format")
+			}
+
+			if len(tt.expectedBlocks) == 0 {
+				// Expect no results
+				if len(results) > 0 {
+					t.Errorf("Expected no results, but got %d datasources with results", len(results))
+				}
+				return
+			}
+
+			dsResults, exists := results["test_datasource"]
+			if !exists {
+				t.Fatal("Expected results from test_datasource")
+			}
+
+			dsData, ok := dsResults.(map[string]interface{})
+			if !ok {
+				t.Fatal("Invalid datasource results format")
+			}
+
+			blocks, ok := dsData["blocks"].([]interface{})
+			if !ok {
+				t.Fatal("Invalid blocks format")
+			}
+
+			if len(blocks) != len(tt.expectedBlocks) {
+				t.Errorf("Expected %d blocks, got %d", len(tt.expectedBlocks), len(blocks))
+				return
+			}
+
+			for i, expectedID := range tt.expectedBlocks {
+				block, ok := blocks[i].(map[string]interface{})
+				if !ok {
+					t.Fatalf("Invalid block format at index %d", i)
+				}
+
+				actualID, ok := block["id"].(string)
+				if !ok {
+					t.Fatalf("Invalid block ID format at index %d", i)
+				}
+
+				if actualID != expectedID {
+					t.Errorf("Expected block ID %s at position %d, got %s", expectedID, i, actualID)
+				}
+			}
+		})
+	}
+}
+
+// TestWebSearchDateFiltering tests date filtering functionality in web search
+func TestWebSearchDateFiltering(t *testing.T) {
+	tempDir := t.TempDir()
+	storageManager := storage.NewManager(tempDir)
+
+	// Create test data with specific dates
+	baseTime := time.Date(2024, 6, 15, 12, 0, 0, 0, time.UTC)
+	testData := map[string][]core.Block{
+		"web_test_ds": {
+			&mockBlock{id: "old_web", text: "web test", createdAt: baseTime.AddDate(0, 0, -5), source: "web_test_ds"},   // June 10
+			&mockBlock{id: "target_web", text: "web test", createdAt: baseTime, source: "web_test_ds"},                  // June 15
+			&mockBlock{id: "recent_web", text: "web test", createdAt: baseTime.AddDate(0, 0, 3), source: "web_test_ds"}, // June 18
+		},
+	}
+
+	// Setup storage with test data
+	for datasourceName, blocks := range testData {
+		schema := map[string]any{
+			"text":       "TEXT",
+			"created_at": "DATETIME",
+			"metadata":   "TEXT",
+		}
+
+		err := storageManager.InitializeDatasourceStorage(datasourceName, schema)
+		if err != nil {
+			t.Fatalf("Failed to initialize storage for %s: %v", datasourceName, err)
+		}
+
+		storage, err := storageManager.GetStorage(datasourceName)
+		if err != nil {
+			t.Fatalf("Failed to get storage for %s: %v", datasourceName, err)
+		}
+
+		for _, block := range blocks {
+			err = storage.StoreBlock(block, "mock")
+			if err != nil {
+				t.Fatalf("Failed to store block: %v", err)
+			}
+		}
+	}
+
+	rendererRegistry := renderers.NewRendererRegistry()
+	registry := core.GetGlobalRegistry()
+	server := &WebServer{
+		registry:         registry,
+		storageManager:   storageManager,
+		rendererRegistry: rendererRegistry,
+	}
+	defer func() {
+		if err := storageManager.Close(); err != nil {
+			t.Errorf("Failed to close storage manager: %v", err)
+		}
+	}()
+
+	tests := []struct {
+		name           string
+		startDate      string
+		endDate        string
+		expectedBlocks []string
+	}{
+		{
+			name:           "web start date filter",
+			startDate:      "2024-06-15",
+			endDate:        "",
+			expectedBlocks: []string{"recent_web", "target_web"}, // June 15 and later
+		},
+		{
+			name:           "web date range filter",
+			startDate:      "2024-06-14",
+			endDate:        "2024-06-16",
+			expectedBlocks: []string{"target_web"}, // only June 15
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Build URL with parameters
+			url := "/search?q=web"
+			if tt.startDate != "" {
+				url += "&start_date=" + tt.startDate
+			}
+			if tt.endDate != "" {
+				url += "&end_date=" + tt.endDate
+			}
+
+			req, err := http.NewRequest("GET", url, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			rr := httptest.NewRecorder()
+			server.handleSearch(rr, req)
+
+			if rr.Code != http.StatusOK {
+				t.Errorf("Expected status 200, got %d", rr.Code)
+				t.Logf("Response body: %s", rr.Body.String())
+				return
+			}
+
+			// For web interface, we just verify it doesn't crash and returns 200
+			// The actual rendering would require more complex parsing of HTML
+			// The important thing is that the date parsing and search logic works
+			body := rr.Body.String()
+			if !strings.Contains(body, "Search - Ergs") {
+				t.Error("Expected search page title in response")
+			}
+		})
+	}
+}
+
+// TestDateFilterParameterParsing tests the parameter parsing for date filters
+func TestDateFilterParameterParsing(t *testing.T) {
+	tempDir := t.TempDir()
+	storageManager := storage.NewManager(tempDir)
+	defer func() {
+		if err := storageManager.Close(); err != nil {
+			t.Errorf("Failed to close storage manager: %v", err)
+		}
+	}()
+
+	rendererRegistry := renderers.NewRendererRegistry()
+	registry := core.GetGlobalRegistry()
+	server := &WebServer{
+		registry:         registry,
+		storageManager:   storageManager,
+		rendererRegistry: rendererRegistry,
+	}
+
+	tests := []struct {
+		name           string
+		url            string
+		expectedStatus int
+	}{
+		{
+			name:           "valid date formats",
+			url:            "/api/search?q=test&start_date=2024-01-01&end_date=2024-12-31",
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:           "invalid start date",
+			url:            "/api/search?q=test&start_date=not-a-date",
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "invalid end date",
+			url:            "/api/search?q=test&end_date=2024-13-01", // invalid month
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "malformed date",
+			url:            "/api/search?q=test&start_date=2024/01/01", // wrong separator
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "empty date values",
+			url:            "/api/search?q=test&start_date=&end_date=",
+			expectedStatus: http.StatusOK,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req, err := http.NewRequest("GET", tt.url, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			rr := httptest.NewRecorder()
+			server.handleAPISearch(rr, req)
+
+			if rr.Code != tt.expectedStatus {
+				t.Errorf("Expected status %d, got %d", tt.expectedStatus, rr.Code)
+				t.Logf("Response body: %s", rr.Body.String())
 			}
 		})
 	}

@@ -1263,6 +1263,297 @@ func TestSearchDatasourcesPagedMixedExistingAndNonexistent(t *testing.T) {
 	}
 }
 
+// TestSearchBlocksByTimeWithDateRange tests the date filtering functionality
+func TestSearchBlocksByTimeWithDateRange(t *testing.T) {
+	manager := createTestManager(t)
+	defer manager.Close() //nolint:errcheck
+
+	// Create test data with specific dates
+	baseTime := time.Date(2024, 1, 15, 12, 0, 0, 0, time.UTC)
+	testData := map[string][]core.Block{
+		"datasource_a": {
+			&mockBlock{id: "a1", text: "old content", createdAt: baseTime.AddDate(0, 0, -10), source: "datasource_a"},  // Jan 5
+			&mockBlock{id: "a2", text: "target content", createdAt: baseTime, source: "datasource_a"},                  // Jan 15
+			&mockBlock{id: "a3", text: "recent content", createdAt: baseTime.AddDate(0, 0, 5), source: "datasource_a"}, // Jan 20
+		},
+		"datasource_b": {
+			&mockBlock{id: "b1", text: "old content", createdAt: baseTime.AddDate(0, 0, -5), source: "datasource_b"},    // Jan 10
+			&mockBlock{id: "b2", text: "target content", createdAt: baseTime.AddDate(0, 0, 2), source: "datasource_b"},  // Jan 17
+			&mockBlock{id: "b3", text: "future content", createdAt: baseTime.AddDate(0, 0, 10), source: "datasource_b"}, // Jan 25
+		},
+	}
+
+	setupTestData(t, manager, testData)
+
+	tests := []struct {
+		name      string
+		query     string
+		startDate *time.Time
+		endDate   *time.Time
+		expected  map[string][]string // datasource -> expected block IDs
+	}{
+		{
+			name:      "no date filter",
+			query:     "content",
+			startDate: nil,
+			endDate:   nil,
+			expected: map[string][]string{
+				"datasource_a": {"a3", "a2", "a1"}, // all blocks, newest first
+				"datasource_b": {"b3", "b2", "b1"},
+			},
+		},
+		{
+			name:      "start date only",
+			query:     "content",
+			startDate: &baseTime,
+			endDate:   nil,
+			expected: map[string][]string{
+				"datasource_a": {"a3", "a2"}, // Jan 15 and later
+				"datasource_b": {"b3", "b2"}, // Jan 17 and later
+			},
+		},
+		{
+			name:      "end date only",
+			query:     "content",
+			startDate: nil,
+			endDate:   &baseTime,
+			expected: map[string][]string{
+				"datasource_a": {"a2", "a1"}, // Jan 15 and earlier
+				"datasource_b": {"b1"},       // Jan 10 only
+			},
+		},
+		{
+			name:      "date range",
+			query:     "content",
+			startDate: func() *time.Time { d := baseTime.AddDate(0, 0, -2); return &d }(), // Jan 13
+			endDate:   func() *time.Time { d := baseTime.AddDate(0, 0, 3); return &d }(),  // Jan 18
+			expected: map[string][]string{
+				"datasource_a": {"a2"}, // Jan 15 only
+				"datasource_b": {"b2"}, // Jan 17 only
+			},
+		},
+		{
+			name:      "no results in date range",
+			query:     "content",
+			startDate: func() *time.Time { d := baseTime.AddDate(0, 0, 30); return &d }(), // Feb 14
+			endDate:   func() *time.Time { d := baseTime.AddDate(0, 0, 40); return &d }(), // Feb 24
+			expected:  map[string][]string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Test individual datasource search
+			for dsName, expectedIDs := range tt.expected {
+				blocks, err := manager.SearchBlocksByTimeWithDateRange(dsName, tt.query, 10, tt.startDate, tt.endDate)
+				if err != nil {
+					t.Fatalf("Failed to search %s: %v", dsName, err)
+				}
+
+				if len(blocks) != len(expectedIDs) {
+					t.Errorf("Expected %d blocks for %s, got %d", len(expectedIDs), dsName, len(blocks))
+					continue
+				}
+
+				for i, block := range blocks {
+					if block.ID() != expectedIDs[i] {
+						t.Errorf("Expected block ID %s at position %d for %s, got %s", expectedIDs[i], i, dsName, block.ID())
+					}
+				}
+			}
+		})
+	}
+}
+
+// TestSearchAllDatasourcesPagedWithDateRange tests paginated search with date filtering across all datasources
+func TestSearchAllDatasourcesPagedWithDateRange(t *testing.T) {
+	manager := createTestManager(t)
+	defer manager.Close() //nolint:errcheck
+
+	// Create test data with specific dates
+	baseTime := time.Date(2024, 2, 15, 12, 0, 0, 0, time.UTC)
+	testData := map[string][]core.Block{
+		"datasource_a": {
+			&mockBlock{id: "a1", text: "test content", createdAt: baseTime.AddDate(0, 0, -5), source: "datasource_a"}, // Feb 10
+			&mockBlock{id: "a2", text: "test content", createdAt: baseTime, source: "datasource_a"},                   // Feb 15
+			&mockBlock{id: "a3", text: "test content", createdAt: baseTime.AddDate(0, 0, 5), source: "datasource_a"},  // Feb 20
+		},
+		"datasource_b": {
+			&mockBlock{id: "b1", text: "test content", createdAt: baseTime.AddDate(0, 0, -3), source: "datasource_b"}, // Feb 12
+			&mockBlock{id: "b2", text: "test content", createdAt: baseTime.AddDate(0, 0, 2), source: "datasource_b"},  // Feb 17
+			&mockBlock{id: "b3", text: "test content", createdAt: baseTime.AddDate(0, 0, 7), source: "datasource_b"},  // Feb 22
+		},
+	}
+
+	setupTestData(t, manager, testData)
+
+	// Test with date range that should include some blocks
+	startDate := baseTime.AddDate(0, 0, -1) // Feb 14
+	endDate := baseTime.AddDate(0, 0, 3)    // Feb 18
+
+	results, err := manager.SearchAllDatasourcesPagedWithDateRange("test", 10, 1, 10, &startDate, &endDate)
+	if err != nil {
+		t.Fatalf("Failed to search with date range: %v", err)
+	}
+
+	// Should include a2 (Feb 15) and b2 (Feb 17)
+	expectedBlocks := map[string][]string{
+		"datasource_a": {"a2"},
+		"datasource_b": {"b2"},
+	}
+
+	for dsName, expectedIDs := range expectedBlocks {
+		blocks, exists := results[dsName]
+		if !exists {
+			t.Errorf("Expected results from %s", dsName)
+			continue
+		}
+
+		if len(blocks) != len(expectedIDs) {
+			t.Errorf("Expected %d blocks from %s, got %d", len(expectedIDs), dsName, len(blocks))
+			continue
+		}
+
+		for i, block := range blocks {
+			if block.ID() != expectedIDs[i] {
+				t.Errorf("Expected block ID %s at position %d from %s, got %s", expectedIDs[i], i, dsName, block.ID())
+			}
+		}
+	}
+}
+
+// TestSearchDatasourcesPagedWithDateRange tests paginated search with date filtering for specific datasources
+func TestSearchDatasourcesPagedWithDateRange(t *testing.T) {
+	manager := createTestManager(t)
+	defer manager.Close() //nolint:errcheck
+
+	// Create test data with specific dates
+	baseTime := time.Date(2024, 3, 15, 12, 0, 0, 0, time.UTC)
+	testData := map[string][]core.Block{
+		"datasource_a": {
+			&mockBlock{id: "a1", text: "search term", createdAt: baseTime.AddDate(0, 0, -10), source: "datasource_a"}, // Mar 5
+			&mockBlock{id: "a2", text: "search term", createdAt: baseTime.AddDate(0, 0, -5), source: "datasource_a"},  // Mar 10
+			&mockBlock{id: "a3", text: "search term", createdAt: baseTime, source: "datasource_a"},                    // Mar 15
+			&mockBlock{id: "a4", text: "search term", createdAt: baseTime.AddDate(0, 0, 5), source: "datasource_a"},   // Mar 20
+		},
+		"datasource_b": {
+			&mockBlock{id: "b1", text: "search term", createdAt: baseTime.AddDate(0, 0, -8), source: "datasource_b"}, // Mar 7
+			&mockBlock{id: "b2", text: "search term", createdAt: baseTime.AddDate(0, 0, 3), source: "datasource_b"},  // Mar 18
+		},
+		"datasource_c": {
+			&mockBlock{id: "c1", text: "other content", createdAt: baseTime, source: "datasource_c"}, // Mar 15, but different content
+		},
+	}
+
+	setupTestData(t, manager, testData)
+
+	// Test filtering to specific datasources with date range
+	startDate := baseTime.AddDate(0, 0, -6) // Mar 9
+	endDate := baseTime.AddDate(0, 0, 6)    // Mar 21
+
+	results, err := manager.SearchDatasourcesPagedWithDateRange([]string{"datasource_a", "datasource_b"}, "search", 10, 1, 10, &startDate, &endDate)
+	if err != nil {
+		t.Fatalf("Failed to search specific datasources with date range: %v", err)
+	}
+
+	// Should include a2, a3, a4 from datasource_a and b2 from datasource_b
+	expectedResults := map[string][]string{
+		"datasource_a": {"a4", "a3", "a2"}, // Mar 20, 15, 10 (newest first)
+		"datasource_b": {"b2"},             // Mar 18
+	}
+
+	for dsName, expectedIDs := range expectedResults {
+		blocks, exists := results[dsName]
+		if !exists {
+			t.Errorf("Expected results from %s", dsName)
+			continue
+		}
+
+		if len(blocks) != len(expectedIDs) {
+			t.Errorf("Expected %d blocks from %s, got %d", len(expectedIDs), dsName, len(blocks))
+			continue
+		}
+
+		for i, block := range blocks {
+			if block.ID() != expectedIDs[i] {
+				t.Errorf("Expected block ID %s at position %d from %s, got %s", expectedIDs[i], i, dsName, block.ID())
+			}
+		}
+	}
+
+	// Verify datasource_c is not included (not in the filter list)
+	if _, exists := results["datasource_c"]; exists {
+		t.Error("datasource_c should not be included in filtered search")
+	}
+}
+
+// TestDateFilterEdgeCases tests edge cases for date filtering
+func TestDateFilterEdgeCases(t *testing.T) {
+	manager := createTestManager(t)
+	defer manager.Close() //nolint:errcheck
+
+	// Create test data with very specific times
+	exactTime := time.Date(2024, 4, 15, 14, 30, 45, 0, time.UTC)
+	testData := map[string][]core.Block{
+		"datasource_a": {
+			&mockBlock{id: "a1", text: "edge case", createdAt: exactTime.Add(-time.Second), source: "datasource_a"}, // 1 second before
+			&mockBlock{id: "a2", text: "edge case", createdAt: exactTime, source: "datasource_a"},                   // exact time
+			&mockBlock{id: "a3", text: "edge case", createdAt: exactTime.Add(time.Second), source: "datasource_a"},  // 1 second after
+		},
+	}
+
+	setupTestData(t, manager, testData)
+
+	tests := []struct {
+		name      string
+		startDate *time.Time
+		endDate   *time.Time
+		expected  []string
+	}{
+		{
+			name:      "exact start time inclusive",
+			startDate: &exactTime,
+			endDate:   nil,
+			expected:  []string{"a3", "a2"}, // exact time and after
+		},
+		{
+			name:      "exact end time inclusive",
+			startDate: nil,
+			endDate:   &exactTime,
+			expected:  []string{"a2", "a1"}, // exact time and before
+		},
+		{
+			name:      "same start and end time",
+			startDate: &exactTime,
+			endDate:   &exactTime,
+			expected:  []string{"a2"}, // only exact time
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			blocks, err := manager.SearchBlocksByTimeWithDateRange("datasource_a", "edge", 10, tt.startDate, tt.endDate)
+			if err != nil {
+				t.Fatalf("Failed to search: %v", err)
+			}
+
+			if len(blocks) != len(tt.expected) {
+				t.Errorf("Expected %d blocks, got %d", len(tt.expected), len(blocks))
+				for i, block := range blocks {
+					t.Logf("Block %d: %s at %v", i, block.ID(), block.CreatedAt())
+				}
+				return
+			}
+
+			for i, block := range blocks {
+				if block.ID() != tt.expected[i] {
+					t.Errorf("Expected block ID %s at position %d, got %s", tt.expected[i], i, block.ID())
+				}
+			}
+		})
+	}
+}
+
 func TestSearchDatasourcesPagedAlphabeticalOrdering(t *testing.T) {
 	manager := createTestManager(t)
 	defer manager.Close() //nolint:errcheck

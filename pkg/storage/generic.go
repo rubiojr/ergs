@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	_ "github.com/ncruces/go-sqlite3/driver"
@@ -267,6 +268,83 @@ func (s *GenericStorage) SearchBlocksByTime(query string, limit int) ([]core.Blo
 	rows, err := s.db.Query(sqlQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("querying blocks: %w", err)
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			fmt.Printf("Warning: failed to close rows: %v\n", err)
+		}
+	}()
+
+	var blocks []core.Block
+	for rows.Next() {
+		var id, text, source, datasourceType, metadataStr string
+		var createdAt time.Time
+
+		err = rows.Scan(&id, &text, &createdAt, &source, &datasourceType, &metadataStr)
+		if err != nil {
+			return nil, fmt.Errorf("scanning row: %w", err)
+		}
+
+		var metadata map[string]interface{}
+		if err := json.Unmarshal([]byte(metadataStr), &metadata); err != nil {
+			return nil, fmt.Errorf("unmarshaling metadata for block %s: %w", id, err)
+		}
+
+		block := core.NewGenericBlock(id, text, source, datasourceType, createdAt, metadata)
+		blocks = append(blocks, block)
+	}
+
+	return blocks, rows.Err()
+}
+
+// SearchBlocksByTimeWithDateRange searches blocks within a date range and orders them by creation time (newest first)
+func (s *GenericStorage) SearchBlocksByTimeWithDateRange(query string, limit int, startDate, endDate *time.Time) ([]core.Block, error) {
+	var sqlQuery string
+	var args []interface{}
+
+	// Build the date range conditions
+	var dateConditions []string
+	if startDate != nil {
+		dateConditions = append(dateConditions, "b.created_at >= ?")
+		args = append(args, startDate.Format(time.RFC3339))
+	}
+	if endDate != nil {
+		dateConditions = append(dateConditions, "b.created_at <= ?")
+		args = append(args, endDate.Format(time.RFC3339))
+	}
+
+	var whereClause string
+	if len(dateConditions) > 0 {
+		whereClause = " AND " + strings.Join(dateConditions, " AND ")
+	}
+
+	if query != "" {
+		// Escape FTS5 query for special characters
+		escapedQuery := escapeFTS5Query(query)
+		sqlQuery = `
+			SELECT b.id, b.text, b.created_at, b.source, b.datasource, b.metadata
+			FROM blocks b
+			JOIN blocks_fts fts ON b.rowid = fts.rowid
+			WHERE blocks_fts MATCH ?` + whereClause + `
+			ORDER BY b.created_at DESC
+			LIMIT ?`
+		args = append([]interface{}{escapedQuery}, args...)
+		args = append(args, limit)
+	} else {
+		if len(dateConditions) > 0 {
+			whereClause = " WHERE " + strings.Join(dateConditions, " AND ")
+		}
+		sqlQuery = `
+			SELECT id, text, created_at, source, datasource, metadata
+			FROM blocks` + whereClause + `
+			ORDER BY created_at DESC
+			LIMIT ?`
+		args = append(args, limit)
+	}
+
+	rows, err := s.db.Query(sqlQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("querying blocks with date range: %w", err)
 	}
 	defer func() {
 		if err := rows.Close(); err != nil {

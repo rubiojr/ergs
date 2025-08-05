@@ -5,6 +5,6 @@
 * Alwas run integration tests when making changes to the core package with make test-all
 * Run "make build" to build sources
 * Run "make test" to test code
-* Run "make lint" to find linting issues
+* Always run "make lint" to find linting issues when you are done with the code changes
 * When creating new web renderers for blocks, read the README.md in the renderers package
 

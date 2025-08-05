@@ -18,6 +18,18 @@ func buildDatasourceParams(selectedDatasources []string) string {
 	return params.Encode()
 }
 
+// buildDateParams creates URL parameters for date filters
+func buildDateParams(data types.PageData) string {
+	params := url.Values{}
+	if data.StartDate != nil {
+		params.Add("start_date", data.StartDate.Format("2006-01-02"))
+	}
+	if data.EndDate != nil {
+		params.Add("end_date", data.EndDate.Format("2006-01-02"))
+	}
+	return params.Encode()
+}
+
 // isDatasourceSelected checks if a datasource is in the selected list
 func isDatasourceSelected(datasourceName string, selectedDatasources []string) bool {
 	for _, selected := range selectedDatasources {
@@ -56,17 +68,15 @@ templ searchHeader() {
 templ searchForm(data types.PageData) {
 	<form action="/search" method="GET" class="search-form">
 		<div class="search-controls">
-			<input
-				type="text"
-				name="q"
-				class="search-input"
-				placeholder="Search across all datasources..."
-				value={ data.Query }
-				autocomplete="off"
-			/>
-			<div class="form-row">
-				@datasourceSelect(data)
-				@limitSelect(data)
+			<div class="search-input-row">
+				<input
+					type="text"
+					name="q"
+					class="search-input"
+					placeholder="Search across all datasources..."
+					value={ data.Query }
+					autocomplete="off"
+				/>
 				<button type="submit" class="search-button">
 					<svg viewBox="0 0 24 24" fill="currentColor">
 						<path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
@@ -74,6 +84,8 @@ templ searchForm(data types.PageData) {
 					Search
 				</button>
 			</div>
+			@advancedSearchToggle()
+			@advancedSearchSection(data)
 		</div>
 	</form>
 }
@@ -96,12 +108,71 @@ templ datasourceSelect(data types.PageData) {
 
 // limitSelect renders the results per page selector
 templ limitSelect(data types.PageData) {
-	<select name="limit" class="limit-select">
+	<select name="limit" id="limit-select" class="limit-select">
 		<option value="20" if data.PageSize == 20 { selected }>20</option>
 		<option value="30" if data.PageSize == 30 || data.PageSize == 0 { selected }>30</option>
 		<option value="50" if data.PageSize == 50 { selected }>50</option>
 		<option value="100" if data.PageSize == 100 { selected }>100</option>
 	</select>
+}
+
+// advancedSearchToggle renders the toggle button for advanced search
+templ advancedSearchToggle() {
+	<div class="advanced-search-toggle">
+		<button type="button" id="advanced-search-btn" class="advanced-toggle-btn">
+			<svg class="chevron-icon" viewBox="0 0 24 24" fill="currentColor">
+				<path d="M7.41 8.84L12 13.42l4.59-4.58L18 10.25l-6 6-6-6z"></path>
+			</svg>
+			Advanced Search
+		</button>
+	</div>
+}
+
+// advancedSearchSection renders the collapsible advanced search controls
+templ advancedSearchSection(data types.PageData) {
+	<div id="advanced-search-section" class="advanced-search-section" style="display: none;">
+		<h4>Filter Options</h4>
+		<div class="advanced-controls">
+			<div class="control-group">
+				<label for="datasource-select">Datasources:</label>
+				@datasourceSelect(data)
+			</div>
+			<div class="control-group">
+				<label>Date Range:</label>
+				@dateFilters(data)
+			</div>
+			<div class="control-group">
+				<label for="limit-select">Results per page:</label>
+				@limitSelect(data)
+			</div>
+		</div>
+	</div>
+}
+
+// dateFilters renders the date range input fields
+templ dateFilters(data types.PageData) {
+	<div class="date-filters">
+		<label for="start_date">From:</label>
+		<input
+			type="date"
+			id="start_date"
+			name="start_date"
+			class="date-input"
+			if data.StartDate != nil {
+				value={ data.StartDate.Format("2006-01-02") }
+			}
+		/>
+		<label for="end_date">To:</label>
+		<input
+			type="date"
+			id="end_date"
+			name="end_date"
+			class="date-input"
+			if data.EndDate != nil {
+				value={ data.EndDate.Format("2006-01-02") }
+			}
+		/>
+	</div>
 }
 
 // searchResults renders search results, no results, or help text
@@ -154,7 +225,7 @@ templ pagination(data types.PageData) {
 	<div class="pagination">
 		if data.CurrentPage > 1 {
 			<a
-				href={ templ.URL("/search?q=" + data.Query + "&" + buildDatasourceParams(data.SelectedDatasources) + "&limit=" + strconv.Itoa(data.PageSize) + "&page=" + strconv.Itoa(data.CurrentPage-1)) }
+				href={ templ.URL("/search?q=" + data.Query + "&" + buildDatasourceParams(data.SelectedDatasources) + "&" + buildDateParams(data) + "&limit=" + strconv.Itoa(data.PageSize) + "&page=" + strconv.Itoa(data.CurrentPage-1)) }
 				class="pagination-btn"
 			>← Previous</a>
 		}
@@ -163,7 +234,7 @@ templ pagination(data types.PageData) {
 		</span>
 		if data.HasNextPage {
 			<a
-				href={ templ.URL("/search?q=" + data.Query + "&" + buildDatasourceParams(data.SelectedDatasources) + "&limit=" + strconv.Itoa(data.PageSize) + "&page=" + strconv.Itoa(data.CurrentPage+1)) }
+				href={ templ.URL("/search?q=" + data.Query + "&" + buildDatasourceParams(data.SelectedDatasources) + "&" + buildDateParams(data) + "&limit=" + strconv.Itoa(data.PageSize) + "&page=" + strconv.Itoa(data.CurrentPage+1)) }
 				class="pagination-btn"
 			>Next →</a>
 		}
@@ -259,5 +330,56 @@ templ searchScript() {
 				}
 			});
 		}
+
+		function initializeAdvancedSearch() {
+			const toggleBtn = document.getElementById('advanced-search-btn');
+			const advancedSection = document.getElementById('advanced-search-section');
+			const chevronIcon = toggleBtn.querySelector('.chevron-icon');
+			
+			if (!toggleBtn || !advancedSection) return;
+
+			// Get stored preference or check if advanced options are set
+			const storageKey = 'ergs-advanced-search-expanded';
+			let shouldExpand = false;
+			
+			// Check if user has manually set the preference
+			const storedPreference = localStorage.getItem(storageKey);
+			if (storedPreference !== null) {
+				shouldExpand = storedPreference === 'true';
+			} else {
+				// Auto-expand only if advanced options are set and no preference stored
+				const hasAdvancedOptions = document.querySelector('#datasource-select').value || 
+										 document.querySelector('#start_date').value || 
+										 document.querySelector('#end_date').value ||
+										 (document.querySelector('#limit-select').value && document.querySelector('#limit-select').value !== '30');
+				shouldExpand = hasAdvancedOptions;
+			}
+
+			toggleBtn.addEventListener('click', function() {
+				const isHidden = advancedSection.style.display === 'none';
+				
+				if (isHidden) {
+					advancedSection.style.display = 'block';
+					toggleBtn.classList.add('expanded');
+					chevronIcon.style.transform = 'rotate(180deg)';
+					localStorage.setItem(storageKey, 'true');
+				} else {
+					advancedSection.style.display = 'none';
+					toggleBtn.classList.remove('expanded');
+					chevronIcon.style.transform = 'rotate(0deg)';
+					localStorage.setItem(storageKey, 'false');
+				}
+			});
+
+			// Apply initial state
+			if (shouldExpand) {
+				advancedSection.style.display = 'block';
+				toggleBtn.classList.add('expanded');
+				chevronIcon.style.transform = 'rotate(180deg)';
+			}
+		}
+
+		// Initialize advanced search after DOM is loaded
+		initializeAdvancedSearch();
 	</script>
 }

@@ -21,6 +21,8 @@ type PageData struct {
 	ActiveDatasources   int
 	OldestBlock         *time.Time
 	NewestBlock         *time.Time
+	StartDate           *time.Time
+	EndDate             *time.Time
 }
 
 // DatasourceInfo represents datasource information
