@@ -15,10 +15,11 @@ import (
 // ErrPendingMigrations is returned when there are pending migrations
 var ErrPendingMigrations = fmt.Errorf("pending migrations detected")
 
-// PendingMigrationsError wraps ErrPendingMigrations with details
+// PendingMigrationsError wraps ErrPendingMigrations with details about which
+// datasource has pending migrations and how many are pending.
 type PendingMigrationsError struct {
-	Datasource string
-	Count      int
+	Datasource string // Name of the datasource with pending migrations
+	Count      int    // Number of pending migrations
 }
 
 func (e *PendingMigrationsError) Error() string {
@@ -33,6 +34,10 @@ func (e *PendingMigrationsError) Unwrap() error {
 	return ErrPendingMigrations
 }
 
+// Manager manages storage operations across multiple datasources.
+// It provides a unified interface for creating, accessing, and searching
+// across multiple storage backends while handling migrations and maintaining
+// thread safety.
 type Manager struct {
 	storageDir      string
 	storages        map[string]*GenericStorage
@@ -41,6 +46,9 @@ type Manager struct {
 	mu              sync.RWMutex
 }
 
+// NewManager creates a new storage manager with the specified storage directory.
+// It checks for pending migrations in existing databases and returns an error
+// if any are found. Use NewManagerWithoutMigrationCheck for migration operations.
 func NewManager(storageDir string) (*Manager, error) {
 	manager := &Manager{
 		storageDir:      storageDir,
@@ -57,8 +65,8 @@ func NewManager(storageDir string) (*Manager, error) {
 	return manager, nil
 }
 
-// NewManagerWithoutMigrationCheck creates a storage manager without checking for pending migrations
-// This is used by the migrate command itself to avoid circular dependencies
+// NewManagerWithoutMigrationCheck creates a storage manager without checking for pending migrations.
+// This is used by the migrate command itself to avoid circular dependencies.
 func NewManagerWithoutMigrationCheck(storageDir string) *Manager {
 	m := &Manager{
 		storageDir:      storageDir,
@@ -69,6 +77,9 @@ func NewManagerWithoutMigrationCheck(storageDir string) *Manager {
 	return m
 }
 
+// GetStorage retrieves or creates a storage instance for the specified datasource.
+// It uses lazy initialization and thread-safe caching to ensure each datasource
+// has only one storage instance.
 func (m *Manager) GetStorage(datasourceName string) (*GenericStorage, error) {
 	m.mu.RLock()
 	storage, exists := m.storages[datasourceName]
@@ -95,7 +106,9 @@ func (m *Manager) GetStorage(datasourceName string) (*GenericStorage, error) {
 	return storage, nil
 }
 
-// EnsureStorageWithMigrations gets storage and ensures migrations are applied for new databases
+// EnsureStorageWithMigrations gets storage and ensures migrations are applied for new databases.
+// For new databases, it automatically applies all pending migrations.
+// For existing databases, it checks for pending migrations and returns an error if any exist.
 func (m *Manager) EnsureStorageWithMigrations(datasourceName string) (*GenericStorage, error) {
 	dbPath := filepath.Join(m.storageDir, fmt.Sprintf("%s.db", datasourceName))
 
@@ -141,6 +154,8 @@ func (m *Manager) EnsureStorageWithMigrations(datasourceName string) (*GenericSt
 	return storage, nil
 }
 
+// InitializeDatasourceStorage initializes storage for a datasource with the given schema.
+// It ensures migrations are applied and then initializes the storage schema.
 func (m *Manager) InitializeDatasourceStorage(datasourceName string, schema map[string]any) error {
 	storage, err := m.EnsureStorageWithMigrations(datasourceName)
 	if err != nil {
@@ -150,17 +165,22 @@ func (m *Manager) InitializeDatasourceStorage(datasourceName string, schema map[
 	return storage.InitializeSchema(schema)
 }
 
+// RegisterBlockPrototype registers a block prototype for a specific datasource type.
+// This prototype is used to convert generic blocks to typed blocks during searches.
 func (m *Manager) RegisterBlockPrototype(datasourceName string, prototype core.Block) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.blockPrototypes[datasourceName] = prototype
 }
 
-// GetSearchService returns the search service for external access
+// GetSearchService returns the search service for external access.
+// The search service provides advanced search capabilities across all datasources.
 func (m *Manager) GetSearchService() *SearchService {
 	return m.searchService
 }
 
+// SearchBlocks searches for blocks within a specific datasource using the given query.
+// It returns up to 'limit' blocks that match the search criteria.
 func (m *Manager) SearchBlocks(datasourceName, query string, limit int) ([]core.Block, error) {
 	params := SearchParams{
 		Query:             query,
@@ -223,6 +243,8 @@ func (m *Manager) convertBlocksToProperTypes(blocks []core.Block) ([]core.Block,
 	return convertedBlocks, nil
 }
 
+// SearchAllDatasources returns a list of all currently loaded datasource names.
+// This includes only datasources that have been accessed and have storage instances.
 func (m *Manager) SearchAllDatasources() []string {
 	m.mu.RLock()
 	datasourceNames := make([]string, 0, len(m.storages))
@@ -233,6 +255,8 @@ func (m *Manager) SearchAllDatasources() []string {
 	return datasourceNames
 }
 
+// SearchAllDatasourcesPaged searches all datasources with pagination support.
+// Returns a map of datasource names to their matching blocks.
 func (m *Manager) SearchAllDatasourcesPaged(query string, limit, page, pageSize int) (map[string][]core.Block, error) {
 	params := SearchParams{
 		Query: query,
@@ -248,7 +272,9 @@ func (m *Manager) SearchAllDatasourcesPaged(query string, limit, page, pageSize 
 	return results.Results, nil
 }
 
-// SearchAllDatasourcesPagedWithDateRange searches all datasources with date filtering and pagination
+// SearchAllDatasourcesPagedWithDateRange searches all datasources with date filtering and pagination.
+// Results are filtered to include only blocks created between startDate and endDate (inclusive).
+// Either startDate or endDate can be nil to specify an open-ended range.
 func (m *Manager) SearchAllDatasourcesPagedWithDateRange(query string, limit, page, pageSize int, startDate, endDate *time.Time) (map[string][]core.Block, error) {
 	params := SearchParams{
 		Query:     query,
@@ -266,7 +292,9 @@ func (m *Manager) SearchAllDatasourcesPagedWithDateRange(query string, limit, pa
 	return results.Results, nil
 }
 
-// SearchDatasourcesPaged searches specific datasources with pagination ordered by creation time
+// SearchDatasourcesPaged searches specific datasources with pagination ordered by creation time.
+// Only the specified datasources will be searched, and results are returned
+// as a map of datasource names to their matching blocks.
 func (m *Manager) SearchDatasourcesPaged(datasourceNames []string, query string, limit, page, pageSize int) (map[string][]core.Block, error) {
 	params := SearchParams{
 		Query:             query,
@@ -283,7 +311,9 @@ func (m *Manager) SearchDatasourcesPaged(datasourceNames []string, query string,
 	return results.Results, nil
 }
 
-// SearchDatasourcesPagedWithDateRange searches specific datasources with date filtering and pagination ordered by creation time
+// SearchDatasourcesPagedWithDateRange searches specific datasources with date filtering and pagination.
+// Results are ordered by creation time and filtered to include only blocks created between
+// startDate and endDate (inclusive). Either date can be nil for an open-ended range.
 func (m *Manager) SearchDatasourcesPagedWithDateRange(datasourceNames []string, query string, limit, page, pageSize int, startDate, endDate *time.Time) (map[string][]core.Block, error) {
 	params := SearchParams{
 		Query:             query,
@@ -302,7 +332,8 @@ func (m *Manager) SearchDatasourcesPagedWithDateRange(datasourceNames []string, 
 	return results.Results, nil
 }
 
-// sortDatasourcesByNewestBlock sorts datasources by the creation time of their newest block
+// sortDatasourcesByNewestBlock sorts datasources by the creation time of their newest block.
+// Returns a slice of datasource names ordered by the newest block time (newest first).
 func (m *Manager) sortDatasourcesByNewestBlock(datasourceResults map[string][]core.Block) []string {
 	type datasourceWithTime struct {
 		name       string
@@ -340,6 +371,9 @@ func (m *Manager) sortDatasourcesByNewestBlock(datasourceResults map[string][]co
 	return result
 }
 
+// GetStats returns storage statistics for all datasources including total blocks
+// and datasource-specific metrics. The returned map includes individual datasource
+// stats plus aggregate totals.
 func (m *Manager) GetStats() (map[string]interface{}, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -365,6 +399,9 @@ func (m *Manager) GetStats() (map[string]interface{}, error) {
 	return stats, nil
 }
 
+// Close closes all storage instances and cleans up resources.
+// Should be called when the manager is no longer needed to ensure
+// proper cleanup of database connections.
 func (m *Manager) Close() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -385,6 +422,9 @@ func (m *Manager) Close() error {
 	return nil
 }
 
+// OptimizeAll runs database optimization on all storage instances.
+// This can improve query performance by updating database statistics
+// and optimizing internal structures.
 func (m *Manager) OptimizeAll() error {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -403,6 +443,8 @@ func (m *Manager) OptimizeAll() error {
 	return nil
 }
 
+// AnalyzeAll runs database analysis on all storage instances.
+// This updates query planner statistics to improve query performance.
 func (m *Manager) AnalyzeAll() error {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -421,6 +463,9 @@ func (m *Manager) AnalyzeAll() error {
 	return nil
 }
 
+// WALCheckpointAll performs WAL (Write-Ahead Logging) checkpoint on all storage instances.
+// This flushes pending writes from the WAL to the main database file,
+// which can help with backup consistency and performance.
 func (m *Manager) WALCheckpointAll() error {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -439,7 +484,8 @@ func (m *Manager) WALCheckpointAll() error {
 	return nil
 }
 
-// checkPendingMigrations checks all existing databases for pending migrations
+// checkPendingMigrations checks all existing databases for pending migrations.
+// Returns a PendingMigrationsError if any database has pending migrations.
 func (m *Manager) checkPendingMigrations() error {
 	// Check if storage directory exists
 	if _, err := os.Stat(m.storageDir); os.IsNotExist(err) {

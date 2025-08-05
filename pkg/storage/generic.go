@@ -11,11 +11,17 @@ import (
 	"github.com/rubiojr/ergs/pkg/core"
 )
 
+// GenericStorage provides a generic SQLite-based storage implementation for blocks.
+// It uses FTS5 (Full-Text Search) for efficient text searching and includes
+// performance optimizations for handling large datasets.
 type GenericStorage struct {
 	db             *sql.DB
 	datasourceName string
 }
 
+// NewGenericStorage creates a new GenericStorage instance with the specified database path
+// and datasource name. It opens a SQLite database connection and applies performance
+// optimizations including WAL mode, memory temp storage, and mmap configuration.
 func NewGenericStorage(dbPath, datasourceName string) (*GenericStorage, error) {
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
@@ -47,24 +53,35 @@ func NewGenericStorage(dbPath, datasourceName string) (*GenericStorage, error) {
 	return storage, nil
 }
 
+// Close closes the underlying database connection and releases associated resources.
+// Should be called when the storage instance is no longer needed.
 func (s *GenericStorage) Close() error {
 	return s.db.Close()
 }
 
-// GetDB returns the underlying database connection for migrations
+// GetDB returns the underlying database connection for migrations and direct database access.
+// This is primarily used by the migration system to apply schema changes.
 func (s *GenericStorage) GetDB() *sql.DB {
 	return s.db
 }
 
+// InitializeSchema initializes the storage schema with the provided configuration.
+// This is a no-op in the current implementation as datasource-specific tables
+// are not used - all data is stored in the unified blocks table.
 func (s *GenericStorage) InitializeSchema(schema map[string]any) error {
 	// Schema functionality removed as datasource-specific tables are not used
 	return nil
 }
 
+// StoreBlock stores a single block in the database with the specified datasource type.
+// This is a convenience method that calls StoreBlocks with a single-element slice.
 func (s *GenericStorage) StoreBlock(block core.Block, datasourceType string) error {
 	return s.StoreBlocks([]core.Block{block}, datasourceType)
 }
 
+// StoreBlocks stores multiple blocks in the database using a single transaction.
+// Each block is stored in both the main blocks table and the FTS (Full-Text Search) table.
+// The operation is atomic - either all blocks are stored or none are.
 func (s *GenericStorage) StoreBlocks(blocks []core.Block, datasourceType string) error {
 	if len(blocks) == 0 {
 		return nil
@@ -154,6 +171,8 @@ func (s *GenericStorage) StoreBlocks(blocks []core.Block, datasourceType string)
 	return err
 }
 
+// GetBlocksSince retrieves all blocks created after the specified time.
+// Results are ordered by creation time in descending order (newest first).
 func (s *GenericStorage) GetBlocksSince(since time.Time) ([]core.Block, error) {
 	query := `
 		SELECT id, text, created_at, source, datasource, metadata, hostname
@@ -200,6 +219,9 @@ func (s *GenericStorage) GetBlocksSince(since time.Time) ([]core.Block, error) {
 	return blocks, rows.Err()
 }
 
+// GetStats returns statistics about the stored data including total block count,
+// oldest block timestamp, and newest block timestamp. The returned map contains
+// "total_blocks", "oldest_block", and "newest_block" keys.
 func (s *GenericStorage) GetStats() (map[string]interface{}, error) {
 	stats := make(map[string]interface{})
 
@@ -239,6 +261,8 @@ func (s *GenericStorage) GetStats() (map[string]interface{}, error) {
 	return stats, nil
 }
 
+// UpdateLastFetchTime records the last time data was fetched from the datasource.
+// This is used by datasource implementations to track incremental updates.
 func (s *GenericStorage) UpdateLastFetchTime(t time.Time) error {
 	_, err := s.db.Exec(`
 		INSERT OR REPLACE INTO fetch_metadata (key, value, updated_at)
@@ -248,6 +272,8 @@ func (s *GenericStorage) UpdateLastFetchTime(t time.Time) error {
 	return err
 }
 
+// GetLastFetchTime retrieves the last recorded fetch time for this datasource.
+// Returns zero time if no fetch time has been recorded yet.
 func (s *GenericStorage) GetLastFetchTime() (time.Time, error) {
 	var lastFetchStr string
 	err := s.db.QueryRow(`
@@ -264,29 +290,41 @@ func (s *GenericStorage) GetLastFetchTime() (time.Time, error) {
 	return time.Parse(time.RFC3339, lastFetchStr)
 }
 
+// ExecuteQuery executes a SQL query with optional parameters and returns the result rows.
+// The caller is responsible for closing the returned rows.
 func (s *GenericStorage) ExecuteQuery(query string, args ...interface{}) (*sql.Rows, error) {
 	return s.db.Query(query, args...)
 }
 
+// ExecuteStatement executes a SQL statement (INSERT, UPDATE, DELETE) with optional parameters.
+// Returns the result containing information about rows affected.
 func (s *GenericStorage) ExecuteStatement(query string, args ...interface{}) (sql.Result, error) {
 	return s.db.Exec(query, args...)
 }
 
+// Optimize runs SQLite's optimization routine to improve query performance.
+// This analyzes the database and updates internal statistics.
 func (s *GenericStorage) Optimize() error {
 	_, err := s.db.Exec("PRAGMA optimize")
 	return err
 }
 
+// Analyze updates the query planner statistics by analyzing the database tables.
+// This can improve query performance by providing better statistics to the optimizer.
 func (s *GenericStorage) Analyze() error {
 	_, err := s.db.Exec("ANALYZE")
 	return err
 }
 
+// Vacuum reclaims unused space in the database file and defragments the database.
+// This operation can be slow on large databases but reduces file size.
 func (s *GenericStorage) Vacuum() error {
 	_, err := s.db.Exec("VACUUM")
 	return err
 }
 
+// WALCheckpoint performs a WAL (Write-Ahead Logging) checkpoint operation.
+// This flushes pending writes from the WAL to the main database file and truncates the WAL.
 func (s *GenericStorage) WALCheckpoint() error {
 	_, err := s.db.Exec("PRAGMA wal_checkpoint(TRUNCATE)")
 	return err
