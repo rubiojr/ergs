@@ -15,7 +15,7 @@ require (
 	github.com/ncruces/go-sqlite3 v0.27.1
 	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/rubiojr/gasdb v1.1.3
-	github.com/rubiojr/rtve-go v0.2.1
+	github.com/rubiojr/rtve-go v0.2.2
 	github.com/urfave/cli/v3 v3.3.8
 	golang.org/x/oauth2 v0.15.0
 	golang.org/x/text v0.27.0

@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.1.2] - 2025-10-04
+
+- Bump deps to fix rtve datasource issues
+
 ## [2.1.1] - 2025-10-04
 
 ### ✨ New Features
