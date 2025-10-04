@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.2.1] - 2025-10-04
+
+### ✨ New Features
+
+- **RTVE Transcript Copy**: Added clipboard copy button to RTVE subtitle transcripts
+  - One-click copy of full transcript with timestamps
+  - Visual feedback when copied successfully
+  - Formatted as `[timestamp] text` for easy reading
+
+---
+
 ## [2.2.0] - 2025-10-04
 
 ### ✨ New Features

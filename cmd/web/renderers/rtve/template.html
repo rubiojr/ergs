@@ -56,7 +56,20 @@
                     >({{len $subtitleCues}} cues)</span
                 >
             </summary>
-            <div class="rtve-transcript-content">
+            <div class="rtve-transcript-header">
+                <button
+                    class="rtve-copy-btn"
+                    onclick="copyTranscript(this)"
+                    title="Copy transcript to clipboard"
+                >
+                    <span class="rtve-copy-icon">📋</span>
+                    <span class="rtve-copy-text">Copy</span>
+                </button>
+            </div>
+            <div
+                class="rtve-transcript-content"
+                data-transcript-cues="{{$subtitleText}}"
+            >
                 {{range $subtitleCues}}
                 <div class="rtve-cue">
                     <span class="rtve-cue-time">{{.start}}</span>
@@ -255,7 +268,55 @@
 
     .rtve-transcript-details[open] .rtve-transcript-summary {
         background-color: #e8e9ea;
+        border-bottom: none;
+    }
+
+    .rtve-transcript-header {
+        background: #e8e9ea;
+        padding: 8px 16px;
         border-bottom: 1px solid #d0d0d0;
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .rtve-copy-btn {
+        background: #ffffff;
+        border: 1px solid #d0d0d0;
+        border-radius: 4px;
+        padding: 6px 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        color: #666;
+        transition: all 0.2s ease;
+    }
+
+    .rtve-copy-btn:hover {
+        background: #f8f9fa;
+        border-color: #999;
+        color: #333;
+    }
+
+    .rtve-copy-btn:active {
+        background: #e8e9ea;
+        transform: scale(0.98);
+    }
+
+    .rtve-copy-btn.copied {
+        background: #4caf50;
+        border-color: #4caf50;
+        color: white;
+    }
+
+    .rtve-copy-icon {
+        font-size: 14px;
+        line-height: 1;
+    }
+
+    .rtve-copy-text {
+        font-weight: 500;
     }
 
     .rtve-transcript-content {
@@ -410,7 +471,28 @@
 
         .rtve-transcript-details[open] .rtve-transcript-summary {
             background-color: #2a2a2a;
-            border-bottom-color: #444444;
+            border-bottom: none;
+        }
+
+        .rtve-transcript-header {
+            background: #2a2a2a;
+            border-bottom-color: #444;
+        }
+
+        .rtve-copy-btn {
+            background: #1a1a1a;
+            border-color: #444;
+            color: #999;
+        }
+
+        .rtve-copy-btn:hover {
+            background: #333;
+            border-color: #666;
+            color: #ccc;
+        }
+
+        .rtve-copy-btn:active {
+            background: #2a2a2a;
         }
 
         .rtve-transcript-content {
@@ -443,3 +525,51 @@
         }
     }
 </style>
+
+<script>
+    function copyTranscript(button) {
+        const transcriptContent = button
+            .closest(".rtve-transcript")
+            .querySelector(".rtve-transcript-content");
+        const cuesJson = transcriptContent.getAttribute("data-transcript-cues");
+
+        try {
+            // Parse the JSON cues
+            const cues = JSON.parse(cuesJson);
+
+            // Format as plain text with timestamps
+            const text = cues
+                .map((cue) => `[${cue.start}] ${cue.text}`)
+                .join("\n");
+
+            // Copy to clipboard
+            navigator.clipboard.writeText(text).then(
+                function () {
+                    // Success feedback
+                    const originalText =
+                        button.querySelector(".rtve-copy-text").textContent;
+                    button.classList.add("copied");
+                    button.querySelector(".rtve-copy-icon").textContent = "✓";
+                    button.querySelector(".rtve-copy-text").textContent =
+                        "Copied!";
+
+                    // Reset after 2 seconds
+                    setTimeout(function () {
+                        button.classList.remove("copied");
+                        button.querySelector(".rtve-copy-icon").textContent =
+                            "📋";
+                        button.querySelector(".rtve-copy-text").textContent =
+                            originalText;
+                    }, 2000);
+                },
+                function (err) {
+                    console.error("Failed to copy transcript:", err);
+                    alert("Failed to copy transcript to clipboard");
+                },
+            );
+        } catch (err) {
+            console.error("Failed to parse transcript cues:", err);
+            alert("Failed to copy transcript");
+        }
+    }
+</script>
