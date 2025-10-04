@@ -74,6 +74,18 @@ func startImporterServer(ctx context.Context, configPath, host, port string) err
 		return fmt.Errorf("loading config: %w", err)
 	}
 
+	// Use config values if flags are default and config has values
+	if cfg.Importer != nil {
+		// Use config host if flag is default
+		if host == "localhost" && cfg.Importer.Host != "" {
+			host = cfg.Importer.Host
+		}
+		// Use config port if flag is default
+		if port == "9090" && cfg.Importer.Port != "" {
+			port = cfg.Importer.Port
+		}
+	}
+
 	// Get or generate API token
 	var apiToken string
 	if cfg.Importer != nil {

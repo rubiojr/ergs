@@ -23,6 +23,8 @@ type Config struct {
 
 type ImporterConfig struct {
 	APIKey string `toml:"api_key"`
+	Host   string `toml:"host,omitempty"`
+	Port   string `toml:"port,omitempty"`
 }
 
 type Duration struct {

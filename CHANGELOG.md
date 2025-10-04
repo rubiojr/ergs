@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.0.1] - 2025-10-04
+
+### 🔧 Improvements
+
+- **Importer Configuration**: Host and port can now be configured in `config.toml`
+  - Falls back to command-line flags if not set in config
+  - Default: `localhost:9090`
+
+---
+
 ## [3.0.0] - 2025-10-04
 
 ### ✨ New Features

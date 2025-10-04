@@ -9,6 +9,10 @@ storage_dir = '/home/user/.local/share/ergs'
 # API key for authentication. If not set, a random key will be generated when starting the importer server.
 # Copy the generated key here to persist it across restarts.
 api_key = ''
+# Host to bind the importer API server to (default: localhost)
+# host = 'localhost'
+# Port for the importer API server (default: 9090)
+# port = '9090'
 
 [datasources]
 
