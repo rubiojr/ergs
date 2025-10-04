@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/rubiojr/ergs/pkg/config"
 	"github.com/urfave/cli/v3"
@@ -21,6 +22,12 @@ func InitCommand() *cli.Command {
 
 // initConfig initializes the configuration file
 func initConfig(configPath string) error {
+	// Check if config already exists
+	if _, err := os.Stat(configPath); err == nil {
+		fmt.Printf("Configuration file already exists at %s\n", configPath)
+		return nil
+	}
+
 	cfg, err := config.GetDefaultConfig()
 	if err != nil {
 		return fmt.Errorf("getting default config: %w", err)
