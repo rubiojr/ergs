@@ -1,5 +1,49 @@
 # Changelog
 
+## [3.0.0] - 2025-10-04
+
+### ✨ New Features
+
+- **Block Import/Export System**: New importer API and datasource for pushing blocks from external sources
+  - `ergs importer` - HTTP API server for receiving blocks from external importers
+  - Importer datasource that routes incoming blocks to target datasources
+  - API key authentication for secure imports
+  - Staging database prevents data loss if target datasource fails
+  - Example RTVE importer showing how to build external importers
+  - Full documentation in `docs/datasources/importer.md`
+
+- **Database Optimization Commands**: Complete suite of database maintenance tools
+  - `ergs optimize check` - Deep integrity checks including FTS5-specific corruption detection
+    - Detects FTS/blocks table sync issues that standard checks miss
+    - Tests actual queries to find corruption that only appears at query time
+    - `--quick` flag to skip deep FTS checks for faster operation
+  - `ergs optimize fts-rebuild` - Smart FTS5 index rebuilding
+    - Automatically checks integrity first and only rebuilds if needed
+    - `--force` flag to skip checks and rebuild unconditionally
+    - Shows which databases were rebuilt vs skipped
+  - `ergs optimize analyze` - Update query planner statistics
+  - `ergs optimize vacuum` - Defragment and reclaim disk space
+  - `ergs optimize checkpoint` - WAL checkpoint to flush writes
+  - `ergs optimize all` - Run all optimization operations
+  - All commands support `--datasource <name>` to target specific databases
+  - Real-time progress reporting with ✓/✗ indicators
+
+### 🔧 Improvements
+
+- **Enhanced FTS Corruption Detection**: New `FTSIntegrityCheck` method catches corruption missed by standard SQLite integrity checks
+  - Tests multiple query patterns (simple MATCH, phrase queries, multi-word phrases)
+  - Retrieves actual content from blocks table to detect missing rows
+  - Critical for external content tables where FTS index can reference deleted rows
+
+- **Progress Reporting**: All optimize commands show real-time progress as each database is processed
+
+### 📚 Documentation
+
+- Added comprehensive importer documentation with architecture diagrams
+- Added example external importer implementation (rtve-importer)
+
+---
+
 ## [2.2.1] - 2025-10-04
 
 ### ✨ New Features
