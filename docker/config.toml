@@ -1,0 +1,37 @@
+# Ergs Configuration File for Docker
+# Copy this to config.toml and edit with your settings
+
+# Storage directory - must be /data for Docker
+storage_dir = '/data'
+
+# Example: Hacker News datasource
+[datasources.hackernews]
+type = 'hackernews'
+interval = '1h0m0s'
+[datasources.hackernews.config]
+fetch_top = true
+fetch_new = false
+max_items = 100
+fetch_comments = false
+
+# Example: RTVE datasource (Spanish TV)
+[datasources.rtve]
+type = 'rtve'
+interval = '2h0m0s'
+[datasources.rtve.config]
+show_id = 'telediario-1'
+max_episodes = 10
+
+# Example: RSS feeds
+[datasources.rss]
+type = 'rss'
+interval = '2h0m0s'
+[datasources.rss.config]
+urls = [
+    'https://feeds.arstechnica.com/arstechnica/index',
+    'https://www.phoronix.com/rss.php'
+]
+max_items = 50
+
+# Additional datasources can be configured here
+# See pkg/config/config.toml.sample for all available options

@@ -1,0 +1,49 @@
+# Git
+.git
+.gitignore
+.github
+
+# Build artifacts
+bin/
+*.db
+*.db-shm
+*.db-wal
+
+# Test files
+*_test.go
+integration_tests/
+fixtures/
+
+# Documentation
+*.md
+!README.md
+docs/
+DOCKER.md
+CHANGELOG.md
+
+# Configuration
+config.toml
+*.toml
+!pkg/config/config.toml.sample
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dependencies (will be downloaded during build)
+vendor/
+
+# Local development
+.rules
+
+# Docker files (not needed in image)
+Dockerfile
+compose.yml
+.dockerignore
