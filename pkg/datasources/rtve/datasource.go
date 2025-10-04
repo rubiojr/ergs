@@ -63,7 +63,11 @@ func parseVTTSubtitles(url string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("downloading subtitles: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			log.Printf("RTVE: Warning: failed to close response body: %v", closeErr)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("HTTP %d", resp.StatusCode)
