@@ -65,6 +65,14 @@
                     <span class="rtve-copy-icon">📋</span>
                     <span class="rtve-copy-text">Copy</span>
                 </button>
+                <button
+                    class="rtve-select-btn"
+                    onclick="showSelectableTranscript(this)"
+                    title="Show as selectable text"
+                >
+                    <span class="rtve-select-icon">📝</span>
+                    <span class="rtve-select-text">Select All</span>
+                </button>
             </div>
             <div
                 class="rtve-transcript-content"
@@ -319,6 +327,118 @@
         font-weight: 500;
     }
 
+    .rtve-select-btn {
+        background: #ffffff;
+        border: 1px solid #d0d0d0;
+        border-radius: 4px;
+        padding: 6px 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        color: #666;
+        transition: all 0.2s ease;
+    }
+
+    .rtve-select-btn:hover {
+        background: #f8f9fa;
+        border-color: #999;
+        color: #333;
+    }
+
+    .rtve-select-btn:active {
+        background: #e8e9ea;
+        transform: scale(0.98);
+    }
+
+    .rtve-select-icon {
+        font-size: 14px;
+        line-height: 1;
+    }
+
+    .rtve-select-text {
+        font-weight: 500;
+    }
+
+    .rtve-textarea-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 20px;
+    }
+
+    .rtve-textarea-container {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        max-width: 800px;
+        width: 100%;
+        max-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .rtve-textarea-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .rtve-textarea-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1a1a1a;
+    }
+
+    .rtve-textarea-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #666;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+    }
+
+    .rtve-textarea-close:hover {
+        background: #f0f0f0;
+        color: #333;
+    }
+
+    .rtve-selectable-textarea {
+        width: 100%;
+        height: 400px;
+        padding: 12px;
+        border: 1px solid #d0d0d0;
+        border-radius: 4px;
+        font-family: "Courier New", monospace;
+        font-size: 13px;
+        line-height: 1.6;
+        resize: vertical;
+        background: #fafafa;
+    }
+
+    .rtve-selectable-textarea:focus {
+        outline: 2px solid #e60000;
+        outline-offset: 2px;
+    }
+
     .rtve-transcript-content {
         padding: 16px;
         background: #ffffff;
@@ -495,6 +615,45 @@
             background: #2a2a2a;
         }
 
+        .rtve-select-btn {
+            background: #1a1a1a;
+            border-color: #444;
+            color: #999;
+        }
+
+        .rtve-select-btn:hover {
+            background: #333;
+            border-color: #666;
+            color: #ccc;
+        }
+
+        .rtve-select-btn:active {
+            background: #2a2a2a;
+        }
+
+        .rtve-textarea-container {
+            background: #1a1a1a;
+        }
+
+        .rtve-textarea-title {
+            color: #e0e0e0;
+        }
+
+        .rtve-textarea-close {
+            color: #999;
+        }
+
+        .rtve-textarea-close:hover {
+            background: #333;
+            color: #ccc;
+        }
+
+        .rtve-selectable-textarea {
+            background: #2a2a2a;
+            color: #e0e0e0;
+            border-color: #444;
+        }
+
         .rtve-transcript-content {
             background: #1a1a1a;
             color: #e0e0e0;
@@ -579,6 +738,74 @@
         } catch (err) {
             console.error("Failed to parse transcript cues:", err);
             alert("Failed to copy transcript");
+        }
+    }
+
+    function showSelectableTranscript(button) {
+        const transcriptContent = button
+            .closest(".rtve-transcript")
+            .querySelector(".rtve-transcript-content");
+        const cuesJson = transcriptContent.getAttribute("data-transcript-cues");
+
+        try {
+            // Parse the JSON cues
+            const cues = JSON.parse(cuesJson);
+
+            // Format as plain text with timestamps
+            const text = cues
+                .map((cue) => `[${cue.start}] ${cue.text}`)
+                .join("\n");
+
+            // Create modal overlay
+            const modal = document.createElement("div");
+            modal.className = "rtve-textarea-modal";
+            modal.onclick = function (e) {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                }
+            };
+
+            // Create container
+            const container = document.createElement("div");
+            container.className = "rtve-textarea-container";
+
+            // Create header
+            const header = document.createElement("div");
+            header.className = "rtve-textarea-header";
+
+            const title = document.createElement("div");
+            title.className = "rtve-textarea-title";
+            title.textContent = "Transcript (Select and Copy)";
+
+            const closeBtn = document.createElement("button");
+            closeBtn.className = "rtve-textarea-close";
+            closeBtn.innerHTML = "×";
+            closeBtn.onclick = function () {
+                document.body.removeChild(modal);
+            };
+
+            header.appendChild(title);
+            header.appendChild(closeBtn);
+
+            // Create textarea
+            const textarea = document.createElement("textarea");
+            textarea.className = "rtve-selectable-textarea";
+            textarea.value = text;
+            textarea.readOnly = true;
+
+            // Assemble and show
+            container.appendChild(header);
+            container.appendChild(textarea);
+            modal.appendChild(container);
+            document.body.appendChild(modal);
+
+            // Auto-select all text
+            setTimeout(function () {
+                textarea.select();
+            }, 100);
+        } catch (err) {
+            console.error("Failed to parse transcript cues:", err);
+            alert("Failed to show transcript");
         }
     }
 </script>
