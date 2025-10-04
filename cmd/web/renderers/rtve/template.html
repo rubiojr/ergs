@@ -542,7 +542,14 @@
                 .map((cue) => `[${cue.start}] ${cue.text}`)
                 .join("\n");
 
-            // Copy to clipboard
+            // Copy to clipboard (requires HTTPS or localhost)
+            if (!navigator.clipboard) {
+                alert(
+                    "Clipboard copy requires HTTPS. Please access this site over HTTPS or copy the transcript manually.",
+                );
+                return;
+            }
+
             navigator.clipboard.writeText(text).then(
                 function () {
                     // Success feedback
@@ -564,7 +571,9 @@
                 },
                 function (err) {
                     console.error("Failed to copy transcript:", err);
-                    alert("Failed to copy transcript to clipboard");
+                    alert(
+                        "Failed to copy transcript. Clipboard access requires HTTPS or localhost.",
+                    );
                 },
             );
         } catch (err) {
