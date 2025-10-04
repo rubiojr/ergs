@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.0.1] - 2025-10-04
+## [2.1.1] - 2025-10-04
 
 ### ✨ New Features
 
@@ -9,6 +9,15 @@
   - Configurable show ID and maximum number of episodes
   - Includes subtitle availability and language information
   - Web renderer with RTVE branding and responsive design
+  - Uses rtve-go v0.2.0 library with off-by-one bug fix
+
+### 🐛 Bug Fixes
+
+- **Init Command**: `ergs init` now skips overwriting existing configuration files instead of replacing them
+- **RTVE-Go Library**: Fixed off-by-one bug in `FetchShowLatest` that was fetching maxVideos+1 instead of maxVideos
+  - Added comprehensive unit tests to prevent regression
+
+---
 
 ## [1.6.0] - 2025-08-05
 
