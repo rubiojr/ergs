@@ -1,6 +1,14 @@
 # Changelog
 
-All notable changes to Ergs will be documented in this file.
+## [2.0.1] - 2025-10-04
+
+### ✨ New Features
+
+- **RTVE Datasource**: Added new datasource for fetching TV show episodes from RTVE (Radio Televisión Española)
+  - Fetches latest episodes from RTVE on-demand shows
+  - Configurable show ID and maximum number of episodes
+  - Includes subtitle availability and language information
+  - Web renderer with RTVE branding and responsive design
 
 ## [1.6.0] - 2025-08-05
 

@@ -7,7 +7,7 @@ godebug tlsrsakex=1
 toolchain go1.24.4
 
 require (
-	github.com/a-h/templ v0.3.924
+	github.com/a-h/templ v0.3.943
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/google/go-github/v73 v73.0.0
@@ -15,6 +15,7 @@ require (
 	github.com/ncruces/go-sqlite3 v0.27.1
 	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/rubiojr/gasdb v1.1.3
+	github.com/rubiojr/rtve-go v0.2.1
 	github.com/urfave/cli/v3 v3.3.8
 	golang.org/x/oauth2 v0.15.0
 	golang.org/x/text v0.27.0
@@ -37,7 +38,7 @@ require (
 	github.com/tetratelabs/wazero v1.9.0 // indirect
 	github.com/tkrajina/gpxgo v1.4.0 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
-	golang.org/x/net v0.39.0 // indirect
+	golang.org/x/net v0.42.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect

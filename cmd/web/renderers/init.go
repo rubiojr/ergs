@@ -9,6 +9,7 @@ import (
 	_ "github.com/rubiojr/ergs/cmd/web/renderers/github"
 	_ "github.com/rubiojr/ergs/cmd/web/renderers/hackernews"
 	_ "github.com/rubiojr/ergs/cmd/web/renderers/rss"
+	_ "github.com/rubiojr/ergs/cmd/web/renderers/rtve"
 	_ "github.com/rubiojr/ergs/cmd/web/renderers/timestamp"
 	_ "github.com/rubiojr/ergs/cmd/web/renderers/zedthreads"
 )

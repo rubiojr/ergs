@@ -74,3 +74,11 @@ max_items = 50  # Maximum items to fetch across all feeds (default: 50, max: 200
 # # interval = '5m0s'
 # [datasources.timestamp.config]
 # interval_seconds = 60  # Generate timestamp every N seconds during fetch
+
+# # RTVE - Fetch episodes from RTVE (Spanish TV) shows
+# [datasources.rtve]
+# type = 'rtve'
+# # interval = '1h0m0s'
+# [datasources.rtve.config]
+# show_id = 'telediario-1'  # Required: RTVE show ID (e.g., 'telediario-1', 'telediario-2', 'informe-semanal')
+# max_episodes = 10         # Maximum number of latest episodes to fetch (default: 10, max: 100)
