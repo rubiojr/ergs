@@ -17,7 +17,12 @@ var configTemplate string
 type Config struct {
 	StorageDir    string                    `toml:"storage_dir"`
 	FetchInterval Duration                  `toml:"fetch_interval"`
+	Importer      *ImporterConfig           `toml:"importer,omitempty"`
 	Datasources   map[string]DatasourceInfo `toml:"datasources"`
+}
+
+type ImporterConfig struct {
+	APIKey string `toml:"api_key"`
 }
 
 type Duration struct {

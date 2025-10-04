@@ -329,3 +329,143 @@ func (s *GenericStorage) WALCheckpoint() error {
 	_, err := s.db.Exec("PRAGMA wal_checkpoint(TRUNCATE)")
 	return err
 }
+
+// IntegrityCheck runs SQLite's integrity check on the database including FTS5-specific checks.
+// Returns nil if the database is healthy, or an error describing the corruption.
+func (s *GenericStorage) IntegrityCheck() error {
+	// First run standard integrity check
+	var result string
+	err := s.db.QueryRow("PRAGMA integrity_check").Scan(&result)
+	if err != nil {
+		return fmt.Errorf("running integrity check: %w", err)
+	}
+
+	if result != "ok" {
+		return fmt.Errorf("integrity check failed: %s", result)
+	}
+
+	// Check if FTS table exists
+	var ftsExists int
+	err = s.db.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='blocks_fts'").Scan(&ftsExists)
+	if err != nil {
+		return fmt.Errorf("checking for FTS table: %w", err)
+	}
+
+	if ftsExists == 0 {
+		// No FTS table, nothing more to check
+		return nil
+	}
+
+	// Try a simple FTS query to detect query-time corruption
+	rows, err := s.db.Query("SELECT rowid FROM blocks_fts LIMIT 1")
+	if err != nil {
+		return fmt.Errorf("FTS query test failed (possible corruption): %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return fmt.Errorf("closing FTS query rows: %w", err)
+	}
+
+	return nil
+}
+
+// FTSIntegrityCheck performs deep FTS5-specific integrity checks.
+// This can detect corruption that standard integrity_check misses.
+// Uses both FTS5's built-in integrity-check command and actual queries.
+func (s *GenericStorage) FTSIntegrityCheck() error {
+	// Check if FTS table exists
+	var ftsExists int
+	err := s.db.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='blocks_fts'").Scan(&ftsExists)
+	if err != nil {
+		return fmt.Errorf("checking for FTS table: %w", err)
+	}
+
+	if ftsExists == 0 {
+		return fmt.Errorf("FTS table 'blocks_fts' does not exist")
+	}
+
+	// Run FTS5's built-in integrity check command
+	// Note: This is a special FTS5 command, not a data insertion
+	_, err = s.db.Exec("INSERT INTO blocks_fts(blocks_fts) VALUES('integrity-check')")
+	if err != nil {
+		return fmt.Errorf("FTS integrity-check command failed: %w", err)
+	}
+
+	// Try a COUNT query - this often reveals corruption
+	var count int
+	err = s.db.QueryRow("SELECT COUNT(*) FROM blocks_fts").Scan(&count)
+	if err != nil {
+		return fmt.Errorf("FTS COUNT query failed (possible corruption): %w", err)
+	}
+
+	// Test various FTS queries that retrieve actual content from blocks table.
+	// This is critical because with external content tables (content='blocks'),
+	// the FTS index can reference rows that no longer exist in the blocks table.
+	// These queries force FTS to fetch data from blocks, revealing sync issues.
+
+	testQueries := []struct {
+		name  string
+		query string
+	}{
+		{"simple MATCH", "SELECT rowid, text FROM blocks_fts WHERE blocks_fts MATCH 'a' LIMIT 100"},
+		{"phrase query", "SELECT rowid, text FROM blocks_fts WHERE blocks_fts MATCH '\"the\"' LIMIT 100"},
+		{"two-word phrase", "SELECT rowid, text FROM blocks_fts WHERE blocks_fts MATCH '\"the a\"' LIMIT 100"},
+		{"common words", "SELECT rowid, text FROM blocks_fts WHERE blocks_fts MATCH '\"in the\"' LIMIT 100"},
+	}
+
+	for _, test := range testQueries {
+		rows, err := s.db.Query(test.query)
+		if err != nil {
+			return fmt.Errorf("FTS %s failed (possible corruption): %w", test.name, err)
+		}
+
+		// Iterate through results and try to read the text column
+		// This forces SQLite to access the blocks table via the content_rowid
+		for rows.Next() {
+			var rowid int64
+			var text string
+			if err := rows.Scan(&rowid, &text); err != nil {
+				_ = rows.Close()
+				return fmt.Errorf("FTS %s scan failed at rowid (missing row in blocks table?): %w", test.name, err)
+			}
+		}
+
+		if err := rows.Err(); err != nil {
+			_ = rows.Close()
+			return fmt.Errorf("FTS %s iteration failed (possible corruption): %w", test.name, err)
+		}
+		if err := rows.Close(); err != nil {
+			return fmt.Errorf("closing FTS %s query rows: %w", test.name, err)
+		}
+	}
+
+	return nil
+}
+
+// FTSRebuild rebuilds the FTS5 full-text search index from the blocks table.
+// This can fix corrupted FTS indexes and should be used after data recovery.
+func (s *GenericStorage) FTSRebuild() error {
+	// First check if the FTS table exists
+	var count int
+	err := s.db.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='blocks_fts'").Scan(&count)
+	if err != nil {
+		return fmt.Errorf("checking for FTS table: %w", err)
+	}
+
+	if count == 0 {
+		return fmt.Errorf("FTS table 'blocks_fts' does not exist")
+	}
+
+	// Rebuild the FTS index
+	_, err = s.db.Exec("INSERT INTO blocks_fts(blocks_fts) VALUES('rebuild')")
+	if err != nil {
+		return fmt.Errorf("rebuilding FTS index: %w", err)
+	}
+
+	// Optimize the FTS index
+	_, err = s.db.Exec("INSERT INTO blocks_fts(blocks_fts) VALUES('optimize')")
+	if err != nil {
+		return fmt.Errorf("optimizing FTS index: %w", err)
+	}
+
+	return nil
+}

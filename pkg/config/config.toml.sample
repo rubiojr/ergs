@@ -3,6 +3,13 @@
 
 storage_dir = '/home/user/.local/share/ergs'
 
+# Importer API configuration
+# Used by both the importer API server (ergs importer) and importer datasource
+[importer]
+# API key for authentication. If not set, a random key will be generated when starting the importer server.
+# Copy the generated key here to persist it across restarts.
+api_key = ''
+
 [datasources]
 
 # GitHub - Fetch your GitHub activity, starred repos, and interactions
@@ -78,6 +85,41 @@ max_items = 50  # Maximum items to fetch across all feeds (default: 50, max: 200
 # # RTVE - Fetch episodes from RTVE (Spanish TV) shows
 # [datasources.rtve]
 # type = 'rtve'
+
+# # Importer - Generic datasource for importing blocks from external sources
+# # This allows external tools to push blocks via HTTP API
+# # Only ONE importer datasource is needed - it routes blocks to their target datasources
+# [datasources.importer]
+# type = 'importer'
+# # interval = '5m0s'  # How often to fetch blocks from the importer API
+# [datasources.importer.config]
+# api_url = 'http://localhost:9090'  # URL of the importer API server (default: http://localhost:9090)
+# api_key = ''  # API key for authentication. Uses [importer] api_key if not set here.
+#
+# # To use the importer:
+# # 1. Configure an API key in [importer] section above (or let it auto-generate)
+# # 2. Start the importer API server: ergs importer --port 9090
+# # 3. Start the warehouse: ergs serve
+# # 4. External tools POST blocks to: http://localhost:9090/api/import/blocks
+# #    (Include Authorization: Bearer <key> header)
+# # 5. Each block must include a "datasource" field specifying where it should be stored
+# # 6. The importer datasource fetches blocks via HTTP and routes them automatically
+# #
+# # Example block format:
+# # {
+# #   "blocks": [
+# #     {
+# #       "id": "unique-id",
+# #       "text": "searchable text",
+# #       "created_at": "2024-01-15T10:30:00Z",
+# #       "type": "github",
+# #       "datasource": "github",  // Routes to [datasources.github]
+# #       "metadata": {...}
+# #     }
+# #   ]
+# # }
+# #
+# # See docs/datasources/importer.md for detailed documentation
 # # interval = '1h0m0s'
 # [datasources.rtve.config]
 # show_id = 'telediario-1'  # Required: RTVE show ID (e.g., 'telediario-1', 'telediario-2', 'informe-semanal')

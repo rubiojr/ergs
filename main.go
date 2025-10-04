@@ -7,6 +7,7 @@ import (
 
 	"github.com/rubiojr/ergs/cmd"
 	"github.com/rubiojr/ergs/pkg/config"
+	_ "github.com/rubiojr/ergs/pkg/datasources/importer"
 	"github.com/urfave/cli/v3"
 )
 
@@ -35,6 +36,7 @@ func main() {
 			cmd.TodayCommand(),
 			cmd.ServeCommand(),
 			cmd.WebCommand(),
+			cmd.ImporterCommand(),
 			cmd.StatsCommand(),
 			cmd.OptimizeCommand(),
 			cmd.MigrateCommand(),

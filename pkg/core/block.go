@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -255,4 +256,74 @@ func NewGenericBlockWithHostname(id, text, source, dsType, hostname string, crea
 		hostname:  hostname,
 		metadata:  metadata,
 	}
+}
+
+// MarshalJSON implements json.Marshaler for GenericBlock.
+// This provides a standard JSON format for importing/exporting blocks.
+func (b *GenericBlock) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		"id":         b.id,
+		"text":       b.text,
+		"created_at": b.createdAt,
+		"type":       b.dsType,
+		"datasource": b.source,
+		"metadata":   b.metadata,
+	})
+}
+
+// UnmarshalJSON implements json.Unmarshaler for GenericBlock.
+// This allows creating GenericBlocks from JSON data (e.g., from import APIs).
+func (b *GenericBlock) UnmarshalJSON(data []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	// Extract required fields
+	id, ok := raw["id"].(string)
+	if !ok {
+		return fmt.Errorf("missing or invalid 'id' field")
+	}
+
+	text, ok := raw["text"].(string)
+	if !ok {
+		return fmt.Errorf("missing or invalid 'text' field")
+	}
+
+	dsType, ok := raw["type"].(string)
+	if !ok {
+		return fmt.Errorf("missing or invalid 'type' field")
+	}
+
+	source, ok := raw["datasource"].(string)
+	if !ok {
+		return fmt.Errorf("missing or invalid 'datasource' field")
+	}
+
+	// Parse created_at timestamp
+	createdAtStr, ok := raw["created_at"].(string)
+	if !ok {
+		return fmt.Errorf("missing or invalid 'created_at' field")
+	}
+	createdAt, err := time.Parse(time.RFC3339, createdAtStr)
+	if err != nil {
+		return fmt.Errorf("parsing created_at: %w", err)
+	}
+
+	// Extract metadata (optional)
+	metadata, _ := raw["metadata"].(map[string]interface{})
+	if metadata == nil {
+		metadata = make(map[string]interface{})
+	}
+
+	// Populate the GenericBlock
+	b.id = id
+	b.text = text
+	b.createdAt = createdAt
+	b.source = source
+	b.dsType = dsType
+	b.hostname = "" // Not included in JSON format
+	b.metadata = metadata
+
+	return nil
 }

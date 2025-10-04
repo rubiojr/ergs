@@ -157,6 +157,12 @@ func (m *Manager) EnsureStorageWithMigrations(datasourceName string) (*GenericSt
 // InitializeDatasourceStorage initializes storage for a datasource with the given schema.
 // It ensures migrations are applied and then initializes the storage schema.
 func (m *Manager) InitializeDatasourceStorage(datasourceName string, schema map[string]any) error {
+	// Skip storage initialization if schema is nil or empty
+	// This allows datasources like "importer" to not create their own databases
+	if len(schema) == 0 {
+		return nil
+	}
+
 	storage, err := m.EnsureStorageWithMigrations(datasourceName)
 	if err != nil {
 		return err
@@ -171,6 +177,18 @@ func (m *Manager) RegisterBlockPrototype(datasourceName string, prototype core.B
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.blockPrototypes[datasourceName] = prototype
+}
+
+// GetDatasourceNames returns a sorted list of all datasource names that have storage.
+func (m *Manager) GetDatasourceNames() []string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	names := make([]string, 0, len(m.storages))
+	for name := range m.storages {
+		names = append(names, name)
+	}
+	return names
 }
 
 // GetSearchService returns the search service for external access.
@@ -423,14 +441,22 @@ func (m *Manager) Close() error {
 }
 
 // OptimizeAll runs database optimization on all storage instances.
-// This can improve query performance by updating database statistics
-// and optimizing internal structures.
+// This uses SQLite's PRAGMA optimize to improve query performance.
 func (m *Manager) OptimizeAll() error {
+	return m.OptimizeAllWithProgress(nil)
+}
+
+// OptimizeAllWithProgress runs database optimization on all storage instances with progress reporting.
+// The progress callback is called before optimizing each database with the datasource name.
+func (m *Manager) OptimizeAllWithProgress(progressFn func(datasource string)) error {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	var errors []error
 	for name, storage := range m.storages {
+		if progressFn != nil {
+			progressFn(name)
+		}
 		if err := storage.Optimize(); err != nil {
 			errors = append(errors, fmt.Errorf("optimizing storage %s: %w", name, err))
 		}
@@ -446,11 +472,20 @@ func (m *Manager) OptimizeAll() error {
 // AnalyzeAll runs database analysis on all storage instances.
 // This updates query planner statistics to improve query performance.
 func (m *Manager) AnalyzeAll() error {
+	return m.AnalyzeAllWithProgress(nil)
+}
+
+// AnalyzeAllWithProgress runs database analysis on all storage instances with progress reporting.
+// The progress callback is called before analyzing each database with the datasource name.
+func (m *Manager) AnalyzeAllWithProgress(progressFn func(datasource string)) error {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	var errors []error
 	for name, storage := range m.storages {
+		if progressFn != nil {
+			progressFn(name)
+		}
 		if err := storage.Analyze(); err != nil {
 			errors = append(errors, fmt.Errorf("analyzing storage %s: %w", name, err))
 		}
@@ -467,11 +502,20 @@ func (m *Manager) AnalyzeAll() error {
 // This flushes pending writes from the WAL to the main database file,
 // which can help with backup consistency and performance.
 func (m *Manager) WALCheckpointAll() error {
+	return m.WALCheckpointAllWithProgress(nil)
+}
+
+// WALCheckpointAllWithProgress performs WAL checkpoint on all storage instances with progress reporting.
+// The progress callback is called before checkpointing each database with the datasource name.
+func (m *Manager) WALCheckpointAllWithProgress(progressFn func(datasource string)) error {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	var errors []error
 	for name, storage := range m.storages {
+		if progressFn != nil {
+			progressFn(name)
+		}
 		if err := storage.WALCheckpoint(); err != nil {
 			errors = append(errors, fmt.Errorf("WAL checkpoint for storage %s: %w", name, err))
 		}
@@ -482,6 +526,102 @@ func (m *Manager) WALCheckpointAll() error {
 	}
 
 	return nil
+}
+
+// IntegrityCheckAll runs database integrity checks on all storage instances.
+// Returns a map of datasource names to their check results (nil if healthy, error if corrupted).
+func (m *Manager) IntegrityCheckAll() map[string]error {
+	return m.IntegrityCheckAllWithProgress(nil)
+}
+
+// IntegrityCheckAllWithProgress runs database integrity checks on all storage instances with progress reporting.
+// The progress callback is called before checking each database with the datasource name.
+// Returns a map of datasource names to their check results (nil if healthy, error if corrupted).
+func (m *Manager) IntegrityCheckAllWithProgress(progressFn func(datasource string)) map[string]error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	results := make(map[string]error)
+	for name, storage := range m.storages {
+		if progressFn != nil {
+			progressFn(name)
+		}
+		results[name] = storage.IntegrityCheck()
+	}
+
+	return results
+}
+
+// FTSRebuildAll rebuilds FTS5 indexes for all storage instances.
+// Returns a map of datasource names to their rebuild results (nil if successful, error if failed).
+func (m *Manager) FTSRebuildAll() map[string]error {
+	return m.FTSRebuildAllWithProgress(nil)
+}
+
+// FTSRebuildAllWithProgress rebuilds FTS5 indexes for all storage instances with progress reporting.
+// The progress callback is called before rebuilding each database with the datasource name.
+// Returns a map of datasource names to their rebuild results (nil if successful, error if failed).
+func (m *Manager) FTSRebuildAllWithProgress(progressFn func(datasource string)) map[string]error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	results := make(map[string]error)
+	for name, storage := range m.storages {
+		if progressFn != nil {
+			progressFn(name)
+		}
+		results[name] = storage.FTSRebuild()
+	}
+
+	return results
+}
+
+// VacuumAll runs VACUUM on all storage instances.
+// Returns a map of datasource names to their vacuum results (nil if successful, error if failed).
+func (m *Manager) VacuumAll() map[string]error {
+	return m.VacuumAllWithProgress(nil)
+}
+
+// VacuumAllWithProgress runs VACUUM on all storage instances with progress reporting.
+// The progress callback is called before vacuuming each database with the datasource name.
+// Returns a map of datasource names to their vacuum results (nil if successful, error if failed).
+func (m *Manager) VacuumAllWithProgress(progressFn func(datasource string)) map[string]error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	results := make(map[string]error)
+	for name, storage := range m.storages {
+		if progressFn != nil {
+			progressFn(name)
+		}
+		results[name] = storage.Vacuum()
+	}
+
+	return results
+}
+
+// FTSIntegrityCheckAll performs deep FTS5-specific integrity checks on all storage instances.
+// Returns a map of datasource names to their check results (nil if healthy, error if corrupted).
+func (m *Manager) FTSIntegrityCheckAll() map[string]error {
+	return m.FTSIntegrityCheckAllWithProgress(nil)
+}
+
+// FTSIntegrityCheckAllWithProgress performs deep FTS5-specific integrity checks with progress reporting.
+// The progress callback is called before checking each database with the datasource name.
+// Returns a map of datasource names to their check results (nil if healthy, error if corrupted).
+func (m *Manager) FTSIntegrityCheckAllWithProgress(progressFn func(datasource string)) map[string]error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	results := make(map[string]error)
+	for name, storage := range m.storages {
+		if progressFn != nil {
+			progressFn(name)
+		}
+		results[name] = storage.FTSIntegrityCheck()
+	}
+
+	return results
 }
 
 // checkPendingMigrations checks all existing databases for pending migrations.
