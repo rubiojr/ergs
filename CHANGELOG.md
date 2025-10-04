@@ -1,8 +1,22 @@
 # Changelog
 
+## [2.2.0] - 2025-10-04
+
+### ✨ New Features
+
+- **RTVE Subtitle Support**: Enhanced RTVE datasource with Spanish subtitle parsing
+  - Downloads and parses Spanish VTT subtitles for full-text search
+  - Subtitles stored as structured JSON (timestamps + text)
+  - Beautiful collapsible transcript view in web interface with timestamps
+  - Makes episode content fully searchable
+
+---
+
 ## [2.1.2] - 2025-10-04
 
 - Bump deps to fix rtve datasource issues
+
+---
 
 ## [2.1.1] - 2025-10-04
 
@@ -130,7 +144,7 @@ kill -HUP $(pgrep ergs)
   - Browse and search all datasources with responsive design
   - Real-time pagination and filtering (30 items per page)
   - Specialized renderers for each datasource type (GitHub, Firefox, HN, RSS, etc.)
-  
+
 - **REST API**: JSON endpoints for programmatic access
   - `/api/datasources` - List datasources
   - `/api/search` - Search across all data

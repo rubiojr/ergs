@@ -7,12 +7,20 @@
 package rtve
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/rubiojr/ergs/pkg/core"
 )
+
+// VTTCue represents a single subtitle cue with timing and text
+type VTTCue struct {
+	StartTime string `json:"start"`
+	EndTime   string `json:"end"`
+	Text      string `json:"text"`
+}
 
 // RTVEBlock represents a single RTVE video/episode entry in the system.
 // This block stores metadata about RTVE TV show episodes including
@@ -33,13 +41,14 @@ type RTVEBlock struct {
 	uri             string    // RTVE API URI
 	hasSubtitles    bool      // Whether subtitles are available
 	subtitleLangs   []string  // Available subtitle languages
+	subtitleText    string    // Spanish subtitle text content (for search)
 	publishedAt     time.Time // Parsed publication date
 }
 
 // NewRTVEBlock creates a new RTVE block with default source.
 // This is a convenience constructor for backward compatibility.
-func NewRTVEBlock(videoID, longTitle, publicationDate, htmlURL, uri string, hasSubtitles bool, subtitleLangs []string) *RTVEBlock {
-	return NewRTVEBlockWithSource(videoID, longTitle, publicationDate, htmlURL, uri, hasSubtitles, subtitleLangs, "rtve")
+func NewRTVEBlock(videoID, longTitle, publicationDate, htmlURL, uri string, hasSubtitles bool, subtitleLangs []string, subtitleText string) *RTVEBlock {
+	return NewRTVEBlockWithSource(videoID, longTitle, publicationDate, htmlURL, uri, hasSubtitles, subtitleLangs, subtitleText, "rtve")
 }
 
 // NewRTVEBlockWithSource creates a new RTVE block with explicit source.
@@ -53,8 +62,9 @@ func NewRTVEBlock(videoID, longTitle, publicationDate, htmlURL, uri string, hasS
 //   - uri: RTVE API URI
 //   - hasSubtitles: Whether subtitles are available
 //   - subtitleLangs: List of available subtitle languages
+//   - subtitleText: Spanish subtitle text content (empty if not available)
 //   - source: The datasource instance name (for proper data isolation)
-func NewRTVEBlockWithSource(videoID, longTitle, publicationDate, htmlURL, uri string, hasSubtitles bool, subtitleLangs []string, source string) *RTVEBlock {
+func NewRTVEBlockWithSource(videoID, longTitle, publicationDate, htmlURL, uri string, hasSubtitles bool, subtitleLangs []string, subtitleText, source string) *RTVEBlock {
 	// Parse publication date - RTVE uses format: "02-01-2006 15:04:05"
 	const rtveLayout = "02-01-2006 15:04:05"
 	var publishedAt time.Time
@@ -73,6 +83,15 @@ func NewRTVEBlockWithSource(videoID, longTitle, publicationDate, htmlURL, uri st
 	if len(subtitleLangs) > 0 {
 		textParts = append(textParts, strings.Join(subtitleLangs, " "))
 	}
+	// Include subtitle text for full-text search (extract text from JSON cues)
+	if subtitleText != "" {
+		var cues []VTTCue
+		if err := json.Unmarshal([]byte(subtitleText), &cues); err == nil {
+			for _, cue := range cues {
+				textParts = append(textParts, cue.Text)
+			}
+		}
+	}
 	text := strings.Join(textParts, " ")
 
 	// Metadata contains all structured data needed for database storage
@@ -84,6 +103,7 @@ func NewRTVEBlockWithSource(videoID, longTitle, publicationDate, htmlURL, uri st
 		"uri":              uri,
 		"has_subtitles":    hasSubtitles,
 		"subtitle_langs":   strings.Join(subtitleLangs, ","),
+		"subtitle_text":    subtitleText,
 		"source":           source,
 	}
 
@@ -104,6 +124,7 @@ func NewRTVEBlockWithSource(videoID, longTitle, publicationDate, htmlURL, uri st
 		uri:             uri,
 		hasSubtitles:    hasSubtitles,
 		subtitleLangs:   subtitleLangs,
+		subtitleText:    subtitleText,
 		publishedAt:     publishedAt,
 	}
 }
@@ -178,6 +199,9 @@ func (b *RTVEBlock) HasSubtitles() bool { return b.hasSubtitles }
 // SubtitleLangs returns the list of available subtitle languages
 func (b *RTVEBlock) SubtitleLangs() []string { return b.subtitleLangs }
 
+// SubtitleText returns the Spanish subtitle text content
+func (b *RTVEBlock) SubtitleText() string { return b.subtitleText }
+
 // PublishedAt returns the parsed publication date
 func (b *RTVEBlock) PublishedAt() time.Time { return b.publishedAt }
 
@@ -194,6 +218,7 @@ func (b *RTVEBlock) Factory(genericBlock *core.GenericBlock, source string) core
 	uri := getStringFromMetadata(metadata, "uri", "")
 	hasSubtitles := getBoolFromMetadata(metadata, "has_subtitles", false)
 	subtitleLangsStr := getStringFromMetadata(metadata, "subtitle_langs", "")
+	subtitleText := getStringFromMetadata(metadata, "subtitle_text", "")
 
 	// Parse subtitle languages
 	var subtitleLangs []string
@@ -228,6 +253,7 @@ func (b *RTVEBlock) Factory(genericBlock *core.GenericBlock, source string) core
 		uri:             uri,
 		hasSubtitles:    hasSubtitles,
 		subtitleLangs:   subtitleLangs,
+		subtitleText:    subtitleText,
 		publishedAt:     publishedAt,
 	}
 }
@@ -247,6 +273,7 @@ func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, s
 	uri := getStringFromMetadata(metadata, "uri", "")
 	hasSubtitles := getBoolFromMetadata(metadata, "has_subtitles", false)
 	subtitleLangsStr := getStringFromMetadata(metadata, "subtitle_langs", "")
+	subtitleText := getStringFromMetadata(metadata, "subtitle_text", "")
 
 	// Parse subtitle languages
 	var subtitleLangs []string
@@ -281,6 +308,7 @@ func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, s
 		uri:             uri,
 		hasSubtitles:    hasSubtitles,
 		subtitleLangs:   subtitleLangs,
+		subtitleText:    subtitleText,
 		publishedAt:     publishedAt,
 	}
 }

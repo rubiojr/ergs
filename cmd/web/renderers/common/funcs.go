@@ -1,6 +1,7 @@
 package common
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"strings"
@@ -103,6 +104,18 @@ func GetTemplateFuncs() template.FuncMap {
 				return s
 			}
 			return s[:length] + "..."
+		},
+
+		// JSON parsing
+		"parseJSON": func(s string) interface{} {
+			var result interface{}
+			if err := json.Unmarshal([]byte(s), &result); err != nil {
+				return nil
+			}
+			return result
+		},
+		"list": func() []interface{} {
+			return []interface{}{}
 		},
 
 		// Template logic

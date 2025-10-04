@@ -1,10 +1,11 @@
 <div class="block-rtve">
-    {{$videoID := index .Metadata "video_id"}}
-    {{$longTitle := index .Metadata "long_title"}}
-    {{$pubDate := index .Metadata "publication_date"}}
-    {{$htmlURL := index .Metadata "html_url"}}
-    {{$hasSubtitles := index .Metadata "has_subtitles"}}
-    {{$subtitleLangs := index .Metadata "subtitle_langs"}}
+    {{$videoID := index .Metadata "video_id"}} {{$longTitle := index .Metadata
+    "long_title"}} {{$pubDate := index .Metadata "publication_date"}} {{$htmlURL
+    := index .Metadata "html_url"}} {{$hasSubtitles := index .Metadata
+    "has_subtitles"}} {{$subtitleLangs := index .Metadata "subtitle_langs"}}
+    {{$subtitleText := index .Metadata "subtitle_text"}} {{$subtitleCues :=
+    list}} {{if $subtitleText}} {{$subtitleCues = parseJSON $subtitleText}}
+    {{end}}
 
     <div class="rtve-header">
         <div class="rtve-icon">
@@ -14,36 +15,58 @@
         <div class="rtve-content">
             <div class="rtve-title">
                 {{if $htmlURL}}
-                    <a href="{{$htmlURL}}" target="_blank" class="rtve-link">{{$longTitle}}</a>
+                <a href="{{$htmlURL}}" target="_blank" class="rtve-link"
+                    >{{$longTitle}}</a
+                >
                 {{else}}
-                    <span class="rtve-title-text">{{$longTitle}}</span>
+                <span class="rtve-title-text">{{$longTitle}}</span>
                 {{end}}
             </div>
 
             <div class="rtve-meta">
                 <span class="rtve-time">{{formatTime .Block.CreatedAt}}</span>
                 {{if $videoID}}
-                    <span class="rtve-separator">|</span>
-                    <span class="rtve-id">ID: {{$videoID}}</span>
-                {{end}}
-                {{if $hasSubtitles}}
-                    <span class="rtve-separator">|</span>
-                    <span class="rtve-subtitles">
-                        📝 Subtitles
-                        {{if $subtitleLangs}}
-                            ({{$subtitleLangs}})
-                        {{end}}
-                    </span>
-                {{end}}
-                {{if $htmlURL}}
-                    <span class="rtve-separator">|</span>
-                    <a href="{{$htmlURL}}" target="_blank" class="rtve-watch">
-                        ▶ Watch
-                    </a>
+                <span class="rtve-separator">|</span>
+                <span class="rtve-id">ID: {{$videoID}}</span>
+                {{end}} {{if $hasSubtitles}}
+                <span class="rtve-separator">|</span>
+                <span class="rtve-subtitles">
+                    📝 Subtitles {{if $subtitleLangs}} ({{$subtitleLangs}})
+                    {{end}}
+                </span>
+                {{end}} {{if $htmlURL}}
+                <span class="rtve-separator">|</span>
+                <a href="{{$htmlURL}}" target="_blank" class="rtve-watch">
+                    ▶ Watch
+                </a>
                 {{end}}
             </div>
         </div>
     </div>
+
+    {{if $subtitleCues}}
+    <div class="rtve-transcript">
+        <details class="rtve-transcript-details">
+            <summary class="rtve-transcript-summary">
+                <span class="rtve-transcript-icon">📄</span>
+                <span class="rtve-transcript-label"
+                    >Show Spanish Transcript</span
+                >
+                <span class="rtve-transcript-length"
+                    >({{len $subtitleCues}} cues)</span
+                >
+            </summary>
+            <div class="rtve-transcript-content">
+                {{range $subtitleCues}}
+                <div class="rtve-cue">
+                    <span class="rtve-cue-time">{{.start}}</span>
+                    <span class="rtve-cue-text">{{.text}}</span>
+                </div>
+                {{end}}
+            </div>
+        </details>
+    </div>
+    {{end}}
 
     <div class="rtve-source">
         <span class="rtve-brand">RTVE</span>
@@ -51,211 +74,372 @@
 </div>
 
 <style>
-.block-rtve {
-    margin-bottom: 1.5rem;
-    padding: 0;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    background: #ffffff;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    font-size: 14px;
-    line-height: 1.4;
-    overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    transition: box-shadow 0.2s ease;
-}
+    .block-rtve {
+        margin-bottom: 1.5rem;
+        padding: 0;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        background: #ffffff;
+        font-family:
+            -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+            "Helvetica Neue", Arial, sans-serif;
+        font-size: 14px;
+        line-height: 1.4;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        transition: box-shadow 0.2s ease;
+    }
 
-.block-rtve:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-}
+    .block-rtve:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    }
 
-.rtve-header {
-    display: flex;
-    gap: 12px;
-    padding: 16px;
-    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-}
-
-.rtve-icon {
-    display: flex;
-    align-items: flex-start;
-    padding-top: 2px;
-}
-
-.rtve-logo {
-    font-size: 24px;
-    line-height: 1;
-}
-
-.rtve-content {
-    flex: 1;
-    min-width: 0;
-}
-
-.rtve-title {
-    margin-bottom: 8px;
-    line-height: 1.3;
-}
-
-.rtve-link {
-    color: #1a1a1a;
-    text-decoration: none;
-    font-size: 16px;
-    font-weight: 600;
-    display: inline-block;
-    transition: color 0.2s ease;
-}
-
-.rtve-link:hover {
-    color: #e60000;
-    text-decoration: underline;
-}
-
-.rtve-link:visited {
-    color: #4a4a4a;
-}
-
-.rtve-title-text {
-    color: #1a1a1a;
-    font-size: 16px;
-    font-weight: 600;
-}
-
-.rtve-meta {
-    color: #666666;
-    font-size: 13px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.rtve-time {
-    font-variant-numeric: tabular-nums;
-    font-weight: 500;
-}
-
-.rtve-id {
-    color: #888888;
-    font-size: 12px;
-    font-family: "Courier New", monospace;
-}
-
-.rtve-separator {
-    color: #d0d0d0;
-    margin: 0 2px;
-}
-
-.rtve-subtitles {
-    color: #2c7a2c;
-    font-weight: 500;
-}
-
-.rtve-watch {
-    color: #e60000;
-    text-decoration: none;
-    font-weight: 600;
-    transition: color 0.2s ease;
-}
-
-.rtve-watch:hover {
-    color: #b30000;
-    text-decoration: underline;
-}
-
-.rtve-source {
-    background: #e60000;
-    padding: 6px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-top: 1px solid #cc0000;
-}
-
-.rtve-brand {
-    color: #ffffff;
-    font-weight: 700;
-    font-size: 11px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-}
-
-/* Responsive adjustments */
-@media (max-width: 600px) {
     .rtve-header {
-        padding: 12px;
-        gap: 10px;
+        display: flex;
+        gap: 12px;
+        padding: 16px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    }
+
+    .rtve-icon {
+        display: flex;
+        align-items: flex-start;
+        padding-top: 2px;
     }
 
     .rtve-logo {
-        font-size: 20px;
+        font-size: 24px;
+        line-height: 1;
     }
 
-    .rtve-link, .rtve-title-text {
-        font-size: 15px;
+    .rtve-content {
+        flex: 1;
+        min-width: 0;
     }
 
-    .rtve-meta {
-        font-size: 12px;
-        gap: 6px;
+    .rtve-title {
+        margin-bottom: 8px;
+        line-height: 1.3;
     }
 
-    .rtve-id {
-        display: none;
-    }
-
-    .rtve-source {
-        padding: 5px 12px;
-    }
-}
-
-/* Better spacing for long titles */
-.rtve-title {
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-}
-
-/* Accessibility */
-.rtve-link:focus,
-.rtve-watch:focus {
-    outline: 2px solid #e60000;
-    outline-offset: 2px;
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-    .block-rtve {
-        background: #1a1a1a;
-        border-color: #333333;
-    }
-
-    .rtve-header {
-        background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
-    }
-
-    .rtve-link,
-    .rtve-title-text {
-        color: #e0e0e0;
+    .rtve-link {
+        color: #1a1a1a;
+        text-decoration: none;
+        font-size: 16px;
+        font-weight: 600;
+        display: inline-block;
+        transition: color 0.2s ease;
     }
 
     .rtve-link:hover {
-        color: #ff4444;
+        color: #e60000;
+        text-decoration: underline;
     }
 
     .rtve-link:visited {
-        color: #b0b0b0;
+        color: #4a4a4a;
+    }
+
+    .rtve-title-text {
+        color: #1a1a1a;
+        font-size: 16px;
+        font-weight: 600;
     }
 
     .rtve-meta {
-        color: #999999;
+        color: #666666;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .rtve-time {
+        font-variant-numeric: tabular-nums;
+        font-weight: 500;
     }
 
     .rtve-id {
-        color: #777777;
+        color: #888888;
+        font-size: 12px;
+        font-family: "Courier New", monospace;
+    }
+
+    .rtve-separator {
+        color: #d0d0d0;
+        margin: 0 2px;
     }
 
     .rtve-subtitles {
-        color: #4caf50;
+        color: #2c7a2c;
+        font-weight: 500;
     }
-}
+
+    .rtve-watch {
+        color: #e60000;
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.2s ease;
+    }
+
+    .rtve-watch:hover {
+        color: #b30000;
+        text-decoration: underline;
+    }
+
+    .rtve-source {
+        background: #e60000;
+        padding: 6px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-top: 1px solid #cc0000;
+    }
+
+    .rtve-brand {
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 11px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+    }
+
+    /* Transcript styles */
+    .rtve-transcript {
+        background: #f8f9fa;
+        border-top: 1px solid #e0e0e0;
+        padding: 0;
+    }
+
+    .rtve-transcript-details {
+        margin: 0;
+    }
+
+    .rtve-transcript-summary {
+        padding: 12px 16px;
+        cursor: pointer;
+        list-style: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #666666;
+        font-size: 13px;
+        font-weight: 500;
+        transition: background-color 0.2s ease;
+        user-select: none;
+    }
+
+    .rtve-transcript-summary:hover {
+        background-color: #f0f0f0;
+    }
+
+    .rtve-transcript-summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .rtve-transcript-icon {
+        font-size: 16px;
+        line-height: 1;
+    }
+
+    .rtve-transcript-label {
+        flex: 1;
+    }
+
+    .rtve-transcript-length {
+        color: #999999;
+        font-size: 11px;
+        font-weight: 400;
+    }
+
+    .rtve-transcript-details[open] .rtve-transcript-summary {
+        background-color: #e8e9ea;
+        border-bottom: 1px solid #d0d0d0;
+    }
+
+    .rtve-transcript-content {
+        padding: 16px;
+        background: #ffffff;
+        color: #2c3e50;
+        font-size: 14px;
+        line-height: 1.6;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .rtve-cue {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 12px;
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .rtve-cue:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+
+    .rtve-cue-time {
+        flex-shrink: 0;
+        color: #666;
+        font-family: "Courier New", monospace;
+        font-size: 12px;
+        font-weight: 600;
+        min-width: 90px;
+        padding-top: 2px;
+    }
+
+    .rtve-cue-text {
+        flex: 1;
+        color: #2c3e50;
+        font-family: Georgia, "Times New Roman", serif;
+        line-height: 1.5;
+    }
+
+    /* Scrollbar styling for transcript */
+    .rtve-transcript-content::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .rtve-transcript-content::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    .rtve-transcript-content::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+    }
+
+    .rtve-transcript-content::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 600px) {
+        .rtve-header {
+            padding: 12px;
+            gap: 10px;
+        }
+
+        .rtve-logo {
+            font-size: 20px;
+        }
+
+        .rtve-link,
+        .rtve-title-text {
+            font-size: 15px;
+        }
+
+        .rtve-meta {
+            font-size: 12px;
+            gap: 6px;
+        }
+
+        .rtve-id {
+            display: none;
+        }
+
+        .rtve-source {
+            padding: 5px 12px;
+        }
+    }
+
+    /* Better spacing for long titles */
+    .rtve-title {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
+    /* Accessibility */
+    .rtve-link:focus,
+    .rtve-watch:focus {
+        outline: 2px solid #e60000;
+        outline-offset: 2px;
+    }
+
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        .block-rtve {
+            background: #1a1a1a;
+            border-color: #333333;
+        }
+
+        .rtve-header {
+            background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+        }
+
+        .rtve-link,
+        .rtve-title-text {
+            color: #e0e0e0;
+        }
+
+        .rtve-link:hover {
+            color: #ff4444;
+        }
+
+        .rtve-link:visited {
+            color: #b0b0b0;
+        }
+
+        .rtve-meta {
+            color: #999999;
+        }
+
+        .rtve-id {
+            color: #777777;
+        }
+
+        .rtve-subtitles {
+            color: #4caf50;
+        }
+
+        .rtve-transcript {
+            background: #2a2a2a;
+            border-top-color: #444444;
+        }
+
+        .rtve-transcript-summary {
+            color: #999999;
+        }
+
+        .rtve-transcript-summary:hover {
+            background-color: #333333;
+        }
+
+        .rtve-transcript-details[open] .rtve-transcript-summary {
+            background-color: #2a2a2a;
+            border-bottom-color: #444444;
+        }
+
+        .rtve-transcript-content {
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+
+        .rtve-cue {
+            border-bottom-color: #333;
+        }
+
+        .rtve-cue-time {
+            color: #888;
+        }
+
+        .rtve-cue-text {
+            color: #d0d0d0;
+        }
+
+        .rtve-transcript-content::-webkit-scrollbar-track {
+            background: #2a2a2a;
+        }
+
+        .rtve-transcript-content::-webkit-scrollbar-thumb {
+            background: #555;
+        }
+
+        .rtve-transcript-content::-webkit-scrollbar-thumb:hover {
+            background: #777;
+        }
+    }
 </style>

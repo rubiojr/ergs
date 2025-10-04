@@ -23,8 +23,14 @@ package rtve
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
+	"regexp"
+	"strings"
+	"time"
 
 	"github.com/rubiojr/ergs/pkg/core"
 	"github.com/rubiojr/rtve-go/api"
@@ -36,6 +42,110 @@ func init() {
 	// Register a prototype instance for factory creation
 	prototype := &Datasource{}
 	core.RegisterDatasourcePrototype("rtve", prototype)
+}
+
+// parseVTTSubtitles downloads and parses a VTT subtitle file into structured cues.
+// Returns JSON string containing array of VTTCue objects.
+func parseVTTSubtitles(url string) (string, error) {
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	// Download the subtitle file
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", fmt.Errorf("creating request: %w", err)
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("downloading subtitles: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("HTTP %d", resp.StatusCode)
+	}
+
+	// Read the VTT content
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("reading response: %w", err)
+	}
+
+	content := string(body)
+	lines := strings.Split(content, "\n")
+
+	var cues []VTTCue
+	var currentCue *VTTCue
+
+	// Regex to match timestamp line: "00:00:01.000 --> 00:00:03.000"
+	timestampPattern := regexp.MustCompile(`^(\d{2}:\d{2}:\d{2}\.\d{3})\s+-->\s+(\d{2}:\d{2}:\d{2}\.\d{3})`)
+
+	for i := 0; i < len(lines); i++ {
+		line := strings.TrimSpace(lines[i])
+
+		// Skip empty lines, WEBVTT header, and NOTE lines
+		if line == "" || strings.HasPrefix(line, "WEBVTT") || strings.HasPrefix(line, "NOTE") {
+			continue
+		}
+
+		// Check if this is a timestamp line
+		if matches := timestampPattern.FindStringSubmatch(line); matches != nil {
+			// Save previous cue if exists
+			if currentCue != nil && currentCue.Text != "" {
+				cues = append(cues, *currentCue)
+			}
+
+			// Start new cue
+			currentCue = &VTTCue{
+				StartTime: matches[1],
+				EndTime:   matches[2],
+				Text:      "",
+			}
+			continue
+		}
+
+		// Skip numeric-only lines (cue IDs)
+		if regexp.MustCompile(`^\d+$`).MatchString(line) {
+			continue
+		}
+
+		// If we have a current cue, this line is subtitle text
+		if currentCue != nil {
+			// Remove VTT positioning tags (e.g., "line:71%")
+			cleanLine := regexp.MustCompile(`\s+line:\d+%`).ReplaceAllString(line, "")
+			cleanLine = regexp.MustCompile(`\s+align:\w+`).ReplaceAllString(cleanLine, "")
+			cleanLine = regexp.MustCompile(`\s+position:\d+%`).ReplaceAllString(cleanLine, "")
+			cleanLine = regexp.MustCompile(`\s+size:\d+%`).ReplaceAllString(cleanLine, "")
+
+			// Remove HTML/VTT tags
+			cleanLine = regexp.MustCompile(`<[^>]+>`).ReplaceAllString(cleanLine, "")
+			cleanLine = strings.TrimSpace(cleanLine)
+
+			if cleanLine != "" {
+				if currentCue.Text != "" {
+					currentCue.Text += " "
+				}
+				currentCue.Text += cleanLine
+			}
+		}
+	}
+
+	// Don't forget the last cue
+	if currentCue != nil && currentCue.Text != "" {
+		cues = append(cues, *currentCue)
+	}
+
+	// Convert to JSON
+	jsonData, err := json.Marshal(cues)
+	if err != nil {
+		return "", fmt.Errorf("marshaling cues to JSON: %w", err)
+	}
+
+	return string(jsonData), nil
 }
 
 // Config defines the configuration structure for the RTVE datasource.
@@ -143,6 +253,7 @@ func (d *Datasource) Schema() map[string]any {
 		"uri":              "TEXT",    // RTVE API URI
 		"has_subtitles":    "INTEGER", // Boolean: whether subtitles are available
 		"subtitle_langs":   "TEXT",    // Comma-separated list of subtitle languages
+		"subtitle_text":    "TEXT",    // Spanish subtitle text content
 	}
 }
 
@@ -193,13 +304,30 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		default:
 		}
 
-		// Extract subtitle information
+		// Extract subtitle information and download Spanish subtitles
 		hasSubtitles := false
 		var subtitleLangs []string
+		var subtitleText string
+
 		if result.Subtitles != nil && len(result.Subtitles.Subtitles) > 0 {
 			hasSubtitles = true
 			for _, sub := range result.Subtitles.Subtitles {
 				subtitleLangs = append(subtitleLangs, sub.Lang)
+
+				// Download and parse Spanish subtitles only
+				if sub.Lang == "es" && sub.Src != "" {
+					jsonCues, err := parseVTTSubtitles(sub.Src)
+					if err != nil {
+						log.Printf("RTVE: Warning: failed to fetch Spanish subtitles for video %s: %v", result.Metadata.ID, err)
+					} else {
+						subtitleText = jsonCues
+						// Count cues for logging
+						var cues []VTTCue
+						if json.Unmarshal([]byte(jsonCues), &cues) == nil {
+							log.Printf("RTVE: Downloaded Spanish subtitles for '%s' (%d cues)", result.Metadata.LongTitle, len(cues))
+						}
+					}
+				}
 			}
 		}
 
@@ -212,6 +340,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 			result.Metadata.URI,
 			hasSubtitles,
 			subtitleLangs,
+			subtitleText,
 			d.instanceName, // Use instance name for proper data isolation
 		)
 
