@@ -37,6 +37,50 @@ archives:
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
+dockers:
+  - image_templates:
+      - "ghcr.io/rubiojr/{{ .ProjectName }}:{{ .Version }}-amd64"
+      - "ghcr.io/rubiojr/{{ .ProjectName }}:latest-amd64"
+    dockerfile: docker/Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source={{.GitURL}}"
+    goarch: amd64
+    goos: linux
+
+  - image_templates:
+      - "ghcr.io/rubiojr/{{ .ProjectName }}:{{ .Version }}-arm64"
+      - "ghcr.io/rubiojr/{{ .ProjectName }}:latest-arm64"
+    dockerfile: docker/Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source={{.GitURL}}"
+    goarch: arm64
+    goos: linux
+
+docker_manifests:
+  - name_template: "ghcr.io/rubiojr/{{ .ProjectName }}:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/rubiojr/{{ .ProjectName }}:{{ .Version }}-amd64"
+      - "ghcr.io/rubiojr/{{ .ProjectName }}:{{ .Version }}-arm64"
+
+  - name_template: "ghcr.io/rubiojr/{{ .ProjectName }}:latest"
+    image_templates:
+      - "ghcr.io/rubiojr/{{ .ProjectName }}:latest-amd64"
+      - "ghcr.io/rubiojr/{{ .ProjectName }}:latest-arm64"
+
 changelog:
   sort: asc
   filters:
