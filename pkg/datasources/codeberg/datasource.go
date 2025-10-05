@@ -89,7 +89,7 @@ func NewDatasource(instanceName string, config interface{}) (core.Datasource, er
 	return &Datasource{
 		config:       cbConfig,
 		client:       &http.Client{Timeout: 30 * time.Second},
-		baseURL:      "https://codeberg.org",
+		baseURL:      "https://codeberg.org/api/v1",
 		instanceName: instanceName,
 	}, nil
 }
