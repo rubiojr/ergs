@@ -29,10 +29,10 @@ func TestChromiumDatasourceBasicFunctionality(t *testing.T) {
 		t.Errorf("Valid config should not return error: %v", err)
 	}
 
-	// Test invalid config
+	// Test invalid config - now just warns, doesn't error
 	invalidConfig := &Config{DatabasePath: "/nonexistent/path"}
-	if err := invalidConfig.Validate(); err == nil {
-		t.Error("Invalid config should return error")
+	if err := invalidConfig.Validate(); err != nil {
+		t.Errorf("Config validation should not return error (only warns): %v", err)
 	}
 
 	// Test datasource creation
