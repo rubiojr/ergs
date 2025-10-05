@@ -1,5 +1,26 @@
 # Changelog
 
+## [3.1.0] - 2025-10-05
+
+### ✨ New Features
+
+- **Chromium Datasource**: New datasource for extracting browsing history from Chromium-based browsers
+  - Extracts URLs, page titles, and visit timestamps
+  - Full documentation in `docs/datasources/chromium.md`
+
+- **Chromium Importer**: External importer tool for importing browsing history from remote machines
+  - Located in `importers/chromium-importer/`
+  - Import history via HTTP to central Ergs instance
+  - Supports batch importing with configurable batch size
+  - Can import from multiple machines to single Ergs server
+  - Includes systemd service and timer units for automated imports
+
+- **Schema-Only Datasources (Interval 0)**: New capability to disable automatic fetching while preserving schema
+  - Set `interval = '0s'` to register datasource schema without automatic fetching
+  - Useful for datasources that only receive data via importer API
+
+---
+
 ## [3.0.1] - 2025-10-04
 
 ### 🔧 Improvements
