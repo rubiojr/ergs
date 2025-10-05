@@ -4,7 +4,7 @@ This guide explains how to run Ergs using Docker and Docker Compose.
 
 ## Quick Start
 
-1. Set your own importer api key in `docker/config.toml` or disable the importer removing the importer section and the importer datasource from `docker/config.toml`.
+1. Set your own [importer](/docs/importer.md) api key in `docker/config.toml` or disable the importer removing the importer section and the importer datasource from `docker/config.toml` (or remove the importer service from `docker/compose.yml`).
 
 2. **Start the services**:
    ```bash
