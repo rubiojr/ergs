@@ -1,0 +1,43 @@
+# GoReleaser-specific Dockerfile for multi-platform builds
+FROM alpine:latest
+
+# Install runtime dependencies including su-exec for user switching
+RUN apk add --no-cache ca-certificates tzdata wget su-exec
+
+# Create non-root user
+RUN addgroup -g 1000 ergs && \
+    adduser -D -u 1000 -G ergs ergs
+
+# Create directories with proper permissions
+RUN mkdir -p /data /config && \
+    chown -R ergs:ergs /data /config && \
+    chmod 755 /data /config
+
+# Define build arguments for multi-platform support
+ARG TARGETPLATFORM
+
+# Copy pre-built binary from GoReleaser build context
+COPY ${TARGETPLATFORM}/ergs /usr/local/bin/ergs
+
+# Copy entrypoint script
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Set environment variables
+ENV ERGS_CONFIG=/config/config.toml
+ENV ERGS_DATA=/data
+
+# Expose ports
+# 8080 for web interface
+# 7119 for importer API
+EXPOSE 8080 7119
+
+# Use entrypoint to fix permissions before running command
+ENTRYPOINT ["/entrypoint.sh"]
+
+# Default command (can be overridden in docker-compose)
+CMD ["ergs", "web"]
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/ || exit 1

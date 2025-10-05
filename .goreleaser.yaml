@@ -48,7 +48,7 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
 dockers_v2:
-  - dockerfile: docker/Dockerfile
+  - dockerfile: docker/Dockerfile.goreleaser
     ids:
       - ergs-linux
     images:
@@ -65,6 +65,8 @@ dockers_v2:
     platforms:
       - linux/amd64
       - linux/arm64
+    extra_files:
+      - docker/entrypoint.sh
 
 changelog:
   sort: asc
