@@ -14,7 +14,8 @@ before:
     - go mod tidy
 
 builds:
-  - env:
+  - id: ergs
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
@@ -47,10 +48,12 @@ archives:
 
 dockers_v2:
   - dockerfile: docker/Dockerfile
-    image_templates:
+    ids:
+      - ergs
+    images:
       - "ghcr.io/rubiojr/{{ .ProjectName }}:{{ .Version }}"
       - "ghcr.io/rubiojr/{{ .ProjectName }}:latest"
-    build_flag_templates:
+    build_flags:
       - "--pull"
       - "--label=org.opencontainers.image.created={{.Date}}"
       - "--label=org.opencontainers.image.title={{.ProjectName}}"
