@@ -51,15 +51,19 @@ dockers_v2:
     ids:
       - ergs
     images:
-      - "ghcr.io/rubiojr/{{ .ProjectName }}:{{ .Version }}"
-      - "ghcr.io/rubiojr/{{ .ProjectName }}:latest"
-    build_flags:
-      - "--pull"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--label=org.opencontainers.image.source={{.GitURL}}"
+      - "ghcr.io/rubiojr/{{ .ProjectName }}"
+    tags:
+      - "{{ .Version }}"
+      - "latest"
+    labels:
+      "org.opencontainers.image.created": "{{.Date}}"
+      "org.opencontainers.image.title": "{{.ProjectName}}"
+      "org.opencontainers.image.revision": "{{.FullCommit}}"
+      "org.opencontainers.image.version": "{{.Version}}"
+      "org.opencontainers.image.source": "{{.GitURL}}"
+    platforms:
+      - linux/amd64
+      - linux/arm64
 
 changelog:
   sort: asc
