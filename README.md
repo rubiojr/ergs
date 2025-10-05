@@ -50,12 +50,26 @@ Or grab a binary release from https://github.com/rubiojr/ergs/releases.
 
 ## Available Datasources
 
+### Browser Data
+- **Firefox** - Complete browsing history with full-text search from Firefox's places.sqlite database
+- **Chromium** - Browsing history from Chromium-based browsers (Chrome, Edge, Brave, etc.)
+
+### Code Hosting Platforms
 - **GitHub** - Your GitHub activity, starred repos, and interactions
+- **Codeberg** - Codeberg activity and repository events
+
+### News & Media
 - **HackerNews** - Stories, comments, jobs, and polls from Hacker News
 - **RSS** - Articles from RSS/Atom feeds (blogs, news sites, etc.)
-- **Firefox** - Complete browsing history with full-text search
-- **Codeberg** - Codeberg activity and repository events
-- **Zed Threads** - Chat history from Zed editor
+- **RTVE** - TV show episodes from RTVE (Spanish public broadcasting)
+
+### Development Tools
+- **Zed Threads** - AI conversation threads from Zed editor
+
+### External Data Import
+- **Importer** - HTTP API for importing blocks from external sources and custom scripts
+
+### Utilities
 - **Gas Stations** - Local gas station prices and info
 - **Timestamp** - Simple timestamp logging (useful for testing)
 
