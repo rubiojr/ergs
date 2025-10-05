@@ -102,7 +102,11 @@ services:
     container_name: ergs-init
     user: "0:0"
     command:
-      ["sh", "-c", "chown -R 1000:1000 /data && echo 'Permissions fixed'"]
+      [
+        "sh",
+        "-c",
+        "mkdir -p /data/internal && chown -R 1000:1000 /data && echo 'Permissions fixed'",
+      ]
     volumes:
       - ergs-data:/data
     restart: "no"

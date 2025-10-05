@@ -4,6 +4,9 @@
 # Storage directory - must be /data for Docker
 storage_dir = '/data'
 
+[importer]
+api_key = "this-should-be-a-secret-but-its-not"
+
 # Example: Hacker News datasource
 [datasources.hackernews]
 type = 'hackernews'
@@ -24,6 +27,12 @@ urls = [
     'https://www.phoronix.com/rss.php'
 ]
 max_items = 50
+
+[datasources.importer]
+type = "importer"
+[datasources.importer.config]
+api_url = "http://ergs-importer:7119"
+api_key = "this-should-be-a-secret-but-its-not"
 
 # Additional datasources can be configured here
 # See pkg/config/config.toml.sample for all available options
