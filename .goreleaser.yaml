@@ -14,7 +14,7 @@ before:
     - go mod tidy
 
 builds:
-  - id: ergs
+  - id: ergs-linux
     env:
       - CGO_ENABLED=0
     goos:
@@ -25,7 +25,8 @@ builds:
     main: .
     ldflags:
       - -s -w
-  - env:
+  - id: ergs-darwin
+    env:
       - CGO_ENABLED=0
     goos:
       - darwin
@@ -49,7 +50,7 @@ archives:
 dockers_v2:
   - dockerfile: docker/Dockerfile
     ids:
-      - ergs
+      - ergs-linux
     images:
       - "ghcr.io/rubiojr/{{ .ProjectName }}"
     tags:
