@@ -52,6 +52,7 @@ func (w *Warehouse) AddDatasource(name string, ds core.Datasource) error {
 // AddDatasourceWithInterval adds a datasource to the warehouse with a specific fetch interval.
 // The interval determines how often this datasource will be polled for new data.
 // Use 30*time.Minute for the default interval, or specify a custom duration.
+// Use 0 to disable automatic fetching (datasource will only provide schema for storage).
 func (w *Warehouse) AddDatasourceWithInterval(name string, ds core.Datasource, interval time.Duration) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -66,13 +67,16 @@ func (w *Warehouse) AddDatasourceWithInterval(name string, ds core.Datasource, i
 	w.datasourceNames[ds] = name
 	w.datasourceIntervals[name] = interval
 
-	// If warehouse is running, start the ticker for this datasource
-	if w.running && w.ctx != nil {
+	// If warehouse is running and interval > 0, start the ticker for this datasource
+	// interval of 0 means no automatic fetching (schema-only datasource)
+	if w.running && w.ctx != nil && interval > 0 {
 		ticker := time.NewTicker(interval)
 		w.datasourceTickers[name] = ticker
 		w.wg.Add(1)
 		go w.runDatasource(w.ctx, name, ticker)
 		log.Printf("Started scheduler for new datasource %s with interval %v", name, interval)
+	} else if interval == 0 {
+		log.Printf("Datasource %s configured with interval 0 (schema-only, no automatic fetching)", name)
 	}
 
 	return nil
@@ -143,11 +147,19 @@ func (w *Warehouse) Start(ctx context.Context) error {
 	// Log all configured datasources and their intervals
 	log.Printf("Starting warehouse with %d datasources:", len(w.datasources))
 	for name, interval := range w.datasourceIntervals {
-		log.Printf("  - %s: %v", name, interval)
+		if interval == 0 {
+			log.Printf("  - %s: disabled (schema-only)", name)
+		} else {
+			log.Printf("  - %s: %v", name, interval)
+		}
 	}
 
-	// Start individual tickers for each datasource
+	// Start individual tickers for each datasource (skip if interval is 0)
 	for name, interval := range w.datasourceIntervals {
+		if interval == 0 {
+			log.Printf("Skipping scheduler for datasource %s (interval is 0)", name)
+			continue
+		}
 		ticker := time.NewTicker(interval)
 		w.datasourceTickers[name] = ticker
 		w.wg.Add(1)
@@ -219,8 +231,13 @@ func (w *Warehouse) runOptimization(ctx context.Context) {
 
 func (w *Warehouse) fetchAll(ctx context.Context) error {
 	w.mu.RLock()
-	datasources := make([]core.Datasource, len(w.datasources))
-	copy(datasources, w.datasources)
+	// Only fetch from datasources with interval > 0
+	var datasources []core.Datasource
+	for ds, name := range w.datasourceNames {
+		if interval := w.datasourceIntervals[name]; interval > 0 {
+			datasources = append(datasources, ds)
+		}
+	}
 	w.mu.RUnlock()
 
 	// Create a new channel for this fetch cycle
@@ -248,6 +265,13 @@ func (w *Warehouse) fetchAll(ctx context.Context) error {
 			}
 		}
 	}()
+
+	if len(datasources) == 0 {
+		log.Printf("No datasources to fetch (all have interval 0)")
+		close(blockCh)
+		processorWg.Wait()
+		return nil
+	}
 
 	for _, ds := range datasources {
 		fetchWg.Add(1)
@@ -416,8 +440,13 @@ func (w *Warehouse) FetchOnce(ctx context.Context, options ...FetchOption) error
 	}
 
 	w.mu.RLock()
-	datasources := make([]core.Datasource, len(w.datasources))
-	copy(datasources, w.datasources)
+	// Only fetch from datasources with interval > 0
+	var datasources []core.Datasource
+	for ds, name := range w.datasourceNames {
+		if interval := w.datasourceIntervals[name]; interval > 0 {
+			datasources = append(datasources, ds)
+		}
+	}
 	w.mu.RUnlock()
 
 	if len(datasources) == 0 {

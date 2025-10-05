@@ -1,4 +1,4 @@
-package firefox
+package chromium
 
 import (
 	"context"
@@ -17,7 +17,7 @@ import (
 
 func init() {
 	prototype := &Datasource{}
-	core.RegisterDatasourcePrototype("firefox", prototype)
+	core.RegisterDatasourcePrototype("chromium", prototype)
 }
 
 type BlockFactory struct{}
@@ -25,11 +25,10 @@ type BlockFactory struct{}
 func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, source string, metadata map[string]interface{}) core.Block {
 	url := getStringFromMetadata(metadata, "url", "")
 	title := getStringFromMetadata(metadata, "title", "")
-	description := getStringFromMetadata(metadata, "description", "")
 
 	visitDate := createdAt
 
-	return NewVisitBlockWithSource(id, url, title, description, visitDate, source)
+	return NewVisitBlockWithSource(id, url, title, visitDate, source)
 }
 
 type Config struct {
@@ -42,9 +41,9 @@ func (c *Config) Validate() error {
 	}
 
 	// Check if database exists, but only warn if it doesn't
-	// This allows the datasource to be configured even if Firefox isn't installed yet
+	// This allows the datasource to be configured even if Chromium isn't installed yet
 	if _, err := os.Stat(c.DatabasePath); os.IsNotExist(err) {
-		log.Printf("Warning: Firefox database does not exist: %s", c.DatabasePath)
+		log.Printf("Warning: Chromium database does not exist: %s", c.DatabasePath)
 		log.Printf("The datasource will fail during fetch until the database is available")
 	}
 
@@ -57,25 +56,25 @@ type Datasource struct {
 }
 
 func NewDatasource(instanceName string, config interface{}) (core.Datasource, error) {
-	var ffConfig *Config
+	var chromiumConfig *Config
 	if config == nil {
-		ffConfig = &Config{}
+		chromiumConfig = &Config{}
 	} else {
 		var ok bool
-		ffConfig, ok = config.(*Config)
+		chromiumConfig, ok = config.(*Config)
 		if !ok {
-			return nil, fmt.Errorf("invalid config type for Firefox datasource")
+			return nil, fmt.Errorf("invalid config type for Chromium datasource")
 		}
 	}
 
 	return &Datasource{
-		config:       ffConfig,
+		config:       chromiumConfig,
 		instanceName: instanceName,
 	}, nil
 }
 
 func (d *Datasource) Type() string {
-	return "firefox"
+	return "chromium"
 }
 
 func (d *Datasource) Name() string {
@@ -84,10 +83,9 @@ func (d *Datasource) Name() string {
 
 func (d *Datasource) Schema() map[string]any {
 	return map[string]any{
-		"url":         "TEXT",
-		"title":       "TEXT",
-		"description": "TEXT",
-		"visit_date":  "TEXT",
+		"url":        "TEXT",
+		"title":      "TEXT",
+		"visit_date": "TEXT",
 	}
 }
 
@@ -104,7 +102,7 @@ func (d *Datasource) SetConfig(config interface{}) error {
 		d.config = cfg
 		return cfg.Validate()
 	}
-	return fmt.Errorf("invalid config type for Firefox datasource")
+	return fmt.Errorf("invalid config type for Chromium datasource")
 }
 
 func (d *Datasource) GetConfig() interface{} {
@@ -112,14 +110,14 @@ func (d *Datasource) GetConfig() interface{} {
 }
 
 func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block) error {
-	log.Printf("Fetching Firefox browsing history from %s", d.config.DatabasePath)
+	log.Printf("Fetching Chromium browsing history from %s", d.config.DatabasePath)
 
 	// Check if database exists before attempting to fetch
 	if _, err := os.Stat(d.config.DatabasePath); os.IsNotExist(err) {
-		return fmt.Errorf("database file does not exist: %s (is Firefox installed?)", d.config.DatabasePath)
+		return fmt.Errorf("database file does not exist: %s (is Chromium installed?)", d.config.DatabasePath)
 	}
 
-	tempDir, err := os.MkdirTemp("", "firefox_import_*")
+	tempDir, err := os.MkdirTemp("", "chromium_import_*")
 	if err != nil {
 		return fmt.Errorf("creating temp directory: %w", err)
 	}
@@ -148,15 +146,15 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		return fmt.Errorf("checking required tables: %w", err)
 	}
 	if !ok {
-		return fmt.Errorf("required Firefox tables not found in database")
+		return fmt.Errorf("required Chromium tables not found in database")
 	}
 
 	rows, err := db.QueryContext(ctx, `
-		SELECT p.url, p.title, p.description, h.visit_date, h.id
-		FROM moz_places p
-		INNER JOIN moz_historyvisits h
-		ON p.id = h.place_id
-		ORDER BY h.visit_date DESC
+		SELECT u.url, u.title, v.visit_time, v.id
+		FROM urls u
+		INNER JOIN visits v
+		ON u.id = v.url
+		ORDER BY v.visit_time DESC
 	`)
 	if err != nil {
 		return fmt.Errorf("querying database: %w", err)
@@ -176,23 +174,24 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		}
 
 		var url string
-		var title, description sql.NullString
-		var visitDate int64
+		var title sql.NullString
+		var visitTime int64
 		var visitID int64
 
-		if err := rows.Scan(&url, &title, &description, &visitDate, &visitID); err != nil {
+		if err := rows.Scan(&url, &title, &visitTime, &visitID); err != nil {
 			log.Printf("Failed to scan row: %v", err)
 			continue
 		}
 
-		timestamp := time.Unix(0, visitDate*1000)
-		blockID := fmt.Sprintf("firefox-visit-%d", visitID)
+		// Convert Chrome/WebKit timestamp (microseconds since 1601-01-01) to Unix time
+		// Chrome epoch is 11644473600 seconds before Unix epoch
+		timestamp := chromeTimeToUnix(visitTime)
+		blockID := fmt.Sprintf("chromium-visit-%d", visitID)
 
 		block := NewVisitBlockWithSource(
 			blockID,
 			url,
 			title.String,
-			description.String,
 			timestamp,
 			d.instanceName,
 		)
@@ -209,23 +208,23 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		return fmt.Errorf("row iteration error: %w", err)
 	}
 
-	log.Printf("Fetched %d Firefox visits", visitCount)
+	log.Printf("Fetched %d Chromium visits", visitCount)
 	return nil
 }
 
 func (d *Datasource) checkTables(ctx context.Context, db *sql.DB) (bool, error) {
 	var exists bool
-	err := db.QueryRowContext(ctx, "SELECT 1 FROM sqlite_master WHERE type='table' AND name='moz_places'").Scan(&exists)
+	err := db.QueryRowContext(ctx, "SELECT 1 FROM sqlite_master WHERE type='table' AND name='urls'").Scan(&exists)
 	if err != nil && err != sql.ErrNoRows {
-		return false, fmt.Errorf("checking moz_places table existence: %w", err)
+		return false, fmt.Errorf("checking urls table existence: %w", err)
 	}
 	if !exists {
 		return false, nil
 	}
 
-	err = db.QueryRowContext(ctx, "SELECT 1 FROM sqlite_master WHERE type='table' AND name='moz_historyvisits'").Scan(&exists)
+	err = db.QueryRowContext(ctx, "SELECT 1 FROM sqlite_master WHERE type='table' AND name='visits'").Scan(&exists)
 	if err != nil && err != sql.ErrNoRows {
-		return false, fmt.Errorf("checking moz_historyvisits table existence: %w", err)
+		return false, fmt.Errorf("checking visits table existence: %w", err)
 	}
 
 	return exists, nil
@@ -272,4 +271,19 @@ func (d *Datasource) Close() error {
 
 func (d *Datasource) Factory(instanceName string, config interface{}) (core.Datasource, error) {
 	return NewDatasource(instanceName, config)
+}
+
+// chromeTimeToUnix converts Chrome/WebKit timestamp (microseconds since 1601-01-01)
+// to Unix time (time.Time)
+func chromeTimeToUnix(chromeTime int64) time.Time {
+	// Chrome epoch is 11644473600 seconds before Unix epoch
+	const chromeEpochOffset = 11644473600
+
+	// Convert microseconds to seconds and subtract the offset
+	unixSeconds := (chromeTime / 1000000) - chromeEpochOffset
+
+	// Get remaining microseconds for nanosecond precision
+	nanos := (chromeTime % 1000000) * 1000
+
+	return time.Unix(unixSeconds, nanos)
 }

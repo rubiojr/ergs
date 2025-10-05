@@ -2,6 +2,7 @@ package main
 
 import (
 	// Import all datasource modules to trigger their init() functions
+	_ "github.com/rubiojr/ergs/pkg/datasources/chromium"
 	_ "github.com/rubiojr/ergs/pkg/datasources/codeberg"
 	_ "github.com/rubiojr/ergs/pkg/datasources/firefox"
 	_ "github.com/rubiojr/ergs/pkg/datasources/gasstations"

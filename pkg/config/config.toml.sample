@@ -17,11 +17,11 @@ api_key = ''
 [datasources]
 
 # GitHub - Fetch your GitHub activity, starred repos, and interactions
-[datasources.github]
-type = 'github'
-# interval = '30m0s'  # Optional: custom fetch interval
-[datasources.github.config]
-token = ''  # Required: Your GitHub personal access token
+# [datasources.github]
+# type = 'github'
+#  interval = '30m0s'  # Optional: custom fetch interval
+# [datasources.github.config]
+# token = ''  # Required: Your GitHub personal access token
             # Without a token you'll be rate-limited.
 # Uncomment and configure additional datasources as needed:
 
@@ -35,8 +35,18 @@ token = ''  # Required: Your GitHub personal access token
 # # Firefox - Extract browsing history from Firefox's places.sqlite
 # [datasources.firefox]
 # type = 'firefox'
+# # interval = '30m0s'  # Optional: custom fetch interval (default: 30m0s)
+# # interval = '0s'     # Use 0 to disable automatic fetching (schema-only, useful with importer)
 # [datasources.firefox.config]
 # database_path = '/path/to/firefox/profile/places.sqlite'  # Required: Path to places.sqlite
+
+# # Chromium - Extract browsing history from Chromium's History database
+# [datasources.chromium]
+# type = 'chromium'
+# # interval = '30m0s'  # Optional: custom fetch interval (default: 30m0s)
+# # interval = '0s'     # Use 0 to disable automatic fetching (schema-only, useful with importer)
+# [datasources.chromium.config]
+# database_path = '/home/user/.config/chromium/Default/History'  # Required: Path to History database
 
 # # Zed Threads - Chat history from Zed editor
 # [datasources.zed]

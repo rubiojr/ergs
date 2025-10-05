@@ -167,9 +167,13 @@ func (c *Config) GetDatasourceConfig(name string) (string, interface{}, error) {
 
 func (c *Config) GetDatasourceInterval(name string) time.Duration {
 	info, exists := c.Datasources[name]
-	if !exists || info.Interval == nil {
+	if !exists {
 		return 30 * time.Minute // Default to 30 minutes
 	}
+	if info.Interval == nil {
+		return 30 * time.Minute // Default to 30 minutes
+	}
+	// Allow 0 to explicitly disable automatic fetching (schema-only datasource)
 	return info.Interval.Duration
 }
 

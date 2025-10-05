@@ -426,4 +426,204 @@ func TestBlockSourceMatching(t *testing.T) {
 	t.Logf("Successfully verified %d blocks with correct source field: %s", len(blocks), instanceName)
 }
 
+// TestIntervalZeroSchemaOnly tests that datasources with interval 0 are not fetched
+// but still provide schema for storage (useful for importer-only datasources)
+func TestIntervalZeroSchemaOnly(t *testing.T) {
+	// Create temporary directory for test
+	tempDir := t.TempDir()
+
+	// Create registry and datasources
+	registry := core.GetGlobalRegistry()
+	defer func() {
+		if err := registry.Close(); err != nil {
+			t.Logf("Warning: failed to close registry: %v", err)
+		}
+	}()
+
+	// Create two datasources: one with interval 0, one with normal interval
+	schemaOnlyName := "schema_only_testrand"
+	activeName := "active_testrand"
+
+	// Schema-only datasource (interval 0)
+	err := CreateDatasourceWithConfig(registry, schemaOnlyName, "testrand", map[string]interface{}{
+		"count":  5,
+		"prefix": "SCHEMA_ONLY",
+		"seed":   11111,
+	})
+	if err != nil {
+		t.Fatalf("Failed to create schema-only datasource: %v", err)
+	}
+
+	// Active datasource (normal interval)
+	err = CreateDatasourceWithConfig(registry, activeName, "testrand", map[string]interface{}{
+		"count":  3,
+		"prefix": "ACTIVE",
+		"seed":   22222,
+	})
+	if err != nil {
+		t.Fatalf("Failed to create active datasource: %v", err)
+	}
+
+	// Create storage manager and warehouse
+	storageManager := storage.NewManagerWithoutMigrationCheck(tempDir)
+	defer func() {
+		if err := storageManager.Close(); err != nil {
+			t.Logf("Warning: failed to close storage manager: %v", err)
+		}
+	}()
+
+	warehouseConfig := warehouse.Config{
+		OptimizeInterval: 0,
+	}
+	wh := warehouse.NewWarehouse(warehouseConfig, storageManager)
+	defer func() {
+		if err := wh.Close(); err != nil {
+			t.Logf("Warning: failed to close warehouse: %v", err)
+		}
+	}()
+
+	// Add datasources to warehouse with different intervals
+	datasources := registry.GetAllDatasources()
+
+	schemaOnlyDS := datasources[schemaOnlyName]
+	if schemaOnlyDS == nil {
+		t.Fatalf("Schema-only datasource not found in registry")
+	}
+
+	activeDS := datasources[activeName]
+	if activeDS == nil {
+		t.Fatalf("Active datasource not found in registry")
+	}
+
+	// Initialize storage for both
+	if err := storageManager.InitializeDatasourceStorage(schemaOnlyName, schemaOnlyDS.Schema()); err != nil {
+		t.Fatalf("Failed to initialize storage for schema-only datasource: %v", err)
+	}
+	if err := storageManager.InitializeDatasourceStorage(activeName, activeDS.Schema()); err != nil {
+		t.Fatalf("Failed to initialize storage for active datasource: %v", err)
+	}
+
+	// Add to warehouse with interval 0 for schema-only
+	if err := wh.AddDatasourceWithInterval(schemaOnlyName, schemaOnlyDS, 0); err != nil {
+		t.Fatalf("Failed to add schema-only datasource: %v", err)
+	}
+
+	// Add to warehouse with normal interval for active datasource
+	if err := wh.AddDatasourceWithInterval(activeName, activeDS, time.Hour); err != nil {
+		t.Fatalf("Failed to add active datasource: %v", err)
+	}
+
+	// Register block prototypes
+	storageManager.RegisterBlockPrototype(schemaOnlyName, schemaOnlyDS.BlockPrototype())
+	storageManager.RegisterBlockPrototype(activeName, activeDS.BlockPrototype())
+
+	// Fetch once - should only fetch from active datasource
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	t.Log("Fetching data (should skip schema-only datasource)...")
+	err = wh.FetchOnce(ctx)
+	if err != nil {
+		t.Fatalf("Failed to fetch data: %v", err)
+	}
+
+	// Test 1: Verify schema-only datasource has no blocks
+	t.Run("SchemaOnlyHasNoBlocks", func(t *testing.T) {
+		blocks, err := storageManager.SearchBlocks(schemaOnlyName, "", 100)
+		if err != nil {
+			t.Fatalf("Failed to search schema-only datasource: %v", err)
+		}
+
+		if len(blocks) != 0 {
+			t.Errorf("Schema-only datasource should have 0 blocks, got %d", len(blocks))
+			t.Logf("Unexpected blocks in schema-only datasource:")
+			for _, block := range blocks {
+				t.Logf("  - %s: %s", block.ID(), block.Text())
+			}
+		}
+	})
+
+	// Test 2: Verify active datasource has blocks
+	t.Run("ActiveDatasourceHasBlocks", func(t *testing.T) {
+		blocks, err := storageManager.SearchBlocks(activeName, "", 100)
+		if err != nil {
+			t.Fatalf("Failed to search active datasource: %v", err)
+		}
+
+		if len(blocks) == 0 {
+			t.Error("Active datasource should have blocks, got 0")
+		} else {
+			t.Logf("Active datasource has %d blocks as expected", len(blocks))
+
+			// Verify all blocks have correct source
+			for _, block := range blocks {
+				if block.Source() != activeName {
+					t.Errorf("Block has wrong source: expected %s, got %s", activeName, block.Source())
+				}
+			}
+		}
+	})
+
+	// Test 3: Verify both databases exist (schema was created)
+	t.Run("BothDatabasesExist", func(t *testing.T) {
+		schemaOnlyDBPath := filepath.Join(tempDir, schemaOnlyName+".db")
+		activeDBPath := filepath.Join(tempDir, activeName+".db")
+
+		if _, err := os.Stat(schemaOnlyDBPath); os.IsNotExist(err) {
+			t.Error("Schema-only database file should exist (for schema)")
+		}
+
+		if _, err := os.Stat(activeDBPath); os.IsNotExist(err) {
+			t.Error("Active database file should exist")
+		}
+	})
+
+	// Test 4: Verify schema-only datasource has correct schema (tables exist)
+	t.Run("SchemaOnlyHasCorrectSchema", func(t *testing.T) {
+		storage, err := storageManager.GetStorage(schemaOnlyName)
+		if err != nil {
+			t.Fatalf("Failed to get storage for schema-only datasource: %v", err)
+		}
+
+		// Verify database has expected tables
+		rows, err := storage.ExecuteQuery("SELECT name FROM sqlite_master WHERE type='table';")
+		if err != nil {
+			t.Fatalf("Failed to query tables: %v", err)
+		}
+		defer func() {
+			if err := rows.Close(); err != nil {
+				t.Logf("Warning: failed to close rows: %v", err)
+			}
+		}()
+
+		tables := []string{}
+		for rows.Next() {
+			var tableName string
+			if err := rows.Scan(&tableName); err != nil {
+				t.Fatalf("Failed to scan table name: %v", err)
+			}
+			tables = append(tables, tableName)
+		}
+
+		// Verify required tables exist even though we never fetched
+		requiredTables := []string{"blocks", "blocks_fts"}
+		for _, required := range requiredTables {
+			found := false
+			for _, table := range tables {
+				if table == required {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("Required table %s not found in schema-only database", required)
+			}
+		}
+
+		t.Logf("Schema-only datasource has correct schema with tables: %v", tables)
+	})
+
+	t.Log("Interval 0 (schema-only) test completed successfully")
+}
+
 // Helper functions - most moved to test_helpers.go

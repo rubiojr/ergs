@@ -37,6 +37,34 @@ token = 'your-token'
 
 If no interval is specified for a datasource, it will default to 30 minutes. This allows you to optimize fetch frequency based on how often each data source typically has new content available.
 
+### Schema-Only Datasources (Interval 0)
+
+You can set `interval = '0s'` to disable automatic fetching for a datasource while still registering its schema for storage. This is useful when using the importer API to receive blocks from external sources:
+
+```toml
+[datasources.chromium]
+type = 'chromium'
+interval = '0s'  # Disable automatic fetching (schema-only)
+[datasources.chromium.config]
+database_path = '/tmp/not-used'  # Won't be accessed
+
+[datasources.importer]
+type = 'importer'
+interval = '5m0s'  # Check for imported blocks
+[datasources.importer.config]
+api_url = 'http://localhost:9090'
+api_key = 'your-token'
+```
+
+With `interval = '0s'`:
+- ✅ Schema is registered and database is created
+- ✅ Blocks can be imported via the importer API
+- ✅ No automatic fetching occurs
+- ✅ No errors during scheduled fetch operations
+- ⚠️  The datasource's `FetchBlocks()` is never called automatically
+
+This is particularly useful for browser history datasources when using external importers to collect data from remote machines.
+
 ## Overview
 
 A datasource in Ergs implements the `core.Datasource` interface and provides:

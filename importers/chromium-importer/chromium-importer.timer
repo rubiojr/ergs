@@ -1,0 +1,20 @@
+[Unit]
+Description=Ergs Chromium History Importer Timer
+Documentation=https://github.com/rubiojr/ergs
+Requires=chromium-importer.service
+
+[Timer]
+# Run every 6 hours
+OnCalendar=*-*-* 00,06,12,18:00:00
+
+# Run 5 minutes after boot if we missed a scheduled run
+OnBootSec=5min
+
+# If the system was powered off during a scheduled run, run it on next boot
+Persistent=yes
+
+# Randomize start time by up to 10 minutes to avoid system load spikes
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target

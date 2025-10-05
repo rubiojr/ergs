@@ -1,0 +1,40 @@
+[Unit]
+Description=Ergs Chromium History Importer
+Documentation=https://github.com/rubiojr/ergs
+After=network.target
+
+[Service]
+Type=oneshot
+
+# Environment variables
+Environment="CHROMIUM_DB_PATH=%h/.config/chromium/Default/History"
+Environment="IMPORTER_URL=http://CHANGEME:7119"
+Environment="TARGET_DATASOURCE=chromium"
+Environment="ERGS_API_TOKEN=CHANGEME"
+
+# Path to the chromium-importer binary
+ExecStart=%h/.local/bin/chromium-importer \
+  --database-path=${CHROMIUM_DB_PATH} \
+  --importer-url=${IMPORTER_URL} \
+  --api-key=${ERGS_API_TOKEN} \
+  --target-datasource=${TARGET_DATASOURCE} \
+  --batch-size=100 \
+  --limit=1000
+
+# Security hardening
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadOnlyPaths=/
+
+# Restart policy
+Restart=no
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=chromium-importer
+
+[Install]
+WantedBy=default.target

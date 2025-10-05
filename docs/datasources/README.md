@@ -6,6 +6,7 @@ This directory contains documentation for individual datasources available in Er
 
 ### Browser Data
 - **[Firefox](firefox.md)** - Extract browsing history from Firefox's places.sqlite database
+- **[Chromium](chromium.md)** - Extract browsing history from Chromium's History database (works with Chrome, Edge, Brave, etc.)
 
 ### Code Hosting Platforms
 - **[GitHub](github.md)** - Fetch GitHub activity, events, and repository interactions
