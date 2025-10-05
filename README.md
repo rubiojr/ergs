@@ -7,8 +7,11 @@ A flexible data fetching and indexing tool that collects information from variou
 ## Quick Start
 
 ### 1. Build & Install
+
+Use [Docker](/docker/DOCKER.md) or build from source:
+
 ```bash
-git clone https://github.com/your-username/ergs
+git clone https://github.com/rubiojr/ergs
 cd ergs
 make build
 ```

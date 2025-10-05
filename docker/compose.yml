@@ -12,6 +12,8 @@ services:
     environment:
       - TZ=UTC
     restart: unless-stopped
+    depends_on:
+      - ergs-init
     healthcheck:
       disable: true
 
@@ -33,6 +35,7 @@ services:
     restart: unless-stopped
     depends_on:
       - ergs-serve
+      - ergs-init
     healthcheck:
       test:
         [
@@ -47,6 +50,62 @@ services:
       timeout: 3s
       start_period: 5s
       retries: 3
+
+  # Ergs importer API - accepts blocks via HTTP API
+  ergs-importer:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: ergs-importer
+    command:
+      [
+        "ergs",
+        "importer",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "7119",
+        "--config",
+        "/config/config.toml",
+      ]
+    ports:
+      - "7119:7119"
+    volumes:
+      - ergs-data:/data
+      - ./config.toml:/config/config.toml:ro,z
+    environment:
+      - TZ=UTC
+    restart: unless-stopped
+    depends_on:
+      - ergs-serve
+      - ergs-init
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:7119/health",
+        ]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+
+  # Init container to set up proper permissions for the data volume
+  ergs-init:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: ergs-init
+    user: "0:0"
+    command:
+      ["sh", "-c", "chown -R 1000:1000 /data && echo 'Permissions fixed'"]
+    volumes:
+      - ergs-data:/data
+    restart: "no"
 
 volumes:
   ergs-data:

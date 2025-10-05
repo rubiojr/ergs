@@ -14,14 +14,6 @@ fetch_new = false
 max_items = 100
 fetch_comments = false
 
-# Example: RTVE datasource (Spanish TV)
-[datasources.rtve]
-type = 'rtve'
-interval = '2h0m0s'
-[datasources.rtve.config]
-show_id = 'telediario-1'
-max_episodes = 10
-
 # Example: RSS feeds
 [datasources.rss]
 type = 'rss'
