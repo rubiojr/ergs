@@ -1,9 +1,7 @@
 services:
   # Ergs scheduler daemon - fetches data from datasources
   ergs-serve:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
+    image: ghcr.io/rubiojr/ergs
     container_name: ergs-serve
     command: ["ergs", "serve", "--config", "/config/config.toml"]
     volumes:
@@ -19,9 +17,7 @@ services:
 
   # Ergs web interface - serves the web UI and API
   ergs-web:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
+    image: ghcr.io/rubiojr/ergs
     container_name: ergs-web
     command:
       ["ergs", "web", "--host", "0.0.0.0", "--config", "/config/config.toml"]
@@ -53,9 +49,7 @@ services:
 
   # Ergs importer API - accepts blocks via HTTP API
   ergs-importer:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
+    image: ghcr.io/rubiojr/ergs
     container_name: ergs-importer
     command:
       [
@@ -96,10 +90,8 @@ services:
 
   # Init container to set up proper permissions for the data volume
   ergs-init:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
     container_name: ergs-init
+    image: ghcr.io/rubiojr/ergs
     user: "0:0"
     command:
       [
