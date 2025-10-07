@@ -16,8 +16,8 @@ Welcome to the Ergs documentation! Ergs is a flexible, extensible data fetching 
 
 ## Web Interface
 
-- **[Web Interface Guide](web-interface.md)** - Complete guide to the web UI and API
-- **[API Documentation](api.md)** - REST API endpoints and usage examples
+- **[Web Interface Guide](web-interface.md)** - Complete guide to the web UI
+- **[REST API Documentation](api.md)** - JSON API endpoints for programmatic access
 
 ## Datasources
 
