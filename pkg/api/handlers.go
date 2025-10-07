@@ -57,8 +57,8 @@ func (s *Server) HandleListDatasources(w http.ResponseWriter, r *http.Request) {
 //   - q: Optional search query string for full-text search within the datasource
 //   - limit: Maximum number of results (default: 20, max: 100)
 //   - page: Page number for pagination (default: 1)
-//   - since: ISO 8601 date to filter blocks created after this date
-//   - until: ISO 8601 date to filter blocks created before this date
+//   - start_date: Date in YYYY-MM-DD format to filter blocks created on or after this date
+//   - end_date: Date in YYYY-MM-DD format to filter blocks created on or before this date (inclusive of entire day)
 //
 // Response format:
 //
@@ -160,8 +160,8 @@ func (s *Server) HandleDatasourceBlocks(w http.ResponseWriter, r *http.Request) 
 //   - q: Search query string (required) - supports full-text search with FTS5 syntax
 //   - limit: Maximum number of results per datasource (default: 30, max: 100)
 //   - page: Page number for pagination (default: 1)
-//   - since: ISO 8601 date to filter blocks created after this date
-//   - until: ISO 8601 date to filter blocks created before this date
+//   - start_date: Date in YYYY-MM-DD format to filter blocks created on or after this date
+//   - end_date: Date in YYYY-MM-DD format to filter blocks created on or before this date (inclusive of entire day)
 //   - datasources: Comma-separated list of datasource names to limit search scope
 //
 // Search query syntax:

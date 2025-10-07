@@ -543,3 +543,221 @@ func TestAPIInvalidPaths(t *testing.T) {
 		})
 	}
 }
+
+func TestAPIDatasourceBlocksDateFiltering(t *testing.T) {
+	mux, cleanup := setupTestAPIServer(t)
+	defer cleanup()
+
+	testCases := []struct {
+		name          string
+		queryParams   string
+		expectedCount int
+		description   string
+	}{
+		{
+			name:          "filter_by_start_date_only",
+			queryParams:   "start_date=2023-01-02",
+			expectedCount: 1, // Only block 2 from datasource1 (2023-01-02)
+			description:   "Should return blocks on or after 2023-01-02",
+		},
+		{
+			name:          "filter_by_end_date_only",
+			queryParams:   "end_date=2023-01-01",
+			expectedCount: 1, // Only block 1 from datasource1 (2023-01-01)
+			description:   "Should return blocks on or before 2023-01-01",
+		},
+		{
+			name:          "filter_by_date_range",
+			queryParams:   "start_date=2023-01-01&end_date=2023-01-02",
+			expectedCount: 2, // Blocks 1 and 2 from datasource1
+			description:   "Should return blocks within date range",
+		},
+		{
+			name:          "filter_no_matches",
+			queryParams:   "start_date=2024-01-01",
+			expectedCount: 0, // No blocks in 2024
+			description:   "Should return no blocks when date range has no matches",
+		},
+		{
+			name:          "filter_exact_date",
+			queryParams:   "start_date=2023-01-01&end_date=2023-01-01",
+			expectedCount: 1, // Only block 1 (end_date includes end of day)
+			description:   "Should return blocks on exact date",
+		},
+		{
+			name:          "no_date_filter",
+			queryParams:   "",
+			expectedCount: 2, // All blocks from datasource1
+			description:   "Should return all blocks when no date filter",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			reqURL := "/api/datasources/datasource1"
+			if tc.queryParams != "" {
+				reqURL += "?" + tc.queryParams
+			}
+
+			req := httptest.NewRequest("GET", reqURL, nil)
+			w := httptest.NewRecorder()
+
+			mux.ServeHTTP(w, req)
+
+			if w.Code != http.StatusOK {
+				t.Fatalf("Expected status 200, got %d. Body: %s", w.Code, w.Body.String())
+			}
+
+			var response ListBlocksResponse
+			err := json.Unmarshal(w.Body.Bytes(), &response)
+			if err != nil {
+				t.Fatalf("Failed to parse response: %v", err)
+			}
+
+			if response.Count != tc.expectedCount {
+				t.Errorf("%s: Expected %d blocks, got %d", tc.description, tc.expectedCount, response.Count)
+				t.Logf("Blocks returned: %+v", response.Blocks)
+			}
+
+			// Verify all returned blocks are within the date range if specified
+			if tc.queryParams != "" {
+				params, _ := url.ParseQuery(tc.queryParams)
+				if startDateStr := params["start_date"]; len(startDateStr) > 0 && startDateStr[0] != "" {
+					startDate, _ := time.Parse("2006-01-02", startDateStr[0])
+					for _, block := range response.Blocks {
+						if block.CreatedAt.Before(startDate) {
+							t.Errorf("Block %s created at %v is before start_date %v", block.ID, block.CreatedAt, startDate)
+						}
+					}
+				}
+				if endDateStr := params["end_date"]; len(endDateStr) > 0 && endDateStr[0] != "" {
+					endDate, _ := time.Parse("2006-01-02", endDateStr[0])
+					endOfDay := time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 23, 59, 59, 999999999, endDate.Location())
+					for _, block := range response.Blocks {
+						if block.CreatedAt.After(endOfDay) {
+							t.Errorf("Block %s created at %v is after end_date %v", block.ID, block.CreatedAt, endOfDay)
+						}
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestAPISearchDateFiltering(t *testing.T) {
+	mux, cleanup := setupTestAPIServer(t)
+	defer cleanup()
+
+	testCases := []struct {
+		name          string
+		queryParams   string
+		expectedTotal int
+		description   string
+	}{
+		{
+			name:          "search_with_start_date",
+			queryParams:   "q=Block&start_date=2023-01-03",
+			expectedTotal: 1, // Only block 3 from datasource2
+			description:   "Should return blocks matching query and after start_date",
+		},
+		{
+			name:          "search_with_end_date",
+			queryParams:   "q=Block&end_date=2023-01-01",
+			expectedTotal: 1, // Only block 1 from datasource1
+			description:   "Should return blocks matching query and before end_date",
+		},
+		{
+			name:          "search_with_date_range",
+			queryParams:   "q=Block&start_date=2023-01-02&end_date=2023-01-03",
+			expectedTotal: 2, // Blocks 2 and 3
+			description:   "Should return blocks matching query within date range",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			reqURL := "/api/search?" + tc.queryParams
+
+			req := httptest.NewRequest("GET", reqURL, nil)
+			w := httptest.NewRecorder()
+
+			mux.ServeHTTP(w, req)
+
+			if w.Code != http.StatusOK {
+				t.Fatalf("Expected status 200, got %d. Body: %s", w.Code, w.Body.String())
+			}
+
+			var response SearchResponse
+			err := json.Unmarshal(w.Body.Bytes(), &response)
+			if err != nil {
+				t.Fatalf("Failed to parse response: %v", err)
+			}
+
+			if response.TotalCount != tc.expectedTotal {
+				t.Errorf("%s: Expected %d total blocks, got %d", tc.description, tc.expectedTotal, response.TotalCount)
+			}
+		})
+	}
+}
+
+func TestAPIInvalidDateFormats(t *testing.T) {
+	mux, cleanup := setupTestAPIServer(t)
+	defer cleanup()
+
+	testCases := []struct {
+		name        string
+		endpoint    string
+		queryParams string
+		description string
+	}{
+		{
+			name:        "invalid_start_date_datasource",
+			endpoint:    "/api/datasources/datasource1",
+			queryParams: "start_date=invalid-date",
+			description: "Should return error for invalid start_date format in datasource endpoint",
+		},
+		{
+			name:        "invalid_end_date_datasource",
+			endpoint:    "/api/datasources/datasource1",
+			queryParams: "end_date=2023/01/01",
+			description: "Should return error for invalid end_date format in datasource endpoint",
+		},
+		{
+			name:        "invalid_start_date_search",
+			endpoint:    "/api/search",
+			queryParams: "q=test&start_date=01-01-2023",
+			description: "Should return error for invalid start_date format in search endpoint",
+		},
+		{
+			name:        "invalid_end_date_search",
+			endpoint:    "/api/search",
+			queryParams: "q=test&end_date=not-a-date",
+			description: "Should return error for invalid end_date format in search endpoint",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			reqURL := tc.endpoint + "?" + tc.queryParams
+
+			req := httptest.NewRequest("GET", reqURL, nil)
+			w := httptest.NewRecorder()
+
+			mux.ServeHTTP(w, req)
+
+			if w.Code != http.StatusBadRequest {
+				t.Errorf("%s: Expected status 400, got %d", tc.description, w.Code)
+			}
+
+			var response ErrorResponse
+			err := json.Unmarshal(w.Body.Bytes(), &response)
+			if err != nil {
+				t.Fatalf("Failed to parse error response: %v", err)
+			}
+
+			if !strings.Contains(response.Error, "Invalid date format") {
+				t.Errorf("%s: Expected 'Invalid date format' error, got %s", tc.description, response.Error)
+			}
+		})
+	}
+}

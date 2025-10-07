@@ -138,6 +138,388 @@ func TestSearchService(t *testing.T) {
 
 	// Access through field name to avoid the linter warning about nil pointer dereference
 	// This test intentionally passes nil to verify the constructor behavior
+	if service.manager != nil {
+		t.Error("Expected manager to be nil")
+	}
+}
+
+func TestSearchServiceSearch(t *testing.T) {
+	// Create a test manager with test data
+	tempDir := t.TempDir()
+	manager := NewManagerWithoutMigrationCheck(tempDir)
+	defer func() {
+		if err := manager.Close(); err != nil {
+			t.Logf("Warning: failed to close manager: %v", err)
+		}
+	}()
+
+	// Create test datasources with blocks
+	now := time.Now()
+	testData := map[string][]struct {
+		id        string
+		text      string
+		createdAt time.Time
+	}{
+		"datasource1": {
+			{id: "1", text: "golang programming tutorial", createdAt: now.Add(-48 * time.Hour)},
+			{id: "2", text: "python programming guide", createdAt: now.Add(-24 * time.Hour)},
+			{id: "3", text: "rust programming basics", createdAt: now},
+		},
+		"datasource2": {
+			{id: "4", text: "golang web development", createdAt: now.Add(-36 * time.Hour)},
+			{id: "5", text: "database design patterns", createdAt: now.Add(-12 * time.Hour)},
+		},
+	}
+
+	// Setup storage for each datasource
+	for dsName, blocks := range testData {
+		err := manager.InitializeDatasourceStorage(dsName, map[string]any{
+			"text":       "TEXT",
+			"created_at": "DATETIME",
+			"metadata":   "TEXT",
+		})
+		if err != nil {
+			t.Fatalf("Failed to initialize storage for %s: %v", dsName, err)
+		}
+
+		storage, err := manager.EnsureStorageWithMigrations(dsName)
+		if err != nil {
+			t.Fatalf("Failed to get storage for %s: %v", dsName, err)
+		}
+
+		for _, blockData := range blocks {
+			block := &mockBlock{
+				id:        blockData.id,
+				text:      blockData.text,
+				createdAt: blockData.createdAt,
+				source:    dsName,
+				metadata:  map[string]interface{}{},
+			}
+			err = storage.StoreBlock(block, dsName)
+			if err != nil {
+				t.Fatalf("Failed to store block in %s: %v", dsName, err)
+			}
+		}
+
+		manager.RegisterBlockPrototype(dsName, &mockBlock{})
+	}
+
+	searchService := manager.GetSearchService()
+
+	t.Run("search_with_query", func(t *testing.T) {
+		params := SearchParams{
+			Query: "golang",
+			Page:  1,
+			Limit: 10,
+		}
+
+		results, err := searchService.Search(params)
+		if err != nil {
+			t.Fatalf("Search failed: %v", err)
+		}
+
+		if results.TotalCount != 2 {
+			t.Errorf("Expected 2 total results, got %d", results.TotalCount)
+		}
+
+		// Should have results from both datasources
+		if len(results.Results) == 0 {
+			t.Error("Expected results from datasources")
+		}
+	})
+
+	t.Run("search_no_query_all_blocks", func(t *testing.T) {
+		params := SearchParams{
+			Query: "",
+			Page:  1,
+			Limit: 10,
+		}
+
+		results, err := searchService.Search(params)
+		if err != nil {
+			t.Fatalf("Search failed: %v", err)
+		}
+
+		if results.TotalCount != 5 {
+			t.Errorf("Expected 5 total results (all blocks), got %d", results.TotalCount)
+		}
+	})
+
+	t.Run("search_with_datasource_filter", func(t *testing.T) {
+		params := SearchParams{
+			Query:             "programming",
+			Page:              1,
+			Limit:             10,
+			DatasourceFilters: []string{"datasource1"},
+		}
+
+		results, err := searchService.Search(params)
+		if err != nil {
+			t.Fatalf("Search failed: %v", err)
+		}
+
+		if len(results.Results) > 1 {
+			t.Error("Expected results from only datasource1")
+		}
+
+		if blocks, exists := results.Results["datasource1"]; !exists {
+			t.Error("Expected results from datasource1")
+		} else if len(blocks) != 3 {
+			t.Errorf("Expected 3 blocks from datasource1, got %d", len(blocks))
+		}
+	})
+
+	t.Run("search_with_pagination", func(t *testing.T) {
+		params := SearchParams{
+			Query: "",
+			Page:  1,
+			Limit: 2,
+		}
+
+		results, err := searchService.Search(params)
+		if err != nil {
+			t.Fatalf("Search failed: %v", err)
+		}
+
+		returnedCount := 0
+		for _, blocks := range results.Results {
+			returnedCount += len(blocks)
+		}
+
+		if returnedCount != 2 {
+			t.Errorf("Expected 2 blocks on page 1, got %d", returnedCount)
+		}
+
+		if results.TotalPages < 2 {
+			t.Errorf("Expected at least 2 total pages with limit 2, got %d", results.TotalPages)
+		}
+
+		if !results.HasMore {
+			t.Error("Expected HasMore to be true when there are more pages")
+		}
+	})
+
+	t.Run("search_nonexistent_datasource", func(t *testing.T) {
+		params := SearchParams{
+			Query:             "test",
+			Page:              1,
+			Limit:             10,
+			DatasourceFilters: []string{"nonexistent"},
+		}
+
+		results, err := searchService.Search(params)
+		if err != nil {
+			t.Fatalf("Search failed: %v", err)
+		}
+
+		if results.TotalCount != 0 {
+			t.Errorf("Expected 0 results for nonexistent datasource, got %d", results.TotalCount)
+		}
+	})
+}
+
+func TestSearchServiceSearchWithDateFiltering(t *testing.T) {
+	// Create a test manager with test data at specific dates
+	tempDir := t.TempDir()
+	manager := NewManagerWithoutMigrationCheck(tempDir)
+	defer func() {
+		if err := manager.Close(); err != nil {
+			t.Logf("Warning: failed to close manager: %v", err)
+		}
+	}()
+
+	// Create test data with specific dates
+	baseTime := time.Date(2024, 1, 15, 12, 0, 0, 0, time.UTC)
+	testData := map[string][]struct {
+		id        string
+		text      string
+		createdAt time.Time
+	}{
+		"datasource1": {
+			{id: "1", text: "old content", createdAt: baseTime.AddDate(0, 0, -10)},   // Jan 5
+			{id: "2", text: "middle content", createdAt: baseTime.AddDate(0, 0, -5)}, // Jan 10
+			{id: "3", text: "recent content", createdAt: baseTime},                   // Jan 15
+			{id: "4", text: "newest content", createdAt: baseTime.AddDate(0, 0, 5)},  // Jan 20
+		},
+	}
+
+	// Setup storage
+	for dsName, blocks := range testData {
+		err := manager.InitializeDatasourceStorage(dsName, map[string]any{
+			"text":       "TEXT",
+			"created_at": "DATETIME",
+			"metadata":   "TEXT",
+		})
+		if err != nil {
+			t.Fatalf("Failed to initialize storage for %s: %v", dsName, err)
+		}
+
+		storage, err := manager.EnsureStorageWithMigrations(dsName)
+		if err != nil {
+			t.Fatalf("Failed to get storage for %s: %v", dsName, err)
+		}
+
+		for _, blockData := range blocks {
+			block := &mockBlock{
+				id:        blockData.id,
+				text:      blockData.text,
+				createdAt: blockData.createdAt,
+				source:    dsName,
+				metadata:  map[string]interface{}{},
+			}
+			err = storage.StoreBlock(block, dsName)
+			if err != nil {
+				t.Fatalf("Failed to store block in %s: %v", dsName, err)
+			}
+		}
+
+		manager.RegisterBlockPrototype(dsName, &mockBlock{})
+	}
+
+	searchService := manager.GetSearchService()
+
+	t.Run("filter_by_start_date", func(t *testing.T) {
+		startDate := baseTime.AddDate(0, 0, -5) // Jan 10
+		params := SearchParams{
+			Query:     "",
+			Page:      1,
+			Limit:     10,
+			StartDate: &startDate,
+		}
+
+		results, err := searchService.Search(params)
+		if err != nil {
+			t.Fatalf("Search failed: %v", err)
+		}
+
+		// Should return blocks 2, 3, 4 (created on or after Jan 10)
+		if results.TotalCount != 3 {
+			t.Errorf("Expected 3 results with start_date, got %d", results.TotalCount)
+		}
+
+		// Verify all blocks are on or after the start date
+		for _, blocks := range results.Results {
+			for _, block := range blocks {
+				if block.CreatedAt().Before(startDate) {
+					t.Errorf("Block %s created at %v is before start_date %v", block.ID(), block.CreatedAt(), startDate)
+				}
+			}
+		}
+	})
+
+	t.Run("filter_by_end_date", func(t *testing.T) {
+		endDate := baseTime.AddDate(0, 0, -5) // Jan 10
+		params := SearchParams{
+			Query:   "",
+			Page:    1,
+			Limit:   10,
+			EndDate: &endDate,
+		}
+
+		results, err := searchService.Search(params)
+		if err != nil {
+			t.Fatalf("Search failed: %v", err)
+		}
+
+		// Should return blocks 1, 2 (created on or before Jan 10 end of day)
+		if results.TotalCount != 2 {
+			t.Errorf("Expected 2 results with end_date, got %d", results.TotalCount)
+		}
+
+		// Verify all blocks are on or before the end date
+		endOfDay := time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 23, 59, 59, 999999999, endDate.Location())
+		for _, blocks := range results.Results {
+			for _, block := range blocks {
+				if block.CreatedAt().After(endOfDay) {
+					t.Errorf("Block %s created at %v is after end_date %v", block.ID(), block.CreatedAt(), endOfDay)
+				}
+			}
+		}
+	})
+
+	t.Run("filter_by_date_range", func(t *testing.T) {
+		startDate := baseTime.AddDate(0, 0, -5) // Jan 10
+		endDate := baseTime                     // Jan 15
+		params := SearchParams{
+			Query:     "",
+			Page:      1,
+			Limit:     10,
+			StartDate: &startDate,
+			EndDate:   &endDate,
+		}
+
+		results, err := searchService.Search(params)
+		if err != nil {
+			t.Fatalf("Search failed: %v", err)
+		}
+
+		// Should return blocks 2, 3 (created between Jan 10 and Jan 15)
+		if results.TotalCount != 2 {
+			t.Errorf("Expected 2 results with date range, got %d", results.TotalCount)
+		}
+	})
+
+	t.Run("filter_by_date_with_query", func(t *testing.T) {
+		startDate := baseTime.AddDate(0, 0, -5) // Jan 10
+		params := SearchParams{
+			Query:     "content",
+			Page:      1,
+			Limit:     10,
+			StartDate: &startDate,
+		}
+
+		results, err := searchService.Search(params)
+		if err != nil {
+			t.Fatalf("Search failed: %v", err)
+		}
+
+		// Should return blocks 2, 3, 4 matching "content" and after Jan 10
+		if results.TotalCount != 3 {
+			t.Errorf("Expected 3 results with query and start_date, got %d", results.TotalCount)
+		}
+	})
+
+	t.Run("filter_no_matches_in_date_range", func(t *testing.T) {
+		startDate := baseTime.AddDate(0, 0, 100) // Way in the future
+		params := SearchParams{
+			Query:     "",
+			Page:      1,
+			Limit:     10,
+			StartDate: &startDate,
+		}
+
+		results, err := searchService.Search(params)
+		if err != nil {
+			t.Fatalf("Search failed: %v", err)
+		}
+
+		if results.TotalCount != 0 {
+			t.Errorf("Expected 0 results for future date range, got %d", results.TotalCount)
+		}
+	})
+
+	t.Run("filter_exact_date", func(t *testing.T) {
+		// Test filtering for a single day
+		exactDate := baseTime.AddDate(0, 0, -5) // Jan 10
+		endOfDay := time.Date(exactDate.Year(), exactDate.Month(), exactDate.Day(), 23, 59, 59, 999999999, exactDate.Location())
+		params := SearchParams{
+			Query:     "",
+			Page:      1,
+			Limit:     10,
+			StartDate: &exactDate,
+			EndDate:   &endOfDay,
+		}
+
+		results, err := searchService.Search(params)
+		if err != nil {
+			t.Fatalf("Search failed: %v", err)
+		}
+
+		// Should return only block 2 (created on Jan 10)
+		if results.TotalCount != 1 {
+			t.Errorf("Expected 1 result for exact date, got %d", results.TotalCount)
+		}
+	})
 }
 
 // Helper functions for tests

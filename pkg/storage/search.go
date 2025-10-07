@@ -291,23 +291,23 @@ func (s *SearchService) executeStorageSearch(storage *GenericStorage, query stri
 	var sqlQuery string
 	var args []interface{}
 
-	// Build the date range conditions
-	var dateConditions []string
-	if startDate != nil {
-		dateConditions = append(dateConditions, "b.created_at >= ?")
-		args = append(args, startDate.Format(time.RFC3339))
-	}
-	if endDate != nil {
-		dateConditions = append(dateConditions, "b.created_at <= ?")
-		args = append(args, endDate.Format(time.RFC3339))
-	}
-
-	var whereClause string
-	if len(dateConditions) > 0 {
-		whereClause = " AND " + strings.Join(dateConditions, " AND ")
-	}
-
 	if query != "" {
+		// Build the date range conditions with table alias
+		var dateConditions []string
+		if startDate != nil {
+			dateConditions = append(dateConditions, "b.created_at >= ?")
+			args = append(args, startDate.Format(time.RFC3339))
+		}
+		if endDate != nil {
+			dateConditions = append(dateConditions, "b.created_at <= ?")
+			args = append(args, endDate.Format(time.RFC3339))
+		}
+
+		var whereClause string
+		if len(dateConditions) > 0 {
+			whereClause = " AND " + strings.Join(dateConditions, " AND ")
+		}
+
 		// Escape FTS5 query for special characters
 		escapedQuery := escapeFTS5Query(query)
 		orderClause := "ORDER BY b.created_at DESC"
@@ -324,9 +324,22 @@ func (s *SearchService) executeStorageSearch(storage *GenericStorage, query stri
 		args = append([]interface{}{escapedQuery}, args...)
 		args = append(args, limit)
 	} else {
+		// Build the date range conditions without table alias
+		var dateConditions []string
+		if startDate != nil {
+			dateConditions = append(dateConditions, "created_at >= ?")
+			args = append(args, startDate.Format(time.RFC3339))
+		}
+		if endDate != nil {
+			dateConditions = append(dateConditions, "created_at <= ?")
+			args = append(args, endDate.Format(time.RFC3339))
+		}
+
+		var whereClause string
 		if len(dateConditions) > 0 {
 			whereClause = " WHERE " + strings.Join(dateConditions, " AND ")
 		}
+
 		sqlQuery = `
 			SELECT id, text, created_at, source, datasource, metadata, hostname
 			FROM blocks` + whereClause + `

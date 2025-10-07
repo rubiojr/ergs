@@ -81,15 +81,15 @@ Retrieve blocks from a specific datasource with optional search and pagination.
 - `q` (optional) - Search query string for full-text search within the datasource
 - `limit` (optional) - Maximum number of results (default: 20, max: 1000)
 - `page` (optional) - Page number for pagination (default: 1, max: 10000)
-- `start_date` (optional) - Filter blocks created on or after this date (YYYY-MM-DD format)
-- `end_date` (optional) - Filter blocks created on or before this date (YYYY-MM-DD format, automatically set to end of day)
-- `datasource` (optional) - Additional datasource filters (can be specified multiple times)
+- `start_date` (optional) - Filter blocks created on or after this date (format: YYYY-MM-DD)
+- `end_date` (optional) - Filter blocks created on or before this date (format: YYYY-MM-DD, inclusive of entire day)
 
 **Date Filtering:**
-- Dates must be in YYYY-MM-DD format
-- `start_date` includes the entire day (00:00:00)
-- `end_date` includes the entire day (set to 23:59:59)
-- Invalid date formats return HTTP 400
+- Dates must be in `YYYY-MM-DD` format (e.g., `2024-01-15`)
+- `start_date` filters blocks created on or after the specified date at 00:00:00
+- `end_date` filters blocks created on or before the specified date at 23:59:59 (entire day is included)
+- Both parameters can be used together to specify a date range
+- Invalid date formats return HTTP 400 with error details
 
 **Examples:**
 ```bash
@@ -154,8 +154,8 @@ Search across all configured datasources simultaneously with advanced filtering 
 - `q` (required) - Search query string (supports FTS5 full-text search syntax)
 - `limit` (optional) - Maximum number of results per page (default: 30, max: 1000)
 - `page` (optional) - Page number for pagination (default: 1, max: 10000)
-- `start_date` (optional) - Filter blocks created on or after this date (YYYY-MM-DD format)
-- `end_date` (optional) - Filter blocks created on or before this date (YYYY-MM-DD format)
+- `start_date` (optional) - Filter blocks created on or after this date (format: YYYY-MM-DD)
+- `end_date` (optional) - Filter blocks created on or before this date (format: YYYY-MM-DD, inclusive of entire day)
 - `datasource` (optional) - Limit search to specific datasources (can be specified multiple times)
 
 **Search Query Syntax:**
