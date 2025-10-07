@@ -25,7 +25,8 @@ type EventBlock struct {
 	payload    string
 }
 
-func NewEventBlock(id, eventType, actorLogin, repoName, repoURL, repoDesc, language string, stars, forks int, createdAt time.Time, public bool, payload string) *EventBlock {
+// NewEventBlock allows specifying the datasource instance name as the source.
+func NewEventBlock(id, eventType, actorLogin, repoName, repoURL, repoDesc, language string, stars, forks int, createdAt time.Time, public bool, payload, source string) *EventBlock {
 	text := fmt.Sprintf("event_type=%s actor_login=%s repo_name=%s repo_desc=%s language=%s repo_url=%s stars=%d forks=%d public=%t",
 		eventType, actorLogin, repoName, repoDesc, language, repoURL, stars, forks, public)
 
@@ -46,7 +47,7 @@ func NewEventBlock(id, eventType, actorLogin, repoName, repoURL, repoDesc, langu
 		id:         id,
 		text:       text,
 		createdAt:  createdAt,
-		source:     "codeberg",
+		source:     source,
 		metadata:   metadata,
 		eventType:  eventType,
 		actorLogin: actorLogin,

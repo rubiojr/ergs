@@ -357,7 +357,7 @@ func (d *Datasource) convertItemToBlock(item *HNItem) core.Block {
 		itemID,
 		text,
 		createdAt,
-		"hackernews",
+		d.instanceName,
 		metadata,
 		item.Type,
 		item.Title,

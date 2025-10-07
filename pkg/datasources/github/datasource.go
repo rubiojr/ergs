@@ -33,7 +33,8 @@ func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, s
 	public := getBoolFromMetadata(metadata, "public", true)
 	payload := getStringFromMetadata(metadata, "payload", "")
 
-	return NewEventBlock(id, eventType, actorLogin, repoName, repoURL, repoDesc, language, stars, forks, createdAt, public, payload)
+	// Use instance source (passed in) for proper data isolation
+	return NewEventBlock(id, eventType, actorLogin, repoName, repoURL, repoDesc, language, stars, forks, createdAt, public, payload, source)
 }
 
 // Helper functions for safe metadata extraction
@@ -212,6 +213,7 @@ func (d *Datasource) convertEventToBlock(ctx context.Context, event *github.Even
 		return nil, fmt.Errorf("event missing actor")
 	}
 
+	// Use simple event ID form; instance name already isolates storage (separate DB per instance)
 	eventID := fmt.Sprintf("event-%s", event.GetID())
 
 	// Get payload as JSON string
@@ -237,6 +239,7 @@ func (d *Datasource) convertEventToBlock(ctx context.Context, event *github.Even
 			event.CreatedAt.Time,
 			event.GetPublic(),
 			payloadJSON,
+			d.instanceName,
 		)
 		return block, nil
 	}
@@ -264,6 +267,7 @@ func (d *Datasource) convertEventToBlock(ctx context.Context, event *github.Even
 			event.CreatedAt.Time,
 			event.GetPublic(),
 			payloadJSON,
+			d.instanceName,
 		)
 		return block, nil
 	}
@@ -281,6 +285,7 @@ func (d *Datasource) convertEventToBlock(ctx context.Context, event *github.Even
 		event.CreatedAt.Time,
 		event.GetPublic(),
 		payloadJSON,
+		d.instanceName,
 	)
 
 	return block, nil

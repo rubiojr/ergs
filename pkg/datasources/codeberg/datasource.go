@@ -32,7 +32,7 @@ func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, s
 	public := getBoolFromMetadata(metadata, "public", true)
 	payload := getStringFromMetadata(metadata, "payload", "")
 
-	return NewEventBlock(id, eventType, actorLogin, repoName, repoURL, repoDesc, language, stars, forks, createdAt, public, payload)
+	return NewEventBlock(id, eventType, actorLogin, repoName, repoURL, repoDesc, language, stars, forks, createdAt, public, payload, source)
 }
 
 type ForgejoRepository struct {
@@ -225,6 +225,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 }
 
 func (d *Datasource) convertRepoToBlock(repo ForgejoRepository) core.Block {
+	// Namespace ID with instance name to prevent collisions across multiple Codeberg datasource instances
 	eventID := fmt.Sprintf("repo-%d", repo.ID)
 
 	block := NewEventBlock(
@@ -240,6 +241,7 @@ func (d *Datasource) convertRepoToBlock(repo ForgejoRepository) core.Block {
 		repo.UpdatedAt,
 		!repo.Private,
 		"",
+		d.instanceName,
 	)
 
 	return block

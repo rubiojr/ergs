@@ -25,9 +25,20 @@ type EventBlock struct {
 	payload    string
 }
 
-func NewEventBlock(id, eventType, actorLogin, repoName, repoURL, repoDesc, language string, stars, forks int, createdAt time.Time, public bool, payload string) *EventBlock {
-	text := fmt.Sprintf("event_type=%s actor_login=%s repo_name=%s repo_desc=%s language=%s repo_url=%s stars=%d forks=%d public=%t",
-		eventType, actorLogin, repoName, repoDesc, language, repoURL, stars, forks, public)
+// NewEventBlock creates an EventBlock with an explicit source (datasource instance name).
+// NOTE: If you need a default type-based source, call this with source = "github".
+func NewEventBlock(
+	id, eventType, actorLogin, repoName, repoURL, repoDesc, language string,
+	stars, forks int,
+	createdAt time.Time,
+	public bool,
+	payload string,
+	source string,
+) *EventBlock {
+	text := fmt.Sprintf(
+		"event_type=%s actor_login=%s repo_name=%s repo_desc=%s language=%s repo_url=%s stars=%d forks=%d public=%t",
+		eventType, actorLogin, repoName, repoDesc, language, repoURL, stars, forks, public,
+	)
 
 	metadata := map[string]interface{}{
 		"event_type":  eventType,
@@ -46,7 +57,7 @@ func NewEventBlock(id, eventType, actorLogin, repoName, repoURL, repoDesc, langu
 		id:         id,
 		text:       text,
 		createdAt:  createdAt,
-		source:     "github",
+		source:     source,
 		metadata:   metadata,
 		eventType:  eventType,
 		actorLogin: actorLogin,
@@ -165,8 +176,6 @@ func (e *EventBlock) Summary() string {
 }
 
 // Factory creates a new EventBlock from a GenericBlock and source.
-// This method is part of the core.Block interface and enables reconstruction
-// from database data without requiring separate factory objects.
 func (e *EventBlock) Factory(genericBlock *core.GenericBlock, source string) core.Block {
 	metadata := genericBlock.Metadata()
 	eventType := getStringFromMetadata(metadata, "event_type", "UnknownEvent")

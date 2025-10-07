@@ -317,10 +317,17 @@ type FeedItem struct {
 
 func (d *Datasource) convertItemToBlock(item FeedItem, feedTitle, feedURL string) core.Block {
 	// Create unique ID
-	itemID := fmt.Sprintf("rss-%s", item.GUID)
-	if item.GUID == "" {
-		itemID = fmt.Sprintf("rss-%s", item.Link)
+	// Build an ID namespaced by the datasource instance name so multiple RSS datasources
+	// (e.g. rss, rss_teammates) don't collide when a feed item GUID/link is the same.
+	rawID := item.GUID
+	if rawID == "" {
+		rawID = item.Link
 	}
+	// Fall back to current time if both GUID and Link are empty (very rare / malformed feed)
+	if rawID == "" {
+		rawID = time.Now().UTC().Format(time.RFC3339Nano)
+	}
+	itemID := fmt.Sprintf("%s-%s", d.instanceName, rawID)
 
 	// Parse publish date
 	var createdAt time.Time
@@ -390,7 +397,7 @@ func (d *Datasource) convertItemToBlock(item FeedItem, feedTitle, feedURL string
 		itemID,
 		text,
 		createdAt,
-		"rss",
+		d.instanceName, // use instance name (was "rss") so each configured RSS datasource stores in its own DB
 		metadata,
 		feedTitle,
 		feedURL,
