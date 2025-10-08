@@ -1,250 +1,423 @@
+{{/* Codeberg renderer template using GitHub/HackerNews-style layout */}}
 <div class="block-codeberg">
-    <div class="block-header">
-        <span class="block-icon">🌲</span>
-        <span class="block-title">
-            Codeberg {{index .Metadata "event_type" | default "Event"}} by
-            <strong>{{index .Metadata "actor_login" | default "unknown"}}</strong>
-        </span>
-        <span class="block-separator">•</span>
-        <time class="block-time" datetime="{{.Block.CreatedAt.Format "2006-01-02T15:04:05Z07:00"}}">
-            {{formatTime .Block.CreatedAt}}
-        </time>
-    </div>
+    {{$eventType := index .Metadata "event_type"}} {{$actorLogin := index
+    .Metadata "actor_login"}} {{$repoName := index .Metadata "repo_name"}}
+    {{$repoURL := index .Metadata "repo_url"}} {{$stars := index .Metadata
+    "stars"}} {{$forks := index .Metadata "forks"}} {{$language := index
+    .Metadata "language"}} {{$public := index .Metadata "public"}}
 
-    {{$repoName := index .Metadata "repo_name"}}
-    {{$repoURL := index .Metadata "repo_url"}}
-    {{$repoDesc := index .Metadata "repo_desc"}}
-    {{$language := index .Metadata "language"}}
-    {{$stars := index .Metadata "stars"}}
-    {{$forks := index .Metadata "forks"}}
-    {{$public := index .Metadata "public"}}
-
-    {{if $repoName}}
-    <div class="repo-info">
-        <div class="repo-header">
-            {{if $repoURL}}
-                <a href="{{$repoURL}}" target="_blank" class="repo-name">{{$repoName}}</a>
+    <div class="cb-header">
+        <div class="cb-stats">
+            {{if and $stars (gt $stars 0)}}
+            <div class="stat-score">{{$stars}}</div>
+            <div class="stat-label">stars</div>
             {{else}}
-                <span class="repo-name">{{$repoName}}</span>
+            <div class="stat-placeholder">🌲</div>
             {{end}}
-            {{if $language}}
-                <span class="repo-language">{{$language}}</span>
-            {{end}}
-            <span class="repo-visibility">{{if $public}}public{{else}}private{{end}}</span>
         </div>
 
-        {{if $repoDesc}}
-        <div class="repo-description">{{$repoDesc}}</div>
-        {{end}}
+        <div class="cb-content">
+            <div class="cb-title">
+                <strong>{{$actorLogin | default "unknown"}}</strong>
+                {{$eventType | default "Event"}} {{if $repoName}} in {{if
+                $repoURL}}
+                <a href="{{$repoURL}}" target="_blank" class="cb-repo-link"
+                    >{{$repoName}}</a
+                >
+                {{else}}
+                <span class="cb-repo-name">{{$repoName}}</span>
+                {{end}} {{end}} {{if $language}}
+                <span class="cb-language">({{$language}})</span>
+                {{end}}
+            </div>
 
-        <div class="repo-stats">
-            {{if and $stars (ne (printf "%v" $stars) "0")}}
-                <span class="repo-stat">⭐ {{$stars}}</span>
-            {{end}}
-            {{if and $forks (ne (printf "%v" $forks) "0")}}
-                <span class="repo-stat">🍴 {{$forks}}</span>
-            {{end}}
+            {{/* Event-specific details */}} {{if eq $eventType "PushEvent"}}
+            {{$ref := index .Metadata "ref"}} {{$size := index .Metadata
+            "size"}} {{if or $ref $size}}
+            <div class="cb-event-details">
+                {{if $ref}}<span class="cb-ref">{{$ref}}</span>{{end}} {{if
+                $size}}{{if $ref}} • {{end}}{{$size}} commits{{end}}
+            </div>
+            {{end}} {{end}} {{if eq $eventType "IssuesEvent"}} {{$action :=
+            index .Metadata "action"}} {{$issueNumber := index .Metadata
+            "issue_number"}} {{$issueTitle := index .Metadata "issue_title"}}
+            {{$issueURL := index .Metadata "issue_url"}} {{if and $action
+            $issueNumber $issueTitle}}
+            <div class="cb-event-details">
+                <span class="cb-action cb-action-{{$action}}">{{$action}}</span>
+                {{if $issueURL}}
+                <a href="{{$issueURL}}" target="_blank" class="cb-issue-link">
+                    #{{$issueNumber}}: {{if gt (len $issueTitle) 60}}{{slice
+                    $issueTitle 0 60}}...{{else}}{{$issueTitle}}{{end}}
+                </a>
+                {{else}}
+                <span class="cb-issue-ref"
+                    >#{{$issueNumber}}: {{if gt (len $issueTitle) 60}}{{slice
+                    $issueTitle 0 60}}...{{else}}{{$issueTitle}}{{end}}</span
+                >
+                {{end}}
+            </div>
+            {{end}} {{end}} {{if eq $eventType "PullRequestEvent"}} {{$action :=
+            index .Metadata "action"}} {{$prNumber := index .Metadata
+            "pr_number"}} {{$prTitle := index .Metadata "pr_title"}} {{$prURL :=
+            index .Metadata "pr_url"}} {{if and $action $prNumber $prTitle}}
+            <div class="cb-event-details">
+                <span class="cb-action cb-action-{{$action}}">{{$action}}</span>
+                {{if $prURL}}
+                <a href="{{$prURL}}" target="_blank" class="cb-pr-link">
+                    #{{$prNumber}}: {{if gt (len $prTitle) 60}}{{slice $prTitle
+                    0 60}}...{{else}}{{$prTitle}}{{end}}
+                </a>
+                {{else}}
+                <span class="cb-pr-ref"
+                    >#{{$prNumber}}: {{if gt (len $prTitle) 60}}{{slice $prTitle
+                    0 60}}...{{else}}{{$prTitle}}{{end}}</span
+                >
+                {{end}}
+            </div>
+            {{end}} {{end}}
+
+            <div class="cb-meta">
+                <span class="cb-time">{{formatTime .Block.CreatedAt}}</span>
+                {{if and $forks (gt $forks 0)}}
+                <span class="cb-separator">|</span>
+                <span class="cb-forks">{{$forks}} forks</span>
+                {{end}}
+                <span class="cb-separator">|</span>
+                <span class="cb-visibility"
+                    >{{if $public}}public{{else}}private{{end}}</span
+                >
+                {{if $repoURL}}
+                <span class="cb-separator">|</span>
+                <a href="{{$repoURL}}" target="_blank" class="cb-view"
+                    >view repo</a
+                >
+                {{end}}
+            </div>
         </div>
     </div>
-    {{end}}
 
-    {{$payload := index .Metadata "payload"}}
-    {{if $payload}}
-    <div class="event-payload">
-        <details>
-            <summary>Event Details</summary>
-            <pre><code>{{$payload}}</code></pre>
+    {{/* Repository description */}} {{$repoDesc := index .Metadata
+    "repo_desc"}} {{if $repoDesc}}
+    <div class="cb-description">
+        <details class="cb-details">
+            <summary>Show description</summary>
+            <div class="cb-description-content">
+                {{if gt (len $repoDesc) 300}}{{slice $repoDesc 0
+                300}}...{{else}}{{$repoDesc}}{{end}}
+            </div>
         </details>
     </div>
-    {{end}}
-
-    {{if .Metadata}}
-    <div class="event-metadata">
-        <details class="metadata-details">
-            <summary>Metadata</summary>
-            <dl class="metadata-list">
-                {{range $key, $value := .Metadata}}
-                    {{if and (ne $key "event_type") (ne $key "actor_login") (ne $key "repo_name") (ne $key "repo_url") (ne $key "repo_desc") (ne $key "language") (ne $key "stars") (ne $key "forks") (ne $key "public") (ne $key "payload") (ne $key "source") $value}}
-                        <dt>{{$key}}</dt>
-                        <dd>{{$value}}</dd>
+    {{end}} {{/* Additional metadata */}} {{$excludes := slice "event_type"
+    "actor_login" "repo_name" "repo_url" "repo_desc" "language" "stars" "forks"
+    "public" "ref" "size" "action" "issue_number" "issue_title" "issue_url"
+    "pr_number" "pr_title" "pr_url" "title" "link" "url" "html_url"
+    "description" "summary" "body" "source" "dstype" "payload"}}
+    {{$filteredMetadata := filterMetadata .Metadata $excludes}} {{$payload :=
+    index .Metadata "payload"}} {{if or $filteredMetadata $payload}}
+    <div class="cb-extras">
+        <details class="cb-details">
+            <summary>Show additional data</summary>
+            <div class="cb-extras-content">
+                {{if $filteredMetadata}}
+                <dl class="cb-metadata">
+                    {{range $key, $value := $filteredMetadata}}
+                    <dt>{{$key}}</dt>
+                    <dd>{{$value}}</dd>
                     {{end}}
+                </dl>
+                {{end}} {{if $payload}}
+                <div class="cb-payload">
+                    <strong>Event Payload:</strong>
+                    <pre><code>{{$payload}}</code></pre>
+                </div>
                 {{end}}
-            </dl>
+            </div>
         </details>
     </div>
     {{end}}
 </div>
 
 <style>
-.block-codeberg {
-    margin-bottom: 1.5rem;
-    padding: 1rem;
-    border: 1px solid #e9ecef;
-    border-left: 4px solid #2da44e;
-    border-radius: 6px;
-    background: white;
-}
+    .block-codeberg {
+        margin-bottom: 1.5rem;
+        padding: 0;
+        border: 1px solid #e6e6e6;
+        border-radius: 3px;
+        background: #f8f9fa;
+        font-family:
+            -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+            "Helvetica Neue", Arial, sans-serif;
+        font-size: 13px;
+        line-height: 1.3;
+    }
 
-.block-codeberg .block-header {
-    margin-bottom: 0.75rem;
-    font-size: 0.875rem;
-    color: #6c757d;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
+    .cb-header {
+        display: flex;
+        gap: 8px;
+        padding: 6px 8px;
+        background: white;
+    }
 
-.block-codeberg .block-icon {
-    font-size: 1rem;
-}
+    .cb-stats {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 35px;
+        padding-top: 2px;
+    }
 
-.block-codeberg .block-title {
-    color: #2da44e;
-    font-weight: 500;
-}
+    .cb-stats .stat-score {
+        font-size: 12px;
+        font-weight: bold;
+        color: #24292f;
+        line-height: 1;
+    }
 
-.block-codeberg .block-separator {
-    color: #dee2e6;
-}
+    .cb-stats .stat-label {
+        font-size: 8px;
+        color: #656d76;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        line-height: 1;
+        margin-top: 1px;
+    }
 
-.block-codeberg .block-time {
-    font-variant-numeric: tabular-nums;
-}
+    .cb-stats .stat-placeholder {
+        color: #d0d0d0;
+        font-size: 14px;
+        margin-top: 4px;
+    }
 
-.repo-info {
-    background: #f8f9fa;
-    border-radius: 6px;
-    padding: 0.75rem;
-    margin-bottom: 0.5rem;
-}
+    .cb-content {
+        flex: 1;
+        min-width: 0;
+    }
 
-.repo-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-}
+    .cb-title {
+        margin-bottom: 4px;
+        line-height: 1.2;
+        font-size: 14px;
+        color: #24292f;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
 
-.repo-name {
-    font-weight: 600;
-    color: #2da44e;
-    text-decoration: none;
-    font-size: 0.95rem;
-}
+    .cb-repo-link {
+        color: #2da44e;
+        text-decoration: none;
+        font-weight: 600;
+    }
 
-.repo-name:hover {
-    text-decoration: underline;
-}
+    .cb-repo-link:hover {
+        text-decoration: underline;
+    }
 
-.repo-language {
-    background: #2da44e;
-    color: white;
-    padding: 0.125rem 0.375rem;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 500;
-}
+    .cb-repo-name {
+        color: #24292f;
+        font-weight: 600;
+    }
 
-.repo-visibility {
-    background: #6f42c1;
-    color: white;
-    padding: 0.125rem 0.375rem;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 500;
-}
+    .cb-language {
+        color: #656d76;
+        font-size: 12px;
+        font-weight: normal;
+    }
 
-.repo-description {
-    color: #656d76;
-    font-size: 0.875rem;
-    line-height: 1.5;
-    margin-bottom: 0.5rem;
-}
+    .cb-event-details {
+        margin: 2px 0 4px 0;
+        font-size: 12px;
+        color: #656d76;
+        line-height: 1.3;
+    }
 
-.repo-stats {
-    display: flex;
-    gap: 1rem;
-}
+    .cb-ref {
+        background: #f3f4f6;
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-family: monospace;
+        font-size: 11px;
+        color: #24292f;
+    }
 
-.repo-stat {
-    color: #656d76;
-    font-size: 0.875rem;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-}
+    .cb-action {
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: lowercase;
+    }
 
-.event-payload {
-    margin-top: 0.75rem;
-    border-top: 1px solid #e9ecef;
-    padding-top: 0.75rem;
-}
+    .cb-action-opened {
+        background: #dafbe1;
+        color: #137547;
+    }
 
-.event-payload details {
-    font-size: 0.875rem;
-}
+    .cb-action-closed {
+        background: #ffebe9;
+        color: #cf222e;
+    }
 
-.event-payload summary {
-    cursor: pointer;
-    color: #6c757d;
-    font-weight: 500;
-}
+    .cb-action-merged {
+        background: #f3e8ff;
+        color: #8b5cf6;
+    }
 
-.event-payload summary:hover {
-    color: #495057;
-}
+    .cb-issue-link,
+    .cb-pr-link {
+        color: #2da44e;
+        text-decoration: none;
+        margin-left: 4px;
+    }
 
-.event-payload pre {
-    margin: 0.5rem 0 0 0;
-    background: #f8f9fa;
-    border: 1px solid #e9ecef;
-    border-radius: 4px;
-    padding: 0.75rem;
-    overflow-x: auto;
-    font-size: 0.8rem;
-    line-height: 1.4;
-}
+    .cb-issue-link:hover,
+    .cb-pr-link:hover {
+        text-decoration: underline;
+    }
 
-.event-payload code {
-    color: #24292f;
-}
+    .cb-issue-ref,
+    .cb-pr-ref {
+        color: #24292f;
+        margin-left: 4px;
+    }
 
-.event-metadata {
-    margin-top: 0.75rem;
-    border-top: 1px solid #e9ecef;
-    padding-top: 0.75rem;
-}
+    .cb-meta {
+        color: #656d76;
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
 
-.metadata-details {
-    font-size: 0.875rem;
-}
+    .cb-time {
+        font-variant-numeric: tabular-nums;
+    }
 
-.metadata-details summary {
-    cursor: pointer;
-    color: #6c757d;
-    font-weight: 500;
-}
+    .cb-separator {
+        color: #d0d0d0;
+        margin: 0 2px;
+    }
 
-.metadata-details summary:hover {
-    color: #495057;
-}
+    .cb-forks,
+    .cb-visibility {
+        font-weight: normal;
+    }
 
-.metadata-list {
-    margin: 0.5rem 0 0 0;
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 0.25rem 0.75rem;
-}
+    .cb-view {
+        color: #656d76;
+        text-decoration: none;
+    }
 
-.metadata-list dt {
-    font-weight: 500;
-    color: #6c757d;
-    margin: 0;
-}
+    .cb-view:hover {
+        text-decoration: underline;
+    }
 
-.metadata-list dd {
-    margin: 0;
-    color: #495057;
-    word-break: break-word;
-}
+    .cb-description,
+    .cb-extras {
+        background: #f8f9fa;
+        padding: 8px;
+        border-top: 1px solid #e6e6e6;
+    }
+
+    .cb-details {
+        font-size: 12px;
+    }
+
+    .cb-details summary {
+        color: #656d76;
+        cursor: pointer;
+        padding: 4px 0;
+        font-weight: normal;
+    }
+
+    .cb-details summary:hover {
+        color: #24292f;
+    }
+
+    .cb-details[open] summary {
+        margin-bottom: 8px;
+        border-bottom: 1px solid #e6e6e6;
+        padding-bottom: 8px;
+    }
+
+    .cb-description-content,
+    .cb-extras-content {
+        background: white;
+        padding: 12px;
+        border: 1px solid #e6e6e6;
+        border-radius: 2px;
+        color: #24292f;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    .cb-metadata {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 4px 12px;
+        margin: 0 0 12px 0;
+    }
+
+    .cb-metadata dt {
+        font-weight: 500;
+        color: #656d76;
+        font-size: 12px;
+    }
+
+    .cb-metadata dd {
+        margin: 0;
+        color: #24292f;
+        word-break: break-word;
+        font-size: 12px;
+    }
+
+    .cb-payload {
+        border-top: 1px solid #e6e6e6;
+        padding-top: 12px;
+    }
+
+    .cb-payload pre {
+        margin: 8px 0 0 0;
+        background: #f6f8fa;
+        padding: 8px;
+        border: 1px solid #d1d9e0;
+        border-radius: 3px;
+        font-size: 11px;
+        line-height: 1.3;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .cb-payload code {
+        color: #24292f;
+        font-family:
+            "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 600px) {
+        .cb-header {
+            padding: 8px 6px;
+        }
+
+        .cb-stats {
+            min-width: 30px;
+        }
+
+        .cb-meta {
+            font-size: 10px;
+        }
+
+        .cb-language {
+            display: none;
+        }
+    }
+
+    /* Codeberg-style hover states */
+    .cb-header:hover {
+        background: #f8f9fa;
+    }
 </style>
