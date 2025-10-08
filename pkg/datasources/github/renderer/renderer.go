@@ -5,8 +5,8 @@ import (
 	"html/template"
 	"strings"
 
-	"github.com/rubiojr/ergs/cmd/web/renderers/common"
 	"github.com/rubiojr/ergs/pkg/core"
+	"github.com/rubiojr/ergs/pkg/renderers"
 )
 
 //go:embed template.html
@@ -21,13 +21,13 @@ type GitHubRenderer struct {
 func init() {
 	renderer := NewGitHubRenderer()
 	if renderer != nil {
-		common.RegisterRenderer(renderer)
+		renderers.RegisterRenderer(renderer)
 	}
 }
 
 // NewGitHubRenderer creates a new GitHub renderer
 func NewGitHubRenderer() *GitHubRenderer {
-	tmpl, err := template.New("github").Funcs(common.GetTemplateFuncs()).Parse(githubTemplate)
+	tmpl, err := template.New("github").Funcs(renderers.GetTemplateFuncs()).Parse(githubTemplate)
 	if err != nil {
 		return nil
 	}
@@ -39,10 +39,10 @@ func NewGitHubRenderer() *GitHubRenderer {
 
 // Render creates an HTML representation of a GitHub event block
 func (r *GitHubRenderer) Render(block core.Block) template.HTML {
-	data := common.TemplateData{
+	data := renderers.TemplateData{
 		Block:    block,
 		Metadata: block.Metadata(),
-		Links:    common.ExtractLinks(block.Text()),
+		Links:    renderers.ExtractLinks(block.Text()),
 	}
 
 	var buf strings.Builder

@@ -5,8 +5,8 @@ import (
 	"html/template"
 	"strings"
 
-	"github.com/rubiojr/ergs/cmd/web/renderers/common"
 	"github.com/rubiojr/ergs/pkg/core"
+	"github.com/rubiojr/ergs/pkg/renderers"
 )
 
 //go:embed template.html
@@ -21,13 +21,13 @@ type TimestampRenderer struct {
 func init() {
 	renderer := NewTimestampRenderer()
 	if renderer != nil {
-		common.RegisterRenderer(renderer)
+		renderers.RegisterRenderer(renderer)
 	}
 }
 
 // NewTimestampRenderer creates a new timestamp renderer
 func NewTimestampRenderer() *TimestampRenderer {
-	tmpl, err := template.New("timestamp").Funcs(common.GetTemplateFuncs()).Parse(timestampTemplate)
+	tmpl, err := template.New("timestamp").Funcs(renderers.GetTemplateFuncs()).Parse(timestampTemplate)
 	if err != nil {
 		return nil
 	}
@@ -39,10 +39,10 @@ func NewTimestampRenderer() *TimestampRenderer {
 
 // Render creates an HTML representation of a timestamp block
 func (r *TimestampRenderer) Render(block core.Block) template.HTML {
-	data := common.TemplateData{
+	data := renderers.TemplateData{
 		Block:    block,
 		Metadata: block.Metadata(),
-		Links:    common.ExtractLinks(block.Text()),
+		Links:    renderers.ExtractLinks(block.Text()),
 	}
 
 	var buf strings.Builder

@@ -5,8 +5,8 @@ import (
 	"html/template"
 	"strings"
 
-	"github.com/rubiojr/ergs/cmd/web/renderers/common"
 	"github.com/rubiojr/ergs/pkg/core"
+	"github.com/rubiojr/ergs/pkg/renderers"
 )
 
 //go:embed template.html
@@ -21,13 +21,13 @@ type FirefoxRenderer struct {
 func init() {
 	renderer := NewFirefoxRenderer()
 	if renderer != nil {
-		common.RegisterRenderer(renderer)
+		renderers.RegisterRenderer(renderer)
 	}
 }
 
 // NewFirefoxRenderer creates a new Firefox renderer with compact styling
 func NewFirefoxRenderer() *FirefoxRenderer {
-	tmpl, err := template.New("firefox").Funcs(common.GetTemplateFuncs()).Parse(firefoxTemplate)
+	tmpl, err := template.New("firefox").Funcs(renderers.GetTemplateFuncs()).Parse(firefoxTemplate)
 	if err != nil {
 		return nil
 	}
@@ -39,10 +39,10 @@ func NewFirefoxRenderer() *FirefoxRenderer {
 
 // Render creates a compact HTML representation of a Firefox visit block
 func (r *FirefoxRenderer) Render(block core.Block) template.HTML {
-	data := common.TemplateData{
+	data := renderers.TemplateData{
 		Block:    block,
 		Metadata: block.Metadata(),
-		Links:    common.ExtractLinks(block.Text()),
+		Links:    renderers.ExtractLinks(block.Text()),
 	}
 
 	var buf strings.Builder

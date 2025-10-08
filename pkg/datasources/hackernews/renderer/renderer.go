@@ -5,8 +5,8 @@ import (
 	"html/template"
 	"strings"
 
-	"github.com/rubiojr/ergs/cmd/web/renderers/common"
 	"github.com/rubiojr/ergs/pkg/core"
+	"github.com/rubiojr/ergs/pkg/renderers"
 )
 
 //go:embed template.html
@@ -21,13 +21,13 @@ type HackerNewsRenderer struct {
 func init() {
 	renderer := NewHackerNewsRenderer()
 	if renderer != nil {
-		common.RegisterRenderer(renderer)
+		renderers.RegisterRenderer(renderer)
 	}
 }
 
 // NewHackerNewsRenderer creates a new Hacker News renderer
 func NewHackerNewsRenderer() *HackerNewsRenderer {
-	tmpl, err := template.New("hackernews").Funcs(common.GetTemplateFuncs()).Parse(hackerNewsTemplate)
+	tmpl, err := template.New("hackernews").Funcs(renderers.GetTemplateFuncs()).Parse(hackerNewsTemplate)
 	if err != nil {
 		return nil
 	}
@@ -39,10 +39,10 @@ func NewHackerNewsRenderer() *HackerNewsRenderer {
 
 // Render creates an HTML representation of a Hacker News item block
 func (r *HackerNewsRenderer) Render(block core.Block) template.HTML {
-	data := common.TemplateData{
+	data := renderers.TemplateData{
 		Block:    block,
 		Metadata: block.Metadata(),
-		Links:    common.ExtractLinks(block.Text()),
+		Links:    renderers.ExtractLinks(block.Text()),
 	}
 
 	var buf strings.Builder

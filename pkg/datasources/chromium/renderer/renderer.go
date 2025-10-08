@@ -5,8 +5,8 @@ import (
 	"html/template"
 	"strings"
 
-	"github.com/rubiojr/ergs/cmd/web/renderers/common"
 	"github.com/rubiojr/ergs/pkg/core"
+	"github.com/rubiojr/ergs/pkg/renderers"
 )
 
 //go:embed template.html
@@ -20,13 +20,13 @@ type ChromiumRenderer struct {
 func init() {
 	renderer := NewChromiumRenderer()
 	if renderer != nil {
-		common.RegisterRenderer(renderer)
+		renderers.RegisterRenderer(renderer)
 	}
 }
 
 // NewChromiumRenderer creates a new Chromium renderer with compact styling
 func NewChromiumRenderer() *ChromiumRenderer {
-	tmpl, err := template.New("chromium").Funcs(common.GetTemplateFuncs()).Parse(chromiumTemplate)
+	tmpl, err := template.New("chromium").Funcs(renderers.GetTemplateFuncs()).Parse(chromiumTemplate)
 	if err != nil {
 		return nil
 	}
@@ -38,10 +38,10 @@ func NewChromiumRenderer() *ChromiumRenderer {
 
 // Render creates a compact HTML representation of a Chromium visit block
 func (r *ChromiumRenderer) Render(block core.Block) template.HTML {
-	data := common.TemplateData{
+	data := renderers.TemplateData{
 		Block:    block,
 		Metadata: block.Metadata(),
-		Links:    common.ExtractLinks(block.Text()),
+		Links:    renderers.ExtractLinks(block.Text()),
 	}
 
 	var buf strings.Builder

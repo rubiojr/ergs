@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rubiojr/ergs/cmd/web/renderers"
+	"github.com/rubiojr/ergs/pkg/renderers"
 	"github.com/rubiojr/ergs/pkg/api"
 	"github.com/rubiojr/ergs/pkg/config"
 	"github.com/rubiojr/ergs/pkg/core"

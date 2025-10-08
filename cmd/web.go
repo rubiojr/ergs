@@ -16,10 +16,10 @@ import (
 
 	"github.com/rubiojr/ergs/cmd/web/components"
 	"github.com/rubiojr/ergs/cmd/web/components/types"
-	"github.com/rubiojr/ergs/cmd/web/renderers"
 	"github.com/rubiojr/ergs/pkg/api"
 	"github.com/rubiojr/ergs/pkg/config"
 	"github.com/rubiojr/ergs/pkg/core"
+	renderers "github.com/rubiojr/ergs/pkg/renderers"
 	"github.com/rubiojr/ergs/pkg/version"
 
 	"github.com/rubiojr/ergs/pkg/shared"

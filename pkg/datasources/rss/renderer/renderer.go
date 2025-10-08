@@ -5,8 +5,8 @@ import (
 	"html/template"
 	"strings"
 
-	"github.com/rubiojr/ergs/cmd/web/renderers/common"
 	"github.com/rubiojr/ergs/pkg/core"
+	"github.com/rubiojr/ergs/pkg/renderers"
 )
 
 //go:embed template.html
@@ -17,17 +17,17 @@ type RSSRenderer struct {
 	template *template.Template
 }
 
-// init registers this renderer with the global registry (migrated under pkg/datasources/rss/renderer)
+// init function automatically registers this renderer with the global registry
 func init() {
 	renderer := NewRSSRenderer()
 	if renderer != nil {
-		common.RegisterRenderer(renderer)
+		renderers.RegisterRenderer(renderer)
 	}
 }
 
 // NewRSSRenderer creates a new RSS renderer with compact styling
 func NewRSSRenderer() *RSSRenderer {
-	tmpl, err := template.New("rss").Funcs(common.GetTemplateFuncs()).Parse(rssTemplate)
+	tmpl, err := template.New("rss").Funcs(renderers.GetTemplateFuncs()).Parse(rssTemplate)
 	if err != nil {
 		return nil
 	}
@@ -39,10 +39,10 @@ func NewRSSRenderer() *RSSRenderer {
 
 // Render creates a compact HTML representation of an RSS feed item block
 func (r *RSSRenderer) Render(block core.Block) template.HTML {
-	data := common.TemplateData{
+	data := renderers.TemplateData{
 		Block:    block,
 		Metadata: block.Metadata(),
-		Links:    common.ExtractLinks(block.Text()),
+		Links:    renderers.ExtractLinks(block.Text()),
 	}
 
 	var buf strings.Builder
