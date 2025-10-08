@@ -27,6 +27,7 @@ templ Layout(data types.PageData) {
 						<nav>
 							<a href="/">Home</a>
 							<a href="/search">Search</a>
+							<a href="/firehose">Firehose</a>
 							<a href="/datasources">Datasources</a>
 						</nav>
 					</div>
@@ -66,7 +67,9 @@ templ Layout(data types.PageData) {
 						if (
 							link.getAttribute("href") === currentPath ||
 							(currentPath.startsWith("/datasource/") &&
-								link.getAttribute("href") === "/datasources")
+								link.getAttribute("href") === "/datasources") ||
+							(currentPath.startsWith("/firehose") &&
+								link.getAttribute("href") === "/firehose")
 						) {
 							link.style.fontWeight = "bold";
 							link.style.color = "#007bff";

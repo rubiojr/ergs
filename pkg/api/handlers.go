@@ -345,6 +345,100 @@ func isFTS5SyntaxError(err error) bool {
 		strings.Contains(errStr, "SQL logic error")
 }
 
+// HandleFirehose handles GET /api/firehose requests.
+// It returns the latest blocks across all datasources ordered by creation time,
+// with pagination support.
+//
+// Query parameters:
+//   - limit: Maximum number of results per page (default: 30, max: 1000)
+//   - page: Page number for pagination (default: 1)
+//   - start_date: Date in YYYY-MM-DD format to filter blocks created on or after this date
+//   - end_date: Date in YYYY-MM-DD format to filter blocks created on or before this date (inclusive of entire day)
+//
+// Response format:
+//
+//	{
+//	  "blocks": [
+//	    {
+//	      "id": "abc123",
+//	      "text": "Latest block content",
+//	      "source": "https://example.com/source",
+//	      "created_at": "2024-01-15T10:30:00Z",
+//	      "metadata": {
+//	        "datasource": "github",
+//	        "author": "john.doe"
+//	      }
+//	    }
+//	  ],
+//	  "count": 30,
+//	  "page": 1,
+//	  "limit": 30,
+//	  "total_pages": 5,
+//	  "has_more": true
+//	}
+//
+// Returns:
+//   - HTTP 200: Success with FirehoseResponse JSON body
+//   - HTTP 400: Invalid request (bad query parameters, invalid date format)
+//   - HTTP 500: Internal server error
+func (s *Server) HandleFirehose(w http.ResponseWriter, r *http.Request) {
+	// Parse parameters using search service
+	params, err := storage.ParseSearchParams(r.URL.Query())
+	if err != nil {
+		s.writeError(w, http.StatusBadRequest, "Invalid date format", err.Error())
+		return
+	}
+
+	// Override defaults for firehose endpoint
+	if params.Limit == 30 && r.URL.Query().Get("limit") == "" {
+		params.Limit = 30 // Keep default at 30
+	}
+
+	// Empty query for firehose - we want all blocks sorted by time
+	params.Query = ""
+
+	// Perform search using search service
+	searchService := s.storageManager.GetSearchService()
+	results, err := searchService.Search(params)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, "Failed to retrieve blocks", err.Error())
+		return
+	}
+
+	// Flatten results from all datasources into a single list
+	var allBlocks []BlockResponse
+	for datasourceName, blocks := range results.Results {
+		for _, block := range blocks {
+			blockResp := BlockResponse{
+				ID:        block.ID(),
+				Text:      block.Text(),
+				Source:    block.Source(),
+				CreatedAt: block.CreatedAt(),
+				Metadata:  block.Metadata(),
+			}
+			// Add datasource name to metadata if not already present
+			if blockResp.Metadata == nil {
+				blockResp.Metadata = make(map[string]interface{})
+			}
+			if _, exists := blockResp.Metadata["datasource"]; !exists {
+				blockResp.Metadata["datasource"] = datasourceName
+			}
+			allBlocks = append(allBlocks, blockResp)
+		}
+	}
+
+	response := FirehoseResponse{
+		Blocks:     allBlocks,
+		Count:      len(allBlocks),
+		Page:       results.Page,
+		Limit:      results.Limit,
+		TotalPages: results.TotalPages,
+		HasMore:    results.HasMore,
+	}
+
+	s.writeJSON(w, http.StatusOK, response)
+}
+
 // formatAPISearchError converts internal search errors into user-friendly API error messages.
 // This function transforms technical SQLite/FTS5 error messages into actionable feedback
 // that API consumers can understand and act upon.

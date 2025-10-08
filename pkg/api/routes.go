@@ -9,6 +9,7 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/datasources", s.HandleListDatasources)
 	mux.HandleFunc("GET /api/datasources/{name}", s.HandleDatasourceBlocks)
 	mux.HandleFunc("GET /api/search", s.HandleSearch)
+	mux.HandleFunc("GET /api/firehose", s.HandleFirehose)
 	mux.HandleFunc("GET /api/stats", s.HandleStats)
 	mux.HandleFunc("GET /health", s.HandleHealth)
 }

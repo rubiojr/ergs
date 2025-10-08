@@ -1,0 +1,115 @@
+package components
+
+import (
+	"github.com/rubiojr/ergs/cmd/web/components/types"
+	"strconv"
+)
+
+templ Firehose(data types.PageData) {
+	@Layout(data) {
+		<div class="firehose-page">
+			@firehoseHeader()
+			@firehoseResults(data)
+		</div>
+	}
+}
+
+// firehoseHeader renders the page header with title and icon
+templ firehoseHeader() {
+	<div class="firehose-header">
+		<h2>
+			<svg class="header-icon" viewBox="0 0 24 24" fill="currentColor">
+				<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"></path>
+			</svg>
+			Firehose
+		</h2>
+		<p class="firehose-description">
+			Latest blocks across all datasources, ordered by creation time
+		</p>
+	</div>
+}
+
+// firehoseResults renders the firehose results and pagination
+templ firehoseResults(data types.PageData) {
+	if len(data.Results) > 0 {
+		@resultsWithFirehosePagination(data)
+	} else if data.Error != "" {
+		@firehoseError(data.Error)
+	} else {
+		@noFirehoseResults()
+	}
+}
+
+// resultsWithFirehosePagination renders firehose results and pagination
+templ resultsWithFirehosePagination(data types.PageData) {
+	<div class="results-summary">
+		<p>
+			Showing { strconv.Itoa(data.TotalCount) } blocks (Page { strconv.Itoa(data.CurrentPage) })
+		</p>
+	</div>
+	<div class="results-section">
+		@firehoseBlocks(data)
+	</div>
+	@firehosePagination(data)
+}
+
+// firehoseBlocks renders all blocks from all datasources in chronological order
+templ firehoseBlocks(data types.PageData) {
+	<div class="firehose-blocks">
+		for datasource, blocks := range data.Results {
+			for _, block := range blocks {
+				<div class="firehose-block-wrapper">
+					<div class="firehose-block-header">
+						<span class="datasource-name">
+							<a href={ templ.URL("/datasource/" + datasource) }>{ datasource }</a>
+						</span>
+						<span class="block-timestamp">{ block.CreatedAt.Format("2006-01-02 15:04") }</span>
+					</div>
+					<div class="firehose-block-content">
+						@templ.Raw(block.FormattedText)
+					</div>
+				</div>
+			}
+		}
+	</div>
+}
+
+// firehosePagination renders the pagination controls
+templ firehosePagination(data types.PageData) {
+	<div class="pagination">
+		if data.CurrentPage > 1 {
+			<a
+				href={ templ.URL("/firehose?page=" + strconv.Itoa(data.CurrentPage-1) + "&limit=" + strconv.Itoa(data.PageSize)) }
+				class="pagination-btn"
+			>← Previous</a>
+		}
+		<span class="page-info">
+			Page { strconv.Itoa(data.CurrentPage) }
+		</span>
+		if data.HasNextPage {
+			<a
+				href={ templ.URL("/firehose?page=" + strconv.Itoa(data.CurrentPage+1) + "&limit=" + strconv.Itoa(data.PageSize)) }
+				class="pagination-btn"
+			>Next →</a>
+		}
+	</div>
+}
+
+// firehoseError renders the error message
+templ firehoseError(errorMsg string) {
+	<div class="no-results">
+		<h3>Error Loading Firehose</h3>
+		<p>{ errorMsg }</p>
+	</div>
+}
+
+// noFirehoseResults renders the no results message
+templ noFirehoseResults() {
+	<div class="no-results">
+		<h3>No Blocks Found</h3>
+		<p>There are no blocks available in any datasource.</p>
+		<p>
+			<a href="/datasources">View datasources</a> to check their status.
+		</p>
+	</div>
+}

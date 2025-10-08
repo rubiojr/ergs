@@ -115,6 +115,7 @@ func startWebServer(ctx context.Context, configPath, host, port string) error {
 	// Web UI routes
 	mux.HandleFunc("/", webServer.handleHome)
 	mux.HandleFunc("/search", webServer.handleSearch)
+	mux.HandleFunc("/firehose", webServer.handleFirehose)
 	mux.HandleFunc("/datasources", webServer.handleDatasources)
 	mux.HandleFunc("/datasource/", webServer.handleDatasource)
 
@@ -136,12 +137,14 @@ func startWebServer(ctx context.Context, configPath, host, port string) error {
 		log.Printf("  Web UI:")
 		log.Printf("    GET / - Home page with datasource overview")
 		log.Printf("    GET /search - Search across all datasources")
+		log.Printf("    GET /firehose - Latest blocks across all datasources")
 		log.Printf("    GET /datasources - List all datasources")
 		log.Printf("    GET /datasource/{name} - Browse specific datasource")
 		log.Printf("  API:")
 		log.Printf("    GET /api/datasources - List all datasources")
 		log.Printf("    GET /api/datasources/{name} - List blocks from a datasource")
 		log.Printf("    GET /api/search - Search across all datasources")
+		log.Printf("    GET /api/firehose - Latest blocks across all datasources")
 		log.Printf("    GET /api/stats - Get storage statistics")
 		log.Printf("    GET /health - Health check")
 
@@ -361,6 +364,56 @@ func (s *WebServer) handleDatasource(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := components.Datasource(data).Render(r.Context(), w); err != nil {
+		http.Error(w, fmt.Sprintf("Template error: %v", err), http.StatusInternalServerError)
+	}
+}
+
+// handleFirehose handles the firehose page showing latest blocks across all datasources
+func (s *WebServer) handleFirehose(w http.ResponseWriter, r *http.Request) {
+	// Parse pagination parameters
+	pageStr := r.URL.Query().Get("page")
+	page := 1
+	if pageStr != "" {
+		if parsed, err := strconv.Atoi(pageStr); err == nil && parsed > 0 {
+			page = parsed
+		}
+	}
+
+	limitStr := r.URL.Query().Get("limit")
+	limit := 30 // Default limit for firehose
+	if limitStr != "" {
+		if parsed, err := strconv.Atoi(limitStr); err == nil && parsed > 0 && parsed <= 100 {
+			limit = parsed
+		}
+	}
+
+	data := types.PageData{
+		Title:       "Firehose - Ergs",
+		CurrentPage: page,
+		PageSize:    limit,
+		Version:     version.APIVersion(),
+	}
+
+	// Use search service to get all blocks across datasources
+	searchService := s.storageManager.GetSearchService()
+	params := storage.SearchParams{
+		Query: "", // Empty query to get all blocks
+		Page:  page,
+		Limit: limit,
+	}
+
+	results, err := searchService.Search(params)
+	if err != nil {
+		data.Error = fmt.Sprintf("Failed to load firehose: %v", err)
+	} else {
+		// Convert to web blocks
+		data.Results = s.convertBlocksToWebBlocks(results.Results)
+		data.TotalCount = results.TotalCount
+		data.HasNextPage = results.HasMore
+		data.TotalPages = results.TotalPages
+	}
+
+	if err := components.Firehose(data).Render(r.Context(), w); err != nil {
 		http.Error(w, fmt.Sprintf("Template error: %v", err), http.StatusInternalServerError)
 	}
 }

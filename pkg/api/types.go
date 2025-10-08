@@ -46,3 +46,12 @@ type HealthResponse struct {
 	Timestamp time.Time `json:"timestamp"`
 	Version   string    `json:"version"`
 }
+
+type FirehoseResponse struct {
+	Blocks     []BlockResponse `json:"blocks"`
+	Count      int             `json:"count"`
+	Page       int             `json:"page"`
+	Limit      int             `json:"limit"`
+	TotalPages int             `json:"total_pages"`
+	HasMore    bool            `json:"has_more"`
+}

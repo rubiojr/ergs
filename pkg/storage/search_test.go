@@ -985,9 +985,3 @@ func findSubstring(s, substr string) bool {
 }
 
 // Helper function to get minimum of two integers
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}

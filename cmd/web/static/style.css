@@ -1679,3 +1679,106 @@ nav select:focus {
         font-size: 0.9rem;
     }
 }
+
+/* Firehose page styles */
+.firehose-page {
+    padding: 2rem 0;
+}
+
+.firehose-header {
+    margin-bottom: 2rem;
+}
+
+.firehose-header h2 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.firehose-description {
+    color: #6c757d;
+    font-size: 1rem;
+    margin-top: 0.5rem;
+}
+
+.firehose-blocks {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.firehose-block-wrapper {
+    padding: 0;
+}
+
+.firehose-block-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #007bff;
+    color: #fff;
+    padding: 0.35rem 0.75rem;
+    margin-bottom: 0.75rem;
+    border-radius: 6px;
+}
+
+.datasource-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.datasource-name a {
+    color: #fff;
+    text-decoration: none;
+}
+
+.datasource-name a:hover {
+    text-decoration: underline;
+}
+
+.block-timestamp {
+    color: #fff;
+    font-size: 0.875rem;
+    font-weight: 500;
+    font-family:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.block-id-pill {
+    background: #f1f8ff;
+    color: #0366d6;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    font-family: "Courier New", monospace;
+}
+
+.firehose-block-content {
+    color: #2c3e50;
+    line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+    .firehose-page {
+        padding: 1rem 0;
+    }
+
+    .firehose-block-header {
+        padding: 0.3rem 0.6rem;
+    }
+
+    .datasource-name {
+        font-size: 0.8rem;
+    }
+
+    .block-timestamp {
+        font-size: 0.75rem;
+    }
+
+    .firehose-blocks {
+        gap: 1rem;
+    }
+}
