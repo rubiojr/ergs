@@ -23,6 +23,7 @@ type PageData struct {
 	NewestBlock         *time.Time
 	StartDate           *time.Time
 	EndDate             *time.Time
+	Version             string // Application version (for footer display)
 }
 
 // DatasourceInfo represents datasource information

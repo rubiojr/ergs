@@ -20,6 +20,7 @@ import (
 	"github.com/rubiojr/ergs/pkg/api"
 	"github.com/rubiojr/ergs/pkg/config"
 	"github.com/rubiojr/ergs/pkg/core"
+	"github.com/rubiojr/ergs/pkg/version"
 
 	"github.com/rubiojr/ergs/pkg/shared"
 	"github.com/rubiojr/ergs/pkg/storage"
@@ -187,12 +188,16 @@ func (s *WebServer) handleHome(w http.ResponseWriter, r *http.Request) {
 	var oldestBlock, newestBlock *time.Time
 
 	for _, ds := range datasources {
+		// Skip importer (router) datasource entirely
+		if ds.Type == "importer" {
+			continue
+		}
+
 		if ds.Stats != nil {
 			if blocks, ok := ds.Stats["total_blocks"].(int); ok && blocks > 0 {
 				totalBlocks += blocks
 				activeDatasources++
 
-				// Check for oldest and newest blocks
 				if oldest, ok := ds.Stats["oldest_block"].(time.Time); ok {
 					if oldestBlock == nil || oldest.Before(*oldestBlock) {
 						oldestBlock = &oldest
@@ -214,6 +219,7 @@ func (s *WebServer) handleHome(w http.ResponseWriter, r *http.Request) {
 		ActiveDatasources: activeDatasources,
 		OldestBlock:       oldestBlock,
 		NewestBlock:       newestBlock,
+		Version:           version.APIVersion(),
 	}
 
 	if err := components.Index(data).Render(r.Context(), w); err != nil {
@@ -244,6 +250,7 @@ func (s *WebServer) handleSearch(w http.ResponseWriter, r *http.Request) {
 		PageSize:            params.Limit,
 		StartDate:           params.StartDate,
 		EndDate:             params.EndDate,
+		Version:             version.APIVersion(),
 	}
 
 	// Web allows empty queries (shows search page)
@@ -275,6 +282,7 @@ func (s *WebServer) handleDatasources(w http.ResponseWriter, r *http.Request) {
 	data := types.PageData{
 		Title:       "Datasources - Ergs",
 		Datasources: allDatasources,
+		Version:     version.APIVersion(),
 	}
 
 	if err := components.Datasources(data).Render(r.Context(), w); err != nil {
@@ -319,6 +327,7 @@ func (s *WebServer) handleDatasource(w http.ResponseWriter, r *http.Request) {
 		Datasource:  datasourceName,
 		CurrentPage: page,
 		PageSize:    limit,
+		Version:     version.APIVersion(),
 	}
 
 	// Use search service for consistent pagination behavior
