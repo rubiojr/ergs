@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.1.3] - 2025-10-08
+
+### 🔧 Improvements
+
+- Fixed multiple instance support in github, codeberg and rss datasources
+
 ## [3.1.2] - 2025-10-07
 
 ### 🔧 Improvements

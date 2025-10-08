@@ -1,7 +1,7 @@
 package version
 
 // Version represents the current version of Ergs
-const Version = "3.1.2"
+const Version = "3.1.3"
 
 // BuildVersion returns the version string for display
 func BuildVersion() string {
