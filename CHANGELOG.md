@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.4] - 2025-10-08
+
+### 🔧 Improvements
+
+- Web UI layout tweaks
+- Exclude importer from the datasources list
+
 ## [3.1.3] - 2025-10-08
 
 ### 🔧 Improvements
