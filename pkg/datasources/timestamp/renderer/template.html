@@ -40,39 +40,42 @@
 .block-default {
     margin-bottom: 1.5rem;
     padding: 1rem;
-    border: 1px solid #e9ecef;
+    border: 1px solid var(--border);
     border-radius: 6px;
-    background: white;
+    background: var(--surface);
+    transition: background .25s ease, border-color .25s ease;
 }
 
 .block-header {
     margin-bottom: 0.75rem;
     font-size: 0.875rem;
-    color: #6c757d;
+    color: var(--text-dim);
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
 .block-source {
-    background: #f8f9fa;
+    background: var(--surface-alt);
     padding: 0.125rem 0.5rem;
     border-radius: 4px;
     font-weight: 500;
-    color: #495057;
+    color: var(--text);
+    border: 1px solid var(--border-alt);
 }
 
 .block-separator {
-    color: #dee2e6;
+    color: var(--border-alt);
 }
 
 .block-time {
     font-variant-numeric: tabular-nums;
+    color: var(--text-faint);
 }
 
 .block-content {
     line-height: 1.6;
-    color: #495057;
+    color: var(--text);
     margin-bottom: 0.75rem;
     white-space: pre-wrap;
 }
@@ -80,24 +83,26 @@
 .block-links {
     margin-bottom: 0.75rem;
     padding-top: 0.5rem;
-    border-top: 1px solid #f1f3f4;
+    border-top: 1px solid var(--border-alt);
 }
 
 .block-link {
-    color: #007bff;
+    color: var(--accent);
     text-decoration: none;
     word-break: break-all;
     display: inline-block;
     margin-right: 1rem;
     margin-bottom: 0.25rem;
+    transition: color .2s ease;
 }
 
 .block-link:hover {
     text-decoration: underline;
+    color: var(--accent-hover);
 }
 
 .block-metadata {
-    border-top: 1px solid #f1f3f4;
+    border-top: 1px solid var(--border-alt);
     padding-top: 0.75rem;
 }
 
@@ -107,12 +112,13 @@
 
 .metadata-details summary {
     cursor: pointer;
-    color: #6c757d;
+    color: var(--text-dim);
     font-weight: 500;
+    transition: color .2s ease;
 }
 
 .metadata-details summary:hover {
-    color: #495057;
+    color: var(--text);
 }
 
 .metadata-list {
@@ -124,13 +130,13 @@
 
 .metadata-list dt {
     font-weight: 500;
-    color: #6c757d;
+    color: var(--text-dim);
     margin: 0;
 }
 
 .metadata-list dd {
     margin: 0;
-    color: #495057;
+    color: var(--text);
     word-break: break-word;
 }
 </style>

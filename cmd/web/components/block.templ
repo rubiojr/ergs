@@ -1,0 +1,30 @@
+package components
+
+import (
+	"github.com/rubiojr/ergs/cmd/web/components/types"
+	"time"
+)
+
+// formatTimestamp returns standardized timestamp format used in unified block component
+func formatTimestamp(t time.Time) string {
+	return t.Format("2006-01-02 15:04")
+}
+
+// UnifiedBlock renders a single block using the firehose visual style so it can be reused
+// across firehose, search results and individual datasource pages.
+//
+// Keep styling consistent by using existing "firehose-*" class names.
+// The surrounding template is responsible for wrapping multiple blocks.
+templ UnifiedBlock(block types.WebBlock, datasource string) {
+	<div class="firehose-block-wrapper">
+		<div class="firehose-block-header">
+			<span class="datasource-name">
+				<a href={ templ.URL("/datasource/" + datasource) }>{ datasource }</a>
+			</span>
+			<span class="block-timestamp">{ formatTimestamp(block.CreatedAt) }</span>
+		</div>
+		<div class="firehose-block-content">
+			@templ.Raw(block.FormattedText)
+		</div>
+	</div>
+}

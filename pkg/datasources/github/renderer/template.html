@@ -1,13 +1,9 @@
-{{/* GitHub renderer template using HackerNews-style layout */}}
 <div class="block-github">
-    {{$eventType := index .Metadata "event_type"}}
-    {{$actorLogin := index .Metadata "actor_login"}}
-    {{$repoName := index .Metadata "repo_name"}}
-    {{$repoURL := index .Metadata "repo_url"}}
-    {{$stars := index .Metadata "stars"}}
-    {{$forks := index .Metadata "forks"}}
-    {{$language := index .Metadata "language"}}
-    {{$public := index .Metadata "public"}}
+    {{$eventType := index .Metadata "event_type"}} {{$actorLogin := index
+    .Metadata "actor_login"}} {{$repoName := index .Metadata "repo_name"}}
+    {{$repoURL := index .Metadata "repo_url"}} {{$stars := index .Metadata
+    "stars"}} {{$forks := index .Metadata "forks"}} {{$language := index
+    .Metadata "language"}} {{$public := index .Metadata "public"}}
 
     <div class="gh-header">
         <div class="gh-stats">
@@ -22,69 +18,62 @@
         <div class="gh-content">
             <div class="gh-title">
                 <strong>{{$actorLogin | default "unknown"}}</strong>
-                {{$eventType | default "Event"}}
-                {{if $repoName}}
-                in
-                {{if $repoURL}}
-                <a href="{{$repoURL}}" target="_blank" class="gh-repo-link">{{$repoName}}</a>
+                {{$eventType | default "Event"}} {{if $repoName}} in {{if
+                $repoURL}}
+                <a href="{{$repoURL}}" target="_blank" class="gh-repo-link"
+                    >{{$repoName}}</a
+                >
                 {{else}}
                 <span class="gh-repo-name">{{$repoName}}</span>
-                {{end}}
-                {{end}}
-                {{if $language}}
+                {{end}} {{end}} {{if $language}}
                 <span class="gh-language">({{$language}})</span>
                 {{end}}
             </div>
 
-            {{/* Event-specific details */}}
-            {{if eq $eventType "PushEvent"}}
-            {{$ref := index .Metadata "ref"}}
-            {{$size := index .Metadata "size"}}
-            {{if or $ref $size}}
+            {{if eq $eventType "PushEvent"}} {{$ref := index .Metadata "ref"}}
+            {{$size := index .Metadata "size"}} {{if or $ref $size}}
             <div class="gh-event-details">
-                {{if $ref}}<span class="gh-ref">{{$ref}}</span>{{end}}
-                {{if $size}}{{if $ref}} • {{end}}{{$size}} commits{{end}}
+                {{if $ref}}<span class="gh-ref">{{$ref}}</span>{{end}} {{if
+                $size}}{{if $ref}} • {{end}}{{$size}} commits{{end}}
             </div>
-            {{end}}
-            {{end}}
-
-            {{if eq $eventType "IssuesEvent"}}
-            {{$action := index .Metadata "action"}}
-            {{$issueNumber := index .Metadata "issue_number"}}
-            {{$issueTitle := index .Metadata "issue_title"}}
-            {{$issueURL := index .Metadata "issue_url"}}
-            {{if and $action $issueNumber $issueTitle}}
+            {{end}} {{end}} {{if eq $eventType "IssuesEvent"}} {{$action :=
+            index .Metadata "action"}} {{$issueNumber := index .Metadata
+            "issue_number"}} {{$issueTitle := index .Metadata "issue_title"}}
+            {{$issueURL := index .Metadata "issue_url"}} {{if and $action
+            $issueNumber $issueTitle}}
             <div class="gh-event-details">
                 <span class="gh-action gh-action-{{$action}}">{{$action}}</span>
                 {{if $issueURL}}
                 <a href="{{$issueURL}}" target="_blank" class="gh-issue-link">
-                    #{{$issueNumber}}: {{if gt (len $issueTitle) 60}}{{slice $issueTitle 0 60}}...{{else}}{{$issueTitle}}{{end}}
+                    #{{$issueNumber}}: {{if gt (len $issueTitle) 60}}{{slice
+                    $issueTitle 0 60}}...{{else}}{{$issueTitle}}{{end}}
                 </a>
                 {{else}}
-                <span class="gh-issue-ref">#{{$issueNumber}}: {{if gt (len $issueTitle) 60}}{{slice $issueTitle 0 60}}...{{else}}{{$issueTitle}}{{end}}</span>
+                <span class="gh-issue-ref"
+                    >#{{$issueNumber}}: {{if gt (len $issueTitle) 60}}{{slice
+                    $issueTitle 0 60}}...{{else}}{{$issueTitle}}{{end}}</span
+                >
                 {{end}}
             </div>
-            {{end}}
-            {{end}}
-
-            {{if eq $eventType "PullRequestEvent"}}
-            {{$action := index .Metadata "action"}}
-            {{$prNumber := index .Metadata "pr_number"}}
-            {{$prTitle := index .Metadata "pr_title"}}
-            {{$prURL := index .Metadata "pr_url"}}
-            {{if and $action $prNumber $prTitle}}
+            {{end}} {{end}} {{if eq $eventType "PullRequestEvent"}} {{$action :=
+            index .Metadata "action"}} {{$prNumber := index .Metadata
+            "pr_number"}} {{$prTitle := index .Metadata "pr_title"}} {{$prURL :=
+            index .Metadata "pr_url"}} {{if and $action $prNumber $prTitle}}
             <div class="gh-event-details">
                 <span class="gh-action gh-action-{{$action}}">{{$action}}</span>
                 {{if $prURL}}
                 <a href="{{$prURL}}" target="_blank" class="gh-pr-link">
-                    #{{$prNumber}}: {{if gt (len $prTitle) 60}}{{slice $prTitle 0 60}}...{{else}}{{$prTitle}}{{end}}
+                    #{{$prNumber}}: {{if gt (len $prTitle) 60}}{{slice $prTitle
+                    0 60}}...{{else}}{{$prTitle}}{{end}}
                 </a>
                 {{else}}
-                <span class="gh-pr-ref">#{{$prNumber}}: {{if gt (len $prTitle) 60}}{{slice $prTitle 0 60}}...{{else}}{{$prTitle}}{{end}}</span>
+                <span class="gh-pr-ref"
+                    >#{{$prNumber}}: {{if gt (len $prTitle) 60}}{{slice $prTitle
+                    0 60}}...{{else}}{{$prTitle}}{{end}}</span
+                >
                 {{end}}
             </div>
-            {{end}}
-            {{end}}
+            {{end}} {{end}}
 
             <div class="gh-meta">
                 <span class="gh-time">{{formatTime .Block.CreatedAt}}</span>
@@ -93,33 +82,36 @@
                 <span class="gh-forks">{{$forks}} forks</span>
                 {{end}}
                 <span class="gh-separator">|</span>
-                <span class="gh-visibility">{{if $public}}public{{else}}private{{end}}</span>
+                <span class="gh-visibility"
+                    >{{if $public}}public{{else}}private{{end}}</span
+                >
                 {{if $repoURL}}
                 <span class="gh-separator">|</span>
-                <a href="{{$repoURL}}" target="_blank" class="gh-view">view repo</a>
+                <a href="{{$repoURL}}" target="_blank" class="gh-view"
+                    >view repo</a
+                >
                 {{end}}
             </div>
         </div>
     </div>
 
-    {{/* Repository description */}}
-    {{$repoDesc := index .Metadata "repo_desc"}}
-    {{if $repoDesc}}
+    {{$repoDesc := index .Metadata "repo_desc"}} {{if $repoDesc}}
     <div class="gh-description">
         <details class="gh-details">
             <summary>Show description</summary>
             <div class="gh-description-content">
-                {{if gt (len $repoDesc) 300}}{{slice $repoDesc 0 300}}...{{else}}{{$repoDesc}}{{end}}
+                {{if gt (len $repoDesc) 300}}{{slice $repoDesc 0
+                300}}...{{else}}{{$repoDesc}}{{end}}
             </div>
         </details>
     </div>
-    {{end}}
-
-    {{/* Additional metadata */}}
-    {{$excludes := slice "event_type" "actor_login" "repo_name" "repo_url" "repo_desc" "language" "stars" "forks" "public" "ref" "size" "action" "issue_number" "issue_title" "issue_url" "pr_number" "pr_title" "pr_url" "title" "link" "url" "html_url" "description" "summary" "body" "source" "dstype" "payload"}}
-    {{$filteredMetadata := filterMetadata .Metadata $excludes}}
-    {{$payload := index .Metadata "payload"}}
-    {{if or $filteredMetadata $payload}}
+    {{end}} {{$excludes := slice "event_type" "actor_login" "repo_name"
+    "repo_url" "repo_desc" "language" "stars" "forks" "public" "ref" "size"
+    "action" "issue_number" "issue_title" "issue_url" "pr_number" "pr_title"
+    "pr_url" "title" "link" "url" "html_url" "description" "summary" "body"
+    "source" "dstype" "payload"}} {{$filteredMetadata := filterMetadata
+    .Metadata $excludes}} {{$payload := index .Metadata "payload"}} {{if or
+    $filteredMetadata $payload}}
     <div class="gh-extras">
         <details class="gh-details">
             <summary>Show additional data</summary>
@@ -131,8 +123,7 @@
                     <dd>{{$value}}</dd>
                     {{end}}
                 </dl>
-                {{end}}
-                {{if $payload}}
+                {{end}} {{if $payload}}
                 <div class="gh-payload">
                     <strong>Event Payload:</strong>
                     <pre><code>{{$payload}}</code></pre>
@@ -145,282 +136,295 @@
 </div>
 
 <style>
-.block-github {
-    margin-bottom: 1.5rem;
-    padding: 0;
-    border: 1px solid #e6e6e6;
-    border-radius: 3px;
-    background: #f8f9fa;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
-    font-size: 13px;
-    line-height: 1.3;
-}
+    /* Use existing global CSS variables for theme compatibility */
+    .block-github {
+        margin-bottom: 1.5rem;
+        padding: 0;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        background: var(--surface);
+        font-family:
+            -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+            "Helvetica Neue", Arial, sans-serif;
+        font-size: 13px;
+        line-height: 1.3;
+        transition:
+            background 0.25s ease,
+            border-color 0.25s ease;
+    }
 
-.gh-header {
-    display: flex;
-    gap: 8px;
-    padding: 6px 8px;
-    background: white;
-}
-
-.gh-stats {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-width: 35px;
-    padding-top: 2px;
-}
-
-.stat-score {
-    font-size: 12px;
-    font-weight: bold;
-    color: #24292f;
-    line-height: 1;
-}
-
-.stat-label {
-    font-size: 8px;
-    color: #656d76;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    line-height: 1;
-    margin-top: 1px;
-}
-
-.stat-placeholder {
-    color: #d0d0d0;
-    font-size: 14px;
-    margin-top: 4px;
-}
-
-.gh-content {
-    flex: 1;
-    min-width: 0;
-}
-
-.gh-title {
-    margin-bottom: 4px;
-    line-height: 1.2;
-    font-size: 14px;
-    color: #24292f;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-}
-
-.gh-repo-link {
-    color: #0969da;
-    text-decoration: none;
-    font-weight: 600;
-}
-
-.gh-repo-link:hover {
-    text-decoration: underline;
-}
-
-.gh-repo-name {
-    color: #24292f;
-    font-weight: 600;
-}
-
-.gh-language {
-    color: #656d76;
-    font-size: 12px;
-    font-weight: normal;
-}
-
-.gh-event-details {
-    margin: 2px 0 4px 0;
-    font-size: 12px;
-    color: #656d76;
-    line-height: 1.3;
-}
-
-.gh-ref {
-    background: #f3f4f6;
-    padding: 1px 4px;
-    border-radius: 3px;
-    font-family: monospace;
-    font-size: 11px;
-    color: #24292f;
-}
-
-.gh-action {
-    padding: 1px 4px;
-    border-radius: 3px;
-    font-size: 11px;
-    font-weight: 500;
-    text-transform: lowercase;
-}
-
-.gh-action-opened {
-    background: #dafbe1;
-    color: #137547;
-}
-
-.gh-action-closed {
-    background: #ffebe9;
-    color: #cf222e;
-}
-
-.gh-action-merged {
-    background: #f3e8ff;
-    color: #8b5cf6;
-}
-
-.gh-issue-link,
-.gh-pr-link {
-    color: #0969da;
-    text-decoration: none;
-    margin-left: 4px;
-}
-
-.gh-issue-link:hover,
-.gh-pr-link:hover {
-    text-decoration: underline;
-}
-
-.gh-issue-ref,
-.gh-pr-ref {
-    color: #24292f;
-    margin-left: 4px;
-}
-
-.gh-meta {
-    color: #656d76;
-    font-size: 11px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-}
-
-.gh-time {
-    font-variant-numeric: tabular-nums;
-}
-
-.gh-separator {
-    color: #d0d0d0;
-    margin: 0 2px;
-}
-
-.gh-forks,
-.gh-visibility {
-    font-weight: normal;
-}
-
-.gh-view {
-    color: #656d76;
-    text-decoration: none;
-}
-
-.gh-view:hover {
-    text-decoration: underline;
-}
-
-.gh-description,
-.gh-extras {
-    background: #f8f9fa;
-    padding: 8px;
-    border-top: 1px solid #e6e6e6;
-}
-
-.gh-details {
-    font-size: 12px;
-}
-
-.gh-details summary {
-    color: #656d76;
-    cursor: pointer;
-    padding: 4px 0;
-    font-weight: normal;
-}
-
-.gh-details summary:hover {
-    color: #24292f;
-}
-
-.gh-details[open] summary {
-    margin-bottom: 8px;
-    border-bottom: 1px solid #e6e6e6;
-    padding-bottom: 8px;
-}
-
-.gh-description-content,
-.gh-extras-content {
-    background: white;
-    padding: 12px;
-    border: 1px solid #e6e6e6;
-    border-radius: 2px;
-    color: #24292f;
-    font-size: 13px;
-    line-height: 1.4;
-}
-
-.gh-metadata {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 4px 12px;
-    margin: 0 0 12px 0;
-}
-
-.gh-metadata dt {
-    font-weight: 500;
-    color: #656d76;
-    font-size: 12px;
-}
-
-.gh-metadata dd {
-    margin: 0;
-    color: #24292f;
-    word-break: break-word;
-    font-size: 12px;
-}
-
-.gh-payload {
-    border-top: 1px solid #e6e6e6;
-    padding-top: 12px;
-}
-
-.gh-payload pre {
-    margin: 8px 0 0 0;
-    background: #f6f8fa;
-    padding: 8px;
-    border: 1px solid #d1d9e0;
-    border-radius: 3px;
-    font-size: 11px;
-    line-height: 1.3;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    max-height: 200px;
-    overflow-y: auto;
-}
-
-.gh-payload code {
-    color: #24292f;
-    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-}
-
-/* Responsive adjustments */
-@media (max-width: 600px) {
     .gh-header {
-        padding: 8px 6px;
+        display: flex;
+        gap: 8px;
+        padding: 6px 8px;
+        background: var(--surface-alt);
+        border-bottom: 1px solid var(--border);
     }
 
     .gh-stats {
-        min-width: 30px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 35px;
+        padding-top: 2px;
     }
 
-    .gh-meta {
-        font-size: 10px;
+    .stat-score {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text);
+        line-height: 1;
+    }
+
+    .stat-label {
+        font-size: 8px;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        line-height: 1;
+        margin-top: 1px;
+    }
+
+    .stat-placeholder {
+        color: var(--text-faint);
+        font-size: 14px;
+        margin-top: 4px;
+    }
+
+    .gh-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .gh-title {
+        margin-bottom: 4px;
+        line-height: 1.2;
+        font-size: 14px;
+        color: var(--text);
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
+    .gh-repo-link {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .gh-repo-link:hover {
+        text-decoration: underline;
+        color: var(--accent-hover);
+    }
+
+    .gh-repo-name {
+        color: var(--text);
+        font-weight: 600;
     }
 
     .gh-language {
-        display: none;
+        color: var(--text-dim);
+        font-size: 12px;
+        font-weight: normal;
     }
-}
 
-/* GitHub-style hover states */
-.gh-header:hover {
-    background: #f8f9fa;
-}
+    .gh-event-details {
+        margin: 2px 0 4px 0;
+        font-size: 12px;
+        color: var(--text-dim);
+        line-height: 1.3;
+    }
+
+    .gh-ref {
+        background: var(--surface-alt);
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-family: monospace;
+        font-size: 11px;
+        color: var(--text);
+        border: 1px solid var(--border-alt);
+    }
+
+    .gh-action {
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: lowercase;
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+
+    .gh-action-opened {
+        background: var(--success-bg, var(--accent-soft));
+        color: var(--success-fg, var(--accent));
+    }
+
+    .gh-action-closed {
+        background: var(--error-bg, #ffebe9);
+        color: var(--error, #cf222e);
+    }
+
+    .gh-action-merged {
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+
+    .gh-issue-link,
+    .gh-pr-link {
+        color: var(--accent);
+        text-decoration: none;
+        margin-left: 4px;
+    }
+
+    .gh-issue-link:hover,
+    .gh-pr-link:hover {
+        text-decoration: underline;
+        color: var(--accent-hover);
+    }
+
+    .gh-issue-ref,
+    .gh-pr-ref {
+        color: var(--text);
+        margin-left: 4px;
+    }
+
+    .gh-meta {
+        color: var(--text-dim);
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .gh-time {
+        font-variant-numeric: tabular-nums;
+    }
+
+    .gh-separator {
+        color: var(--border-alt);
+        margin: 0 2px;
+    }
+
+    .gh-forks,
+    .gh-visibility {
+        font-weight: normal;
+    }
+
+    .gh-view {
+        color: var(--text-dim);
+        text-decoration: none;
+    }
+
+    .gh-view:hover {
+        text-decoration: underline;
+        color: var(--text);
+    }
+
+    .gh-description,
+    .gh-extras {
+        background: var(--surface-alt);
+        padding: 8px;
+        border-top: 1px solid var(--border);
+    }
+
+    .gh-details {
+        font-size: 12px;
+    }
+
+    .gh-details summary {
+        color: var(--text-dim);
+        cursor: pointer;
+        padding: 4px 0;
+        font-weight: normal;
+        transition: color 0.2s ease;
+    }
+
+    .gh-details summary:hover {
+        color: var(--text);
+    }
+
+    .gh-details[open] summary {
+        margin-bottom: 8px;
+        border-bottom: 1px solid var(--border-alt);
+        padding-bottom: 8px;
+    }
+
+    .gh-description-content,
+    .gh-extras-content {
+        background: var(--surface);
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 2px;
+        color: var(--text);
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    .gh-metadata {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 4px 12px;
+        margin: 0 0 12px 0;
+    }
+
+    .gh-metadata dt {
+        font-weight: 500;
+        color: var(--text-dim);
+        font-size: 12px;
+    }
+
+    .gh-metadata dd {
+        margin: 0;
+        color: var(--text);
+        word-break: break-word;
+        font-size: 12px;
+    }
+
+    .gh-payload {
+        border-top: 1px solid var(--border-alt);
+        padding-top: 12px;
+    }
+
+    .gh-payload pre {
+        margin: 8px 0 0 0;
+        background: var(--surface-alt);
+        padding: 8px;
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        font-size: 11px;
+        line-height: 1.3;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        max-height: 200px;
+        overflow-y: auto;
+        color: var(--text);
+    }
+
+    .gh-payload code {
+        color: var(--text);
+        font-family:
+            "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 600px) {
+        .gh-header {
+            padding: 8px 6px;
+        }
+        .gh-stats {
+            min-width: 30px;
+        }
+        .gh-meta {
+            font-size: 10px;
+        }
+        .gh-language {
+            display: none;
+        }
+    }
+
+    /* Hover state */
+    .gh-header:hover {
+        background: var(--surface);
+    }
 </style>

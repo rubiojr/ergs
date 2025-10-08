@@ -23,7 +23,6 @@
                 <div class="hn-title">
                     {{if $url}}
                         <a href="{{$url}}" target="_blank" class="hn-link">{{$title}}</a>
-                        <span class="hn-domain">{{$url}}</span>
                     {{else}}
                         <span class="hn-title-text">{{$title}}</span>
                     {{end}}
@@ -69,19 +68,25 @@
 .block-hackernews {
     margin-bottom: 1.5rem;
     padding: 0;
-    border: 1px solid #e6e6e6;
-    border-radius: 3px;
-    background: #f6f6ef;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
     font-family: Verdana, Geneva, sans-serif;
     font-size: 13px;
     line-height: 1.3;
+    transition: background .25s ease, border-color .25s ease;
 }
 
 .hn-header {
     display: flex;
     gap: 8px;
     padding: 6px 8px;
-    background: white;
+    background: var(--surface-alt);
+    transition: background .25s ease;
+}
+
+.hn-header:hover {
+    background: var(--surface);
 }
 
 .hn-votes {
@@ -95,13 +100,13 @@
 .vote-score {
     font-size: 12px;
     font-weight: bold;
-    color: #ff6600;
+    color: var(--accent);
     line-height: 1;
 }
 
 .vote-label {
     font-size: 8px;
-    color: #828282;
+    color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     line-height: 1;
@@ -109,7 +114,7 @@
 }
 
 .vote-placeholder {
-    color: #d0d0d0;
+    color: var(--border-alt);
     font-size: 14px;
     margin-top: 4px;
 }
@@ -125,27 +130,29 @@
 }
 
 .hn-link {
-    color: #000000;
+    color: var(--text);
     text-decoration: none;
     font-size: 14px;
     font-weight: normal;
+    transition: color .2s ease;
 }
 
 .hn-link:visited {
-    color: #828282;
+    color: var(--text-dim);
 }
 
 .hn-link:hover {
     text-decoration: underline;
+    color: var(--accent);
 }
 
 .hn-title-text {
-    color: #000000;
+    color: var(--text);
     font-size: 14px;
 }
 
 .hn-domain {
-    color: #828282;
+    color: var(--text-dim);
     font-size: 11px;
     margin-left: 4px;
 }
@@ -159,7 +166,7 @@
 }
 
 .hn-meta {
-    color: #828282;
+    color: var(--text-dim);
     font-size: 11px;
     display: flex;
     align-items: center;
@@ -176,23 +183,25 @@
 }
 
 .hn-separator {
-    color: #d0d0d0;
+    color: var(--border-alt);
     margin: 0 2px;
 }
 
 .hn-comments, .hn-discuss {
-    color: #828282;
+    color: var(--text-dim);
     text-decoration: none;
+    transition: color .2s ease;
 }
 
 .hn-comments:hover, .hn-discuss:hover {
     text-decoration: underline;
+    color: var(--accent);
 }
 
 .hn-text {
-    background: #f6f6ef;
+    background: var(--surface-alt);
     padding: 8px;
-    border-top: 1px solid #e6e6e6;
+    border-top: 1px solid var(--border);
 }
 
 .hn-details {
@@ -200,28 +209,29 @@
 }
 
 .hn-details summary {
-    color: #828282;
+    color: var(--text-dim);
     cursor: pointer;
     padding: 4px 0;
     font-weight: normal;
+    transition: color .2s ease;
 }
 
 .hn-details summary:hover {
-    color: #000000;
+    color: var(--text);
 }
 
 .hn-details[open] summary {
     margin-bottom: 8px;
-    border-bottom: 1px solid #e6e6e6;
+    border-bottom: 1px solid var(--border);
     padding-bottom: 8px;
 }
 
 .hn-text-content {
-    background: white;
+    background: var(--surface);
     padding: 12px;
-    border: 1px solid #e6e6e6;
+    border: 1px solid var(--border);
     border-radius: 2px;
-    color: #000000;
+    color: var(--text);
     font-size: 13px;
     line-height: 1.4;
     white-space: pre-wrap;
@@ -230,10 +240,10 @@
 }
 
 .hn-reply-info {
-    background: #f0f0f0;
+    background: var(--surface-alt);
     padding: 6px 8px;
-    border-top: 1px solid #e6e6e6;
-    color: #828282;
+    border-top: 1px solid var(--border);
+    color: var(--text-dim);
     font-size: 11px;
     font-style: italic;
 }
@@ -261,10 +271,5 @@
 .hn-title {
     word-wrap: break-word;
     overflow-wrap: break-word;
-}
-
-/* HN-style hover states */
-.hn-header:hover {
-    background: #f6f6ef;
 }
 </style>

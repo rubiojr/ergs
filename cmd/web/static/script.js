@@ -1,6 +1,7 @@
 // Ergs Web UI JavaScript
 
 document.addEventListener("DOMContentLoaded", function () {
+  ensureNavigationStyles();
   initializeNavigation();
   initializeMetadataToggles();
   initializePagination();
@@ -14,8 +15,7 @@ function initializeNavigation() {
 
   navLinks.forEach((link) => {
     if (link.getAttribute("href") === currentPath) {
-      link.style.backgroundColor = "#e9ecef";
-      link.style.color = "#495057";
+      link.classList.add("nav-link-active");
     }
   });
 
@@ -149,25 +149,41 @@ function addNavigationHints() {
   if (pagination && !document.getElementById("nav-hints")) {
     const hints = document.createElement("div");
     hints.id = "nav-hints";
-    hints.style.cssText = `
-            margin-top: 1rem;
-            text-align: center;
-            font-size: 0.8rem;
-            color: #6c757d;
-            padding: 0.5rem;
-            background: #f8f9fa;
-            border-radius: 4px;
-            border: 1px solid #e9ecef;
-        `;
+    hints.classList.add("nav-hints");
     hints.innerHTML = `
-            <strong>Navigation:</strong>
-            Use ← → arrow keys or P/N keys for previous/next page •
-            Ctrl+K to search •
-            Escape to clear search
-        `;
+      <strong>Navigation:</strong>
+      Use ← → arrow keys or P/N keys for previous/next page •
+      Ctrl+K to search •
+      Escape to clear search
+    `;
     pagination.appendChild(hints);
   }
 }
 
 // Initialize navigation hints after pagination is ready
 setTimeout(addNavigationHints, 500);
+
+// Inject minimal CSS classes (using existing CSS variables) if not already present
+function ensureNavigationStyles() {
+  if (document.getElementById("ergs-nav-style")) return;
+  const style = document.createElement("style");
+  style.id = "ergs-nav-style";
+  style.textContent = `
+    .nav-link-active {
+      background: var(--pill-bg, var(--surface-alt));
+      color: var(--text);
+      border-radius: 6px;
+    }
+    .nav-hints {
+      margin-top: 1rem;
+      text-align: center;
+      font-size: .8rem;
+      color: var(--muted, var(--text-dim));
+      padding: .5rem;
+      background: var(--panel-bg-alt, var(--surface-alt));
+      border-radius: 4px;
+      border: 1px solid var(--panel-border, var(--border));
+    }
+  `;
+  document.head.appendChild(style);
+}

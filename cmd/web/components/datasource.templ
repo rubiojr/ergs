@@ -1,7 +1,6 @@
 package components
 
 import (
-	"fmt"
 	"github.com/rubiojr/ergs/cmd/web/components/types"
 	"strconv"
 	"time"
@@ -20,121 +19,53 @@ func Truncate(s string, length int) string {
 
 templ Datasource(data types.PageData) {
 	@Layout(data) {
-		<div class="datasource-page">
-			<div class="page-header">
-				<div class="breadcrumb">
-					<a href="/datasources">← Back to Datasources</a>
-				</div>
-				<h2>{ data.Datasource }</h2>
-				<p>Browsing content - most recent blocks shown first</p>
-			</div>
+		<div class="firehose-page">
+			@blocksPageHeader(data.Datasource, "Latest blocks from " + data.Datasource + ", ordered by creation time")
 			if len(data.Results) > 0 {
-				for ds, blocks := range data.Results {
-					if ds == data.Datasource {
-						<div class="content-header">
-							<div class="content-info">
-								<span class="block-count">
-									Showing { strconv.Itoa(len(blocks)) } of { strconv.Itoa(data.TotalCount) } blocks (Page { strconv.Itoa(data.CurrentPage) })
-								</span>
-							</div>
-						</div>
-						if len(blocks) > 0 {
-							<div class="blocks-container">
-								for _, block := range blocks {
-									<div class="block">
-										<div class="block-header">
-											<div class="block-meta">
-												<span class="block-date">{ FormatTime(block.CreatedAt) }</span>
-												if block.Source != "" {
-													<span class="block-source">{ block.Source }</span>
-												}
-												if block.ID != "" {
-													<span class="block-id">{ Truncate(block.ID, 8) }</span>
-												}
-											</div>
-										</div>
-										<div class="block-content">
-											@templ.Raw(block.FormattedText)
-										</div>
-										if len(block.Links) > 0 {
-											<div class="block-links">
-												<div class="links-header">Links:</div>
-												<div class="links-list">
-													for _, link := range block.Links {
-														<a
-															href={ templ.URL(link) }
-															target="_blank"
-															rel="noopener"
-															class="block-link"
-														>
-															{ Truncate(link, 60) }
-														</a>
-													}
-												</div>
-											</div>
-										}
-										if len(block.Metadata) > 0 {
-											<details class="block-metadata">
-												<summary>Show metadata</summary>
-												<div class="metadata-content">
-													for key, value := range block.Metadata {
-														<div class="metadata-item">
-															<strong>{ key }:</strong> { fmt.Sprint(value) }
-														</div>
-													}
-												</div>
-											</details>
-										}
-									</div>
-								}
-							</div>
-						} else {
-							<div class="no-blocks">
-								<h3>No blocks found</h3>
-								<p>This datasource doesn't contain any blocks yet.</p>
-							</div>
-						}
-						if data.CurrentPage > 1 || data.HasNextPage {
-							<div class="pagination">
-								if data.CurrentPage > 1 {
-									<a
-										href={ templ.URL("/datasource/" + data.Datasource + "?page=" + strconv.Itoa(data.CurrentPage-1)) }
-										class="pagination-btn"
-									>← Previous</a>
-								}
-								<div class="page-numbers">
-									// Show first page if we're not near the beginning
-									if data.CurrentPage > 3 {
-										<a href={ templ.URL("/datasource/" + data.Datasource + "?page=1") } class="page-num">1</a>
-										if data.CurrentPage > 4 {
-											<span class="page-ellipsis">...</span>
-										}
-									}
-									// Show current page and nearby pages
-									if data.CurrentPage > 1 {
-										<a href={ templ.URL("/datasource/" + data.Datasource + "?page=" + strconv.Itoa(data.CurrentPage-1)) } class="page-num">{ strconv.Itoa(data.CurrentPage-1) }</a>
-									}
-									<span class="page-num current">{ strconv.Itoa(data.CurrentPage) }</span>
-									if data.HasNextPage {
-										<a href={ templ.URL("/datasource/" + data.Datasource + "?page=" + strconv.Itoa(data.CurrentPage+1)) } class="page-num">{ strconv.Itoa(data.CurrentPage+1) }</a>
-									}
-								</div>
-								if data.HasNextPage {
-									<a
-										href={ templ.URL("/datasource/" + data.Datasource + "?page=" + strconv.Itoa(data.CurrentPage+1)) }
-										class="pagination-btn"
-									>Next →</a>
-								}
-							</div>
-						}
-					}
-				}
-			} else {
-				<div class="empty-state">
-					<h3>Browse { data.Datasource }</h3>
+				<div class="results-summary">
 					<p>
-						This datasource is ready to browse. Recent blocks will be shown
-						automatically.
+						Showing { strconv.Itoa(data.TotalCount) } blocks (Page { strconv.Itoa(data.CurrentPage) })
+					</p>
+				</div>
+				<div class="results-section">
+					<div class="firehose-blocks">
+						for ds, blocks := range data.Results {
+							if ds == data.Datasource {
+								for _, block := range blocks {
+									@UnifiedBlock(block, ds)
+								}
+							}
+						}
+					</div>
+				</div>
+				<div class="pagination">
+					if data.CurrentPage > 1 {
+						<a
+							href={ templ.URL("/datasource/" + data.Datasource + "?page=" + strconv.Itoa(data.CurrentPage-1) + "&limit=" + strconv.Itoa(data.PageSize)) }
+							class="pagination-btn"
+						>← Previous</a>
+					}
+					<span class="page-info">
+						Page { strconv.Itoa(data.CurrentPage) }
+					</span>
+					if data.HasNextPage {
+						<a
+							href={ templ.URL("/datasource/" + data.Datasource + "?page=" + strconv.Itoa(data.CurrentPage+1) + "&limit=" + strconv.Itoa(data.PageSize)) }
+							class="pagination-btn"
+						>Next →</a>
+					}
+				</div>
+			} else if data.Error != "" {
+				<div class="no-results">
+					<h3>Error Loading Blocks</h3>
+					<p>{ data.Error }</p>
+				</div>
+			} else {
+				<div class="no-results">
+					<h3>No Blocks Found</h3>
+					<p>This datasource doesn't contain any blocks yet.</p>
+					<p>
+						<a href="/firehose">View all recent blocks</a>
 					</p>
 				</div>
 			}

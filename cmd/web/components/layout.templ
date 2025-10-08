@@ -15,7 +15,7 @@ templ Layout(data types.PageData) {
 			<link rel="stylesheet" href="/static/style.css"/>
 			<link rel="stylesheet" href="/static/choices.min.css"/>
 		</head>
-		<body>
+		<body class="theme-polar-night">
 			<header>
 				<div class="container">
 					<div class="header-content">
@@ -30,6 +30,10 @@ templ Layout(data types.PageData) {
 							<a href="/firehose">Firehose</a>
 							<a href="/datasources">Datasources</a>
 						</nav>
+						<div class="theme-toggle" id="theme-toggle">
+							<div class="theme-dot polar-night" data-theme="polar-night" title="Polar Night"></div>
+							<div class="theme-dot frost" data-theme="frost" title="Frost"></div>
+						</div>
 					</div>
 				</div>
 			</header>
@@ -58,12 +62,11 @@ templ Layout(data types.PageData) {
 				</footer>
 			}
 			<script>
-				// Add active navigation highlighting
+				// Theme + active navigation handling
 				document.addEventListener("DOMContentLoaded", function () {
+					// Active nav highlighting
 					const currentPath = window.location.pathname;
-					const navLinks = document.querySelectorAll("nav a");
-
-					navLinks.forEach((link) => {
+					document.querySelectorAll("nav a").forEach((link) => {
 						if (
 							link.getAttribute("href") === currentPath ||
 							(currentPath.startsWith("/datasource/") &&
@@ -73,6 +76,30 @@ templ Layout(data types.PageData) {
 						) {
 							link.classList.add("active");
 						}
+					});
+
+					// Theme handling
+					const defaultTheme = "polar-night"; // default dark theme (matches initial body class)
+					const stored = localStorage.getItem("ergs-theme") || defaultTheme;
+					applyTheme(stored);
+
+					function applyTheme(name) {
+						document.body.classList.remove("theme-polar-night", "theme-frost");
+						document.body.classList.add("theme-" + name);
+						localStorage.setItem("ergs-theme", name);
+						document
+							.querySelectorAll(".theme-dot")
+							.forEach((d) => d.classList.remove("active"));
+						const activeDot = document.querySelector(
+							'.theme-dot[data-theme="' + name + '"]'
+						);
+						if (activeDot) activeDot.classList.add("active");
+					}
+
+					document.querySelectorAll(".theme-dot").forEach((dot) => {
+						dot.addEventListener("click", () =>
+							applyTheme(dot.getAttribute("data-theme"))
+						);
 					});
 				});
 			</script>

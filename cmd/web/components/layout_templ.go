@@ -44,7 +44,7 @@ func Layout(data types.PageData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><link rel=\"icon\" type=\"image/x-icon\" href=\"/static/favicon.ico\"><link rel=\"icon\" type=\"image/png\" sizes=\"32x32\" href=\"/static/favicon-32x32.png\"><link rel=\"icon\" type=\"image/png\" sizes=\"16x16\" href=\"/static/favicon-16x16.png\"><link rel=\"stylesheet\" href=\"/static/style.css\"><link rel=\"stylesheet\" href=\"/static/choices.min.css\"></head><body><header><div class=\"container\"><div class=\"header-content\"><h1><a href=\"/\" style=\"text-decoration: none; color: inherit\">Ergs Data Explorer</a></h1><nav><a href=\"/\">Home</a> <a href=\"/search\">Search</a> <a href=\"/firehose\">Firehose</a> <a href=\"/datasources\">Datasources</a></nav></div></div></header><main><div class=\"container\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><link rel=\"icon\" type=\"image/x-icon\" href=\"/static/favicon.ico\"><link rel=\"icon\" type=\"image/png\" sizes=\"32x32\" href=\"/static/favicon-32x32.png\"><link rel=\"icon\" type=\"image/png\" sizes=\"16x16\" href=\"/static/favicon-16x16.png\"><link rel=\"stylesheet\" href=\"/static/style.css\"><link rel=\"stylesheet\" href=\"/static/choices.min.css\"></head><body class=\"theme-polar-night\"><header><div class=\"container\"><div class=\"header-content\"><h1><a href=\"/\" style=\"text-decoration: none; color: inherit\">Ergs Data Explorer</a></h1><nav><a href=\"/\">Home</a> <a href=\"/search\">Search</a> <a href=\"/firehose\">Firehose</a> <a href=\"/datasources\">Datasources</a></nav><div class=\"theme-toggle\" id=\"theme-toggle\"><div class=\"theme-dot polar-night\" data-theme=\"polar-night\" title=\"Polar Night\"></div><div class=\"theme-dot frost\" data-theme=\"frost\" title=\"Frost\"></div></div></div></div></header><main><div class=\"container\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -56,7 +56,7 @@ func Layout(data types.PageData) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(data.Error)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/layout.templ`, Line: 40, Col: 43}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/layout.templ`, Line: 44, Col: 43}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -75,7 +75,7 @@ func Layout(data types.PageData) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(data.Success)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/layout.templ`, Line: 45, Col: 47}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/layout.templ`, Line: 49, Col: 47}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -102,7 +102,7 @@ func Layout(data types.PageData) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(data.Version)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/layout.templ`, Line: 55, Col: 33}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/layout.templ`, Line: 59, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -113,7 +113,7 @@ func Layout(data types.PageData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<script>\n\t\t\t\t// Add active navigation highlighting\n\t\t\t\tdocument.addEventListener(\"DOMContentLoaded\", function () {\n\t\t\t\t\tconst currentPath = window.location.pathname;\n\t\t\t\t\tconst navLinks = document.querySelectorAll(\"nav a\");\n\n\t\t\t\t\tnavLinks.forEach((link) => {\n\t\t\t\t\t\tif (\n\t\t\t\t\t\t\tlink.getAttribute(\"href\") === currentPath ||\n\t\t\t\t\t\t\t(currentPath.startsWith(\"/datasource/\") &&\n\t\t\t\t\t\t\t\tlink.getAttribute(\"href\") === \"/datasources\") ||\n\t\t\t\t\t\t\t(currentPath.startsWith(\"/firehose\") &&\n\t\t\t\t\t\t\t\tlink.getAttribute(\"href\") === \"/firehose\")\n\t\t\t\t\t\t) {\n\t\t\t\t\t\t\tlink.classList.add(\"active\");\n\t\t\t\t\t\t}\n\t\t\t\t\t});\n\t\t\t\t});\n\t\t\t</script><script src=\"/static/choices.min.js\"></script><script src=\"/static/script.js\"></script></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<script>\n\t\t\t\t// Theme + active navigation handling\n\t\t\t\tdocument.addEventListener(\"DOMContentLoaded\", function () {\n\t\t\t\t\t// Active nav highlighting\n\t\t\t\t\tconst currentPath = window.location.pathname;\n\t\t\t\t\tdocument.querySelectorAll(\"nav a\").forEach((link) => {\n\t\t\t\t\t\tif (\n\t\t\t\t\t\t\tlink.getAttribute(\"href\") === currentPath ||\n\t\t\t\t\t\t\t(currentPath.startsWith(\"/datasource/\") &&\n\t\t\t\t\t\t\t\tlink.getAttribute(\"href\") === \"/datasources\") ||\n\t\t\t\t\t\t\t(currentPath.startsWith(\"/firehose\") &&\n\t\t\t\t\t\t\t\tlink.getAttribute(\"href\") === \"/firehose\")\n\t\t\t\t\t\t) {\n\t\t\t\t\t\t\tlink.classList.add(\"active\");\n\t\t\t\t\t\t}\n\t\t\t\t\t});\n\n\t\t\t\t\t// Theme handling\n\t\t\t\t\tconst defaultTheme = \"polar-night\"; // default dark theme (matches initial body class)\n\t\t\t\t\tconst stored = localStorage.getItem(\"ergs-theme\") || defaultTheme;\n\t\t\t\t\tapplyTheme(stored);\n\n\t\t\t\t\tfunction applyTheme(name) {\n\t\t\t\t\t\tdocument.body.classList.remove(\"theme-polar-night\", \"theme-frost\");\n\t\t\t\t\t\tdocument.body.classList.add(\"theme-\" + name);\n\t\t\t\t\t\tlocalStorage.setItem(\"ergs-theme\", name);\n\t\t\t\t\t\tdocument\n\t\t\t\t\t\t\t.querySelectorAll(\".theme-dot\")\n\t\t\t\t\t\t\t.forEach((d) => d.classList.remove(\"active\"));\n\t\t\t\t\t\tconst activeDot = document.querySelector(\n\t\t\t\t\t\t\t'.theme-dot[data-theme=\"' + name + '\"]'\n\t\t\t\t\t\t);\n\t\t\t\t\t\tif (activeDot) activeDot.classList.add(\"active\");\n\t\t\t\t\t}\n\n\t\t\t\t\tdocument.querySelectorAll(\".theme-dot\").forEach((dot) => {\n\t\t\t\t\t\tdot.addEventListener(\"click\", () =>\n\t\t\t\t\t\t\tapplyTheme(dot.getAttribute(\"data-theme\"))\n\t\t\t\t\t\t);\n\t\t\t\t\t});\n\t\t\t\t});\n\t\t\t</script><script src=\"/static/choices.min.js\"></script><script src=\"/static/script.js\"></script></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

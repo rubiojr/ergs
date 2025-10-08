@@ -55,19 +55,23 @@
     .block-firefox {
         margin-bottom: 1.5rem;
         padding: 0;
-        border: 1px solid #e9ecef;
+        border: 1px solid var(--border);
         border-radius: 6px;
-        background: white;
+        background: var(--surface);
         font-size: 13px;
         line-height: 1.3;
+        transition:
+            background 0.25s ease,
+            border-color 0.25s ease;
     }
 
     .firefox-header {
         display: flex;
         gap: 10px;
         padding: 8px 12px;
-        background: white;
+        background: var(--surface-alt);
         border-radius: 6px 6px 0 0;
+        transition: background 0.25s ease;
     }
 
     .firefox-icon {
@@ -87,28 +91,30 @@
     }
 
     .firefox-link {
-        color: #0969da;
+        color: var(--accent);
         text-decoration: none;
         font-size: 14px;
         font-weight: 500;
+        transition: color 0.2s ease;
     }
 
     .firefox-link:visited {
-        color: #8250df;
+        color: var(--accent-alt);
     }
 
     .firefox-link:hover {
         text-decoration: underline;
+        color: var(--accent-hover);
     }
 
     .firefox-title-text {
-        color: #1f2328;
+        color: var(--text);
         font-size: 14px;
         font-weight: 500;
     }
 
     .firefox-domain {
-        color: #656d76;
+        color: var(--text-dim);
         font-size: 11px;
         margin-left: 4px;
         word-break: break-all;
@@ -123,7 +129,7 @@
     }
 
     .firefox-meta {
-        color: #656d76;
+        color: var(--text-dim);
         font-size: 11px;
         display: flex;
         align-items: center;
@@ -136,29 +142,30 @@
     }
 
     .firefox-separator {
-        color: #d1d9e0;
+        color: var(--border-alt);
         margin: 0 2px;
     }
 
     .firefox-visits {
-        color: #ff7139;
+        color: var(--accent);
         font-weight: 500;
     }
 
     .firefox-view {
-        color: #656d76;
+        color: var(--text-dim);
         text-decoration: none;
+        transition: color 0.2s ease;
     }
 
     .firefox-view:hover {
         text-decoration: underline;
-        color: #0969da;
+        color: var(--accent);
     }
 
     .firefox-description {
-        background: #f6f8fa;
+        background: var(--surface-alt);
         padding: 8px 12px;
-        border-top: 1px solid #e9ecef;
+        border-top: 1px solid var(--border);
         border-radius: 0 0 6px 6px;
     }
 
@@ -167,28 +174,29 @@
     }
 
     .firefox-details summary {
-        color: #656d76;
+        color: var(--text-dim);
         cursor: pointer;
         padding: 4px 0;
         font-weight: normal;
+        transition: color 0.2s ease;
     }
 
     .firefox-details summary:hover {
-        color: #1f2328;
+        color: var(--text);
     }
 
     .firefox-details[open] summary {
         margin-bottom: 8px;
-        border-bottom: 1px solid #e9ecef;
+        border-bottom: 1px solid var(--border);
         padding-bottom: 8px;
     }
 
     .firefox-description-content {
-        background: white;
+        background: var(--surface);
         padding: 12px;
-        border: 1px solid #e9ecef;
+        border: 1px solid var(--border);
         border-radius: 6px;
-        color: #1f2328;
+        color: var(--text);
         font-size: 13px;
         line-height: 1.4;
         white-space: pre-wrap;
@@ -220,6 +228,6 @@
 
     /* Hover state for the entire block */
     .firefox-header:hover {
-        background: #f6f8fa;
+        background: var(--surface);
     }
 </style>

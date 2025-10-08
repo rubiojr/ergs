@@ -88,38 +88,42 @@
         </details>
     </div>
     {{end}}
-
-    <div class="rtve-source">
-        <span class="rtve-brand">RTVE</span>
-    </div>
 </div>
 
 <style>
     .block-rtve {
         margin-bottom: 1.5rem;
         padding: 0;
-        border: 1px solid #e0e0e0;
+        border: 1px solid var(--border);
         border-radius: 8px;
-        background: #ffffff;
+        background: var(--surface);
         font-family:
             -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
             "Helvetica Neue", Arial, sans-serif;
         font-size: 14px;
         line-height: 1.4;
         overflow: hidden;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-        transition: box-shadow 0.2s ease;
+        box-shadow: 0 1px 3px var(--shadow);
+        transition:
+            box-shadow 0.2s ease,
+            background 0.25s ease,
+            border-color 0.25s ease;
     }
 
     .block-rtve:hover {
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+        box-shadow: 0 2px 10px var(--shadow);
     }
 
     .rtve-header {
         display: flex;
         gap: 12px;
         padding: 16px;
-        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        background: linear-gradient(
+            135deg,
+            var(--surface-alt) 0%,
+            var(--surface) 100%
+        );
+        transition: background 0.25s ease;
     }
 
     .rtve-icon {
@@ -144,7 +148,7 @@
     }
 
     .rtve-link {
-        color: #1a1a1a;
+        color: var(--text);
         text-decoration: none;
         font-size: 16px;
         font-weight: 600;
@@ -153,22 +157,22 @@
     }
 
     .rtve-link:hover {
-        color: #e60000;
+        color: var(--accent);
         text-decoration: underline;
     }
 
     .rtve-link:visited {
-        color: #4a4a4a;
+        color: var(--text-dim);
     }
 
     .rtve-title-text {
-        color: #1a1a1a;
+        color: var(--text);
         font-size: 16px;
         font-weight: 600;
     }
 
     .rtve-meta {
-        color: #666666;
+        color: var(--text-dim);
         font-size: 13px;
         display: flex;
         align-items: center;
@@ -179,57 +183,41 @@
     .rtve-time {
         font-variant-numeric: tabular-nums;
         font-weight: 500;
+        color: var(--text);
     }
 
     .rtve-id {
-        color: #888888;
+        color: var(--text-faint);
         font-size: 12px;
         font-family: "Courier New", monospace;
     }
 
     .rtve-separator {
-        color: #d0d0d0;
+        color: var(--border-alt);
         margin: 0 2px;
     }
 
     .rtve-subtitles {
-        color: #2c7a2c;
+        color: var(--success);
         font-weight: 500;
     }
 
     .rtve-watch {
-        color: #e60000;
+        color: var(--accent);
         text-decoration: none;
         font-weight: 600;
         transition: color 0.2s ease;
     }
 
     .rtve-watch:hover {
-        color: #b30000;
+        color: var(--accent-hover);
         text-decoration: underline;
-    }
-
-    .rtve-source {
-        background: #e60000;
-        padding: 6px 16px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        border-top: 1px solid #cc0000;
-    }
-
-    .rtve-brand {
-        color: #ffffff;
-        font-weight: 700;
-        font-size: 11px;
-        letter-spacing: 1px;
-        text-transform: uppercase;
     }
 
     /* Transcript styles */
     .rtve-transcript {
-        background: #f8f9fa;
-        border-top: 1px solid #e0e0e0;
+        background: var(--surface-alt);
+        border-top: 1px solid var(--border);
         padding: 0;
     }
 
@@ -244,15 +232,18 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        color: #666666;
+        color: var(--text-dim);
         font-size: 13px;
         font-weight: 500;
-        transition: background-color 0.2s ease;
+        transition:
+            background-color 0.2s ease,
+            color 0.2s ease;
         user-select: none;
     }
 
     .rtve-transcript-summary:hover {
-        background-color: #f0f0f0;
+        background-color: var(--surface);
+        color: var(--text);
     }
 
     .rtve-transcript-summary::-webkit-details-marker {
@@ -269,27 +260,29 @@
     }
 
     .rtve-transcript-length {
-        color: #999999;
+        color: var(--text-faint);
         font-size: 11px;
         font-weight: 400;
     }
 
     .rtve-transcript-details[open] .rtve-transcript-summary {
-        background-color: #e8e9ea;
+        background-color: var(--surface-alt);
         border-bottom: none;
     }
 
     .rtve-transcript-header {
-        background: #e8e9ea;
+        background: var(--surface-alt);
         padding: 8px 16px;
-        border-bottom: 1px solid #d0d0d0;
+        border-bottom: 1px solid var(--border);
         display: flex;
         justify-content: flex-end;
+        gap: 0.5rem;
     }
 
-    .rtve-copy-btn {
-        background: #ffffff;
-        border: 1px solid #d0d0d0;
+    .rtve-copy-btn,
+    .rtve-select-btn {
+        background: var(--surface);
+        border: 1px solid var(--border);
         border-radius: 4px;
         padding: 6px 12px;
         display: flex;
@@ -297,66 +290,39 @@
         gap: 6px;
         cursor: pointer;
         font-size: 12px;
-        color: #666;
-        transition: all 0.2s ease;
+        color: var(--text-dim);
+        transition:
+            background 0.25s ease,
+            border-color 0.25s ease,
+            color 0.25s ease,
+            transform 0.15s ease;
     }
 
-    .rtve-copy-btn:hover {
-        background: #f8f9fa;
-        border-color: #999;
-        color: #333;
+    .rtve-copy-btn:hover,
+    .rtve-select-btn:hover {
+        background: var(--surface-alt);
+        border-color: var(--accent);
+        color: var(--text);
     }
 
-    .rtve-copy-btn:active {
-        background: #e8e9ea;
-        transform: scale(0.98);
+    .rtve-copy-btn:active,
+    .rtve-select-btn:active {
+        transform: scale(0.97);
     }
 
     .rtve-copy-btn.copied {
-        background: #4caf50;
-        border-color: #4caf50;
-        color: white;
+        background: var(--success);
+        border-color: var(--success);
+        color: var(--text);
     }
 
-    .rtve-copy-icon {
-        font-size: 14px;
-        line-height: 1;
-    }
-
-    .rtve-copy-text {
-        font-weight: 500;
-    }
-
-    .rtve-select-btn {
-        background: #ffffff;
-        border: 1px solid #d0d0d0;
-        border-radius: 4px;
-        padding: 6px 12px;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        cursor: pointer;
-        font-size: 12px;
-        color: #666;
-        transition: all 0.2s ease;
-    }
-
-    .rtve-select-btn:hover {
-        background: #f8f9fa;
-        border-color: #999;
-        color: #333;
-    }
-
-    .rtve-select-btn:active {
-        background: #e8e9ea;
-        transform: scale(0.98);
-    }
-
+    .rtve-copy-icon,
     .rtve-select-icon {
         font-size: 14px;
         line-height: 1;
     }
 
+    .rtve-copy-text,
     .rtve-select-text {
         font-weight: 500;
     }
@@ -367,16 +333,18 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0, 0, 0, 0.5);
+        background: rgba(0, 0, 0, 0.55);
         display: flex;
         align-items: center;
         justify-content: center;
         z-index: 1000;
         padding: 20px;
+        backdrop-filter: blur(2px);
     }
 
     .rtve-textarea-container {
-        background: white;
+        background: var(--surface);
+        border: 1px solid var(--border);
         border-radius: 8px;
         padding: 20px;
         max-width: 800px;
@@ -384,7 +352,7 @@
         max-height: 80vh;
         display: flex;
         flex-direction: column;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 4px 20px var(--shadow);
     }
 
     .rtve-textarea-header {
@@ -397,7 +365,7 @@
     .rtve-textarea-title {
         font-size: 16px;
         font-weight: 600;
-        color: #1a1a1a;
+        color: var(--text);
     }
 
     .rtve-textarea-close {
@@ -405,7 +373,7 @@
         border: none;
         font-size: 24px;
         cursor: pointer;
-        color: #666;
+        color: var(--text-dim);
         padding: 0;
         width: 32px;
         height: 32px;
@@ -413,36 +381,39 @@
         align-items: center;
         justify-content: center;
         border-radius: 4px;
-        transition: all 0.2s ease;
+        transition:
+            background 0.2s ease,
+            color 0.2s ease;
     }
 
     .rtve-textarea-close:hover {
-        background: #f0f0f0;
-        color: #333;
+        background: var(--surface-alt);
+        color: var(--text);
     }
 
     .rtve-selectable-textarea {
         width: 100%;
         height: 400px;
         padding: 12px;
-        border: 1px solid #d0d0d0;
+        border: 1px solid var(--border);
         border-radius: 4px;
         font-family: "Courier New", monospace;
         font-size: 13px;
         line-height: 1.6;
         resize: vertical;
-        background: #fafafa;
+        background: var(--code-bg);
+        color: var(--text);
     }
 
     .rtve-selectable-textarea:focus {
-        outline: 2px solid #e60000;
+        outline: 2px solid var(--accent);
         outline-offset: 2px;
     }
 
     .rtve-transcript-content {
         padding: 16px;
-        background: #ffffff;
-        color: #2c3e50;
+        background: var(--surface);
+        color: var(--text);
         font-size: 14px;
         line-height: 1.6;
         max-height: 400px;
@@ -454,7 +425,7 @@
         gap: 12px;
         margin-bottom: 12px;
         padding: 8px 0;
-        border-bottom: 1px solid #f0f0f0;
+        border-bottom: 1px solid var(--border-alt);
     }
 
     .rtve-cue:last-child {
@@ -464,7 +435,7 @@
 
     .rtve-cue-time {
         flex-shrink: 0;
-        color: #666;
+        color: var(--text-faint);
         font-family: "Courier New", monospace;
         font-size: 12px;
         font-weight: 600;
@@ -474,338 +445,299 @@
 
     .rtve-cue-text {
         flex: 1;
-        color: #2c3e50;
+        color: var(--text);
         font-family: Georgia, "Times New Roman", serif;
         line-height: 1.5;
     }
 
-    /* Scrollbar styling for transcript */
     .rtve-transcript-content::-webkit-scrollbar {
         width: 8px;
     }
 
     .rtve-transcript-content::-webkit-scrollbar-track {
-        background: #f1f1f1;
+        background: var(--surface-alt);
     }
 
     .rtve-transcript-content::-webkit-scrollbar-thumb {
-        background: #888;
+        background: var(--border);
         border-radius: 4px;
     }
 
     .rtve-transcript-content::-webkit-scrollbar-thumb:hover {
-        background: #555;
+        background: var(--accent);
     }
 
-    /* Responsive adjustments */
     @media (max-width: 600px) {
         .rtve-header {
             padding: 12px;
             gap: 10px;
         }
-
         .rtve-logo {
             font-size: 20px;
         }
-
         .rtve-link,
         .rtve-title-text {
             font-size: 15px;
         }
-
         .rtve-meta {
             font-size: 12px;
             gap: 6px;
         }
-
         .rtve-id {
             display: none;
         }
-
-        .rtve-source {
-            padding: 5px 12px;
-        }
     }
 
-    /* Better spacing for long titles */
     .rtve-title {
         word-wrap: break-word;
         overflow-wrap: break-word;
     }
 
-    /* Accessibility */
     .rtve-link:focus,
     .rtve-watch:focus {
-        outline: 2px solid #e60000;
+        outline: 2px solid var(--accent);
         outline-offset: 2px;
-    }
-
-    /* Dark mode support */
-    @media (prefers-color-scheme: dark) {
-        .block-rtve {
-            background: #1a1a1a;
-            border-color: #333333;
-        }
-
-        .rtve-header {
-            background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
-        }
-
-        .rtve-link,
-        .rtve-title-text {
-            color: #e0e0e0;
-        }
-
-        .rtve-link:hover {
-            color: #ff4444;
-        }
-
-        .rtve-link:visited {
-            color: #b0b0b0;
-        }
-
-        .rtve-meta {
-            color: #999999;
-        }
-
-        .rtve-id {
-            color: #777777;
-        }
-
-        .rtve-subtitles {
-            color: #4caf50;
-        }
-
-        .rtve-transcript {
-            background: #2a2a2a;
-            border-top-color: #444444;
-        }
-
-        .rtve-transcript-summary {
-            color: #999999;
-        }
-
-        .rtve-transcript-summary:hover {
-            background-color: #333333;
-        }
-
-        .rtve-transcript-details[open] .rtve-transcript-summary {
-            background-color: #2a2a2a;
-            border-bottom: none;
-        }
-
-        .rtve-transcript-header {
-            background: #2a2a2a;
-            border-bottom-color: #444;
-        }
-
-        .rtve-copy-btn {
-            background: #1a1a1a;
-            border-color: #444;
-            color: #999;
-        }
-
-        .rtve-copy-btn:hover {
-            background: #333;
-            border-color: #666;
-            color: #ccc;
-        }
-
-        .rtve-copy-btn:active {
-            background: #2a2a2a;
-        }
-
-        .rtve-select-btn {
-            background: #1a1a1a;
-            border-color: #444;
-            color: #999;
-        }
-
-        .rtve-select-btn:hover {
-            background: #333;
-            border-color: #666;
-            color: #ccc;
-        }
-
-        .rtve-select-btn:active {
-            background: #2a2a2a;
-        }
-
-        .rtve-textarea-container {
-            background: #1a1a1a;
-        }
-
-        .rtve-textarea-title {
-            color: #e0e0e0;
-        }
-
-        .rtve-textarea-close {
-            color: #999;
-        }
-
-        .rtve-textarea-close:hover {
-            background: #333;
-            color: #ccc;
-        }
-
-        .rtve-selectable-textarea {
-            background: #2a2a2a;
-            color: #e0e0e0;
-            border-color: #444;
-        }
-
-        .rtve-transcript-content {
-            background: #1a1a1a;
-            color: #e0e0e0;
-        }
-
-        .rtve-cue {
-            border-bottom-color: #333;
-        }
-
-        .rtve-cue-time {
-            color: #888;
-        }
-
-        .rtve-cue-text {
-            color: #d0d0d0;
-        }
-
-        .rtve-transcript-content::-webkit-scrollbar-track {
-            background: #2a2a2a;
-        }
-
-        .rtve-transcript-content::-webkit-scrollbar-thumb {
-            background: #555;
-        }
-
-        .rtve-transcript-content::-webkit-scrollbar-thumb:hover {
-            background: #777;
-        }
     }
 </style>
 
 <script>
-    function copyTranscript(button) {
-        const transcriptContent = button
-            .closest(".rtve-transcript")
-            .querySelector(".rtve-transcript-content");
-        const cuesJson = transcriptContent.getAttribute("data-transcript-cues");
+        function copyTranscript(button) {
+            const transcriptContent = button
+                .closest(".rtve-transcript")
+                .querySelector(".rtve-transcript-content");
+            const cuesJson = transcriptContent.getAttribute("data-transcript-cues");
+        /* Removed legacy hardcoded dark mode overrides: now handled by theme CSS variables */
 
-        try {
-            // Parse the JSON cues
-            const cues = JSON.parse(cuesJson);
-
-            // Format as plain text with timestamps
-            const text = cues
-                .map((cue) => `[${cue.start}] ${cue.text}`)
-                .join("\n");
-
-            // Copy to clipboard (requires HTTPS or localhost)
-            if (!navigator.clipboard) {
-                alert(
-                    "Clipboard copy requires HTTPS. Please access this site over HTTPS or copy the transcript manually.",
-                );
-                return;
+            .rtve-transcript {
+                background: #2a2a2a;
+                border-top-color: #444444;
             }
 
-            navigator.clipboard.writeText(text).then(
-                function () {
-                    // Success feedback
-                    const originalText =
-                        button.querySelector(".rtve-copy-text").textContent;
-                    button.classList.add("copied");
-                    button.querySelector(".rtve-copy-icon").textContent = "✓";
-                    button.querySelector(".rtve-copy-text").textContent =
-                        "Copied!";
+            .rtve-transcript-summary {
+                color: #999999;
+            }
 
-                    // Reset after 2 seconds
-                    setTimeout(function () {
-                        button.classList.remove("copied");
-                        button.querySelector(".rtve-copy-icon").textContent =
-                            "📋";
-                        button.querySelector(".rtve-copy-text").textContent =
-                            originalText;
-                    }, 2000);
-                },
-                function (err) {
-                    console.error("Failed to copy transcript:", err);
+            .rtve-transcript-summary:hover {
+                background-color: #333333;
+            }
+
+            .rtve-transcript-details[open] .rtve-transcript-summary {
+                background-color: #2a2a2a;
+                border-bottom: none;
+            }
+
+            .rtve-transcript-header {
+                background: #2a2a2a;
+                border-bottom-color: #444;
+            }
+
+            .rtve-copy-btn {
+                background: #1a1a1a;
+                border-color: #444;
+                color: #999;
+            }
+
+            .rtve-copy-btn:hover {
+                background: #333;
+                border-color: #666;
+                color: #ccc;
+            }
+
+            .rtve-copy-btn:active {
+                background: #2a2a2a;
+            }
+
+            .rtve-select-btn {
+                background: #1a1a1a;
+                border-color: #444;
+                color: #999;
+            }
+
+            .rtve-select-btn:hover {
+                background: #333;
+                border-color: #666;
+                color: #ccc;
+            }
+
+            .rtve-select-btn:active {
+                background: #2a2a2a;
+            }
+
+            .rtve-textarea-container {
+                background: #1a1a1a;
+            }
+
+            .rtve-textarea-title {
+                color: #e0e0e0;
+            }
+
+            .rtve-textarea-close {
+                color: #999;
+            }
+
+            .rtve-textarea-close:hover {
+                background: #333;
+                color: #ccc;
+            }
+
+            .rtve-selectable-textarea {
+                background: #2a2a2a;
+                color: #e0e0e0;
+                border-color: #444;
+            }
+
+            .rtve-transcript-content {
+                background: #1a1a1a;
+                color: #e0e0e0;
+            }
+
+            .rtve-cue {
+                border-bottom-color: #333;
+            }
+
+            .rtve-cue-time {
+                color: #888;
+            }
+
+            .rtve-cue-text {
+                color: #d0d0d0;
+            }
+
+            .rtve-transcript-content::-webkit-scrollbar-track {
+                background: #2a2a2a;
+            }
+
+            .rtve-transcript-content::-webkit-scrollbar-thumb {
+                background: #555;
+            }
+
+            .rtve-transcript-content::-webkit-scrollbar-thumb:hover {
+                background: #777;
+            }
+        }
+    </style>
+
+    <script>
+        function copyTranscript(button) {
+            const transcriptContent = button
+                .closest(".rtve-transcript")
+                .querySelector(".rtve-transcript-content");
+            const cuesJson = transcriptContent.getAttribute("data-transcript-cues");
+
+            try {
+                // Parse the JSON cues
+                const cues = JSON.parse(cuesJson);
+
+                // Format as plain text with timestamps
+                const text = cues
+                    .map((cue) => `[${cue.start}] ${cue.text}`)
+                    .join("\n");
+
+                // Copy to clipboard (requires HTTPS or localhost)
+                if (!navigator.clipboard) {
                     alert(
-                        "Failed to copy transcript. Clipboard access requires HTTPS or localhost.",
+                        "Clipboard copy requires HTTPS. Please access this site over HTTPS or copy the transcript manually.",
                     );
-                },
-            );
-        } catch (err) {
-            console.error("Failed to parse transcript cues:", err);
-            alert("Failed to copy transcript");
-        }
-    }
-
-    function showSelectableTranscript(button) {
-        const transcriptContent = button
-            .closest(".rtve-transcript")
-            .querySelector(".rtve-transcript-content");
-        const cuesJson = transcriptContent.getAttribute("data-transcript-cues");
-
-        try {
-            // Parse the JSON cues
-            const cues = JSON.parse(cuesJson);
-
-            // Format as plain text with timestamps
-            const text = cues
-                .map((cue) => `[${cue.start}] ${cue.text}`)
-                .join("\n");
-
-            // Create modal overlay
-            const modal = document.createElement("div");
-            modal.className = "rtve-textarea-modal";
-            modal.onclick = function (e) {
-                if (e.target === modal) {
-                    document.body.removeChild(modal);
+                    return;
                 }
-            };
 
-            // Create container
-            const container = document.createElement("div");
-            container.className = "rtve-textarea-container";
+                navigator.clipboard.writeText(text).then(
+                    function () {
+                        // Success feedback
+                        const originalText =
+                            button.querySelector(".rtve-copy-text").textContent;
+                        button.classList.add("copied");
+                        button.querySelector(".rtve-copy-icon").textContent = "✓";
+                        button.querySelector(".rtve-copy-text").textContent =
+                            "Copied!";
 
-            // Create header
-            const header = document.createElement("div");
-            header.className = "rtve-textarea-header";
-
-            const title = document.createElement("div");
-            title.className = "rtve-textarea-title";
-            title.textContent = "Transcript (Select and Copy)";
-
-            const closeBtn = document.createElement("button");
-            closeBtn.className = "rtve-textarea-close";
-            closeBtn.innerHTML = "×";
-            closeBtn.onclick = function () {
-                document.body.removeChild(modal);
-            };
-
-            header.appendChild(title);
-            header.appendChild(closeBtn);
-
-            // Create textarea
-            const textarea = document.createElement("textarea");
-            textarea.className = "rtve-selectable-textarea";
-            textarea.value = text;
-            textarea.readOnly = true;
-
-            // Assemble and show
-            container.appendChild(header);
-            container.appendChild(textarea);
-            modal.appendChild(container);
-            document.body.appendChild(modal);
-
-            // Auto-select all text
-            setTimeout(function () {
-                textarea.select();
-            }, 100);
-        } catch (err) {
-            console.error("Failed to parse transcript cues:", err);
-            alert("Failed to show transcript");
+                        // Reset after 2 seconds
+                        setTimeout(function () {
+                            button.classList.remove("copied");
+                            button.querySelector(".rtve-copy-icon").textContent =
+                                "📋";
+                            button.querySelector(".rtve-copy-text").textContent =
+                                originalText;
+                        }, 2000);
+                    },
+                    function (err) {
+                        console.error("Failed to copy transcript:", err);
+                        alert(
+                            "Failed to copy transcript. Clipboard access requires HTTPS or localhost.",
+                        );
+                    },
+                );
+            } catch (err) {
+                console.error("Failed to parse transcript cues:", err);
+                alert("Failed to copy transcript");
+            }
         }
-    }
+
+        function showSelectableTranscript(button) {
+            const transcriptContent = button
+                .closest(".rtve-transcript")
+                .querySelector(".rtve-transcript-content");
+            const cuesJson = transcriptContent.getAttribute("data-transcript-cues");
+
+            try {
+                // Parse the JSON cues
+                const cues = JSON.parse(cuesJson);
+
+                // Format as plain text with timestamps
+                const text = cues
+                    .map((cue) => `[${cue.start}] ${cue.text}`)
+                    .join("\n");
+
+                // Create modal overlay
+                const modal = document.createElement("div");
+                modal.className = "rtve-textarea-modal";
+                modal.onclick = function (e) {
+                    if (e.target === modal) {
+                        document.body.removeChild(modal);
+                    }
+                };
+
+                // Create container
+                const container = document.createElement("div");
+                container.className = "rtve-textarea-container";
+
+                // Create header
+                const header = document.createElement("div");
+                header.className = "rtve-textarea-header";
+
+                const title = document.createElement("div");
+                title.className = "rtve-textarea-title";
+                title.textContent = "Transcript (Select and Copy)";
+
+                const closeBtn = document.createElement("button");
+                closeBtn.className = "rtve-textarea-close";
+                closeBtn.innerHTML = "×";
+                closeBtn.onclick = function () {
+                    document.body.removeChild(modal);
+                };
+
+                header.appendChild(title);
+                header.appendChild(closeBtn);
+
+                // Create textarea
+                const textarea = document.createElement("textarea");
+                textarea.className = "rtve-selectable-textarea";
+                textarea.value = text;
+                textarea.readOnly = true;
+
+                // Assemble and show
+                container.appendChild(header);
+                container.appendChild(textarea);
+                modal.appendChild(container);
+                document.body.appendChild(modal);
+
+                // Auto-select all text
+                setTimeout(function () {
+                    textarea.select();
+                }, 100);
+            } catch (err) {
+                console.error("Failed to parse transcript cues:", err);
+                alert("Failed to show transcript");
+            }
+        }
 </script>

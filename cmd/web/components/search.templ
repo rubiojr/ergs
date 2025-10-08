@@ -40,28 +40,23 @@ func isDatasourceSelected(datasourceName string, selectedDatasources []string) b
 	return false
 }
 
-templ Search(data types.PageData) {
-	@Layout(data) {
-		<div class="search-page">
-			@searchHeader()
-			@searchForm(data)
-			@searchResults(data)
-		</div>
-
-		@searchScript()
+// searchDescription builds the header description text
+func searchDescription(data types.PageData) string {
+	if data.Query != "" {
+		return "Results matching \"" + data.Query + "\""
 	}
+	return "Search across all datasources"
 }
 
-// searchHeader renders the page header with title and search icon
-templ searchHeader() {
-	<div class="search-header">
-		<h2>
-			<svg class="header-icon" viewBox="0 0 24 24" fill="currentColor">
-				<path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
-			</svg>
-			Search Data
-		</h2>
-	</div>
+templ Search(data types.PageData) {
+	@Layout(data) {
+		<div class="firehose-page">
+			@blocksPageHeader("Search", searchDescription(data))
+			@searchForm(data)
+			@searchResultsFirehoseStyle(data)
+		</div>
+		@searchScript()
+	}
 }
 
 // searchForm renders the search form with input and controls
@@ -141,7 +136,7 @@ templ advancedSearchSection(data types.PageData) {
 				<label>Date Range:</label>
 				@dateFilters(data)
 			</div>
-			<div class="control-group">
+			<div class="control-group limit-control">
 				<label for="limit-select">Results per page:</label>
 				@limitSelect(data)
 			</div>
@@ -175,70 +170,45 @@ templ dateFilters(data types.PageData) {
 	</div>
 }
 
-// searchResults renders search results, no results, or help text
-templ searchResults(data types.PageData) {
-	if data.Query != "" {
-		if len(data.Results) > 0 {
-			@resultsWithPagination(data)
-		} else {
-			@noResults(data.Query)
-		}
-	} else {
+// searchResultsFirehoseStyle renders search results using the firehose layout
+templ searchResultsFirehoseStyle(data types.PageData) {
+	if data.Query == "" {
 		@searchHelp()
-	}
-}
-
-// resultsWithPagination renders search results and pagination
-templ resultsWithPagination(data types.PageData) {
-	<div class="results-summary">
-		<p>
-			Found { strconv.Itoa(data.TotalCount) } results for "{ data.Query }" (Page { strconv.Itoa(data.CurrentPage) })
-		</p>
-	</div>
-	<div class="results-section">
-		for datasource, blocks := range data.Results {
-			if len(blocks) > 0 {
-				@datasourceResult(datasource, blocks)
+	} else if len(data.Results) == 0 {
+		@noResults(data.Query)
+	} else {
+		<div class="results-summary">
+			<p>
+				Found { strconv.Itoa(data.TotalCount) } results for "{ data.Query }" (Page { strconv.Itoa(data.CurrentPage) })
+			</p>
+		</div>
+		<div class="results-section">
+			<div class="firehose-blocks">
+				for datasource, blocks := range data.Results {
+					for _, block := range blocks {
+						@UnifiedBlock(block, datasource)
+					}
+				}
+			</div>
+		</div>
+		<div class="pagination">
+			if data.CurrentPage > 1 {
+				<a
+					href={ templ.URL("/search?q=" + data.Query + "&" + buildDatasourceParams(data.SelectedDatasources) + "&" + buildDateParams(data) + "&limit=" + strconv.Itoa(data.PageSize) + "&page=" + strconv.Itoa(data.CurrentPage-1)) }
+					class="pagination-btn"
+				>← Previous</a>
 			}
-		}
-	</div>
-	@pagination(data)
-}
-
-// datasourceResult renders results for a single datasource
-templ datasourceResult(datasource string, blocks []types.WebBlock) {
-	<div class="datasource-results">
-		<h3 class="datasource-title">
-			<a href={ templ.URL("/datasource/" + datasource) }>{ datasource }</a>
-			<span class="result-count">({ strconv.Itoa(len(blocks)) } results)</span>
-		</h3>
-		<div class="blocks">
-			for _, block := range blocks {
-				@templ.Raw(block.FormattedText)
+			<span class="page-info">
+				Page { strconv.Itoa(data.CurrentPage) }
+			</span>
+			if data.HasNextPage {
+				<a
+					href={ templ.URL("/search?q=" + data.Query + "&" + buildDatasourceParams(data.SelectedDatasources) + "&" + buildDateParams(data) + "&limit=" + strconv.Itoa(data.PageSize) + "&page=" + strconv.Itoa(data.CurrentPage+1)) }
+					class="pagination-btn"
+				>Next →</a>
 			}
 		</div>
-	</div>
-}
-
-// pagination renders the pagination controls
-templ pagination(data types.PageData) {
-	<div class="pagination">
-		if data.CurrentPage > 1 {
-			<a
-				href={ templ.URL("/search?q=" + data.Query + "&" + buildDatasourceParams(data.SelectedDatasources) + "&" + buildDateParams(data) + "&limit=" + strconv.Itoa(data.PageSize) + "&page=" + strconv.Itoa(data.CurrentPage-1)) }
-				class="pagination-btn"
-			>← Previous</a>
-		}
-		<span class="page-info">
-			Page { strconv.Itoa(data.CurrentPage) }
-		</span>
-		if data.HasNextPage {
-			<a
-				href={ templ.URL("/search?q=" + data.Query + "&" + buildDatasourceParams(data.SelectedDatasources) + "&" + buildDateParams(data) + "&limit=" + strconv.Itoa(data.PageSize) + "&page=" + strconv.Itoa(data.CurrentPage+1)) }
-				class="pagination-btn"
-			>Next →</a>
-		}
-	</div>
+	}
 }
 
 // noResults renders the no results message
@@ -251,7 +221,7 @@ templ noResults(query string) {
 
 // searchHelp renders the help text when no search has been performed
 templ searchHelp() {
-	<div class="search-help">
+	<div class="no-results">
 		<h3>Search Your Data</h3>
 		<p>Enter a search query above to find content across all your datasources.</p>
 		<p>
@@ -273,19 +243,29 @@ templ searchScript() {
 
 		function initializeChoices() {
 			const datasourceSelect = document.getElementById('datasource-select');
-			if (!datasourceSelect) return;
+			if (datasourceSelect) {
+				const choices = new Choices(datasourceSelect, {
+					removeItemButton: true,
+					searchEnabled: true,
+					searchPlaceholderValue: 'Search datasources...',
+					placeholder: false,
+					noResultsText: 'No datasources found',
+					noChoicesText: 'No datasources available',
+					itemSelectText: 'Press to select'
+				});
 
-			const choices = new Choices(datasourceSelect, {
-				removeItemButton: true,
-				searchEnabled: true,
-				searchPlaceholderValue: 'Search datasources...',
-				placeholder: false,
-				noResultsText: 'No datasources found',
-				noChoicesText: 'No datasources available',
-				itemSelectText: 'Press to select'
-			});
+				setupCustomPlaceholder(choices);
+			}
 
-			setupCustomPlaceholder(choices);
+			// Initialize limit select
+			const limitSelect = document.getElementById('limit-select');
+			if (limitSelect) {
+				new Choices(limitSelect, {
+					searchEnabled: false,
+					itemSelectText: '',
+					shouldSort: false
+				});
+			}
 		}
 
 		function setupCustomPlaceholder(choices) {
@@ -293,19 +273,26 @@ templ searchScript() {
 				const choicesInner = document.querySelector('.choices__inner');
 				const selectedItems = choices.getValue();
 				let placeholder = choicesInner.querySelector('.custom-placeholder');
-				
+
 				if (selectedItems.length === 0) {
 					if (!placeholder) {
 						placeholder = document.createElement('div');
 						placeholder.className = 'custom-placeholder';
 						placeholder.textContent = 'All datasources (leave empty to search all)';
-						placeholder.style.cssText = 'color: #6c757d; pointer-events: none; position: absolute; left: 12px; top: 50%; transform: translateY(-50%);';
+						placeholder.style.cssText = 'color: var(--text-dim); pointer-events: none; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 0.8rem;';
 						choicesInner.style.position = 'relative';
 						choicesInner.appendChild(placeholder);
 					}
-					placeholder.style.display = 'block';
+					// Show placeholder only if no pills AND input empty
+					const clonedInput = choicesInner.querySelector('.choices__input--cloned');
+					const hasValue = clonedInput && clonedInput.value.trim().length > 0;
+					const hasItems = selectedItems.length > 0;
+					placeholder.style.display = (!hasValue && !hasItems) ? 'block' : 'none';
 				} else if (placeholder) {
-					placeholder.style.display = 'none';
+					const clonedInput = choicesInner.querySelector('.choices__input--cloned');
+					const hasValue = clonedInput && clonedInput.value.trim().length > 0;
+					const hasItems = selectedItems.length > 0;
+					placeholder.style.display = (!hasValue && !hasItems) ? 'block' : 'none';
 				}
 			}
 
@@ -313,9 +300,31 @@ templ searchScript() {
 			const select = document.getElementById('datasource-select');
 			select.addEventListener('addItem', updatePlaceholder);
 			select.addEventListener('removeItem', updatePlaceholder);
-			
+			// Also watch input changes to hide placeholder while typing before an item is created
+			const clonedInput = document.querySelector('.choices__input--cloned');
+			if (clonedInput) {
+				clonedInput.addEventListener('input', updatePlaceholder);
+				clonedInput.addEventListener('focus', updatePlaceholder);
+				clonedInput.addEventListener('blur', updatePlaceholder);
+			}
+
 			// Initial update
-			setTimeout(updatePlaceholder, 100);
+			setTimeout(() => {
+				updatePlaceholder();
+				// Re-bind if Choices re-renders the cloned input
+				const observer = new MutationObserver(() => {
+					const ci = document.querySelector('.choices__input--cloned');
+					if (ci && !ci.dataset._phBound) {
+						ci.addEventListener('input', updatePlaceholder);
+						ci.addEventListener('focus', updatePlaceholder);
+						ci.addEventListener('blur', updatePlaceholder);
+						ci.dataset._phBound = '1';
+						updatePlaceholder();
+					}
+				});
+				const inner = document.querySelector('.choices__inner');
+				if (inner) observer.observe(inner, { subtree: true, childList: true });
+			}, 120);
 		}
 
 		function addKeyboardShortcuts() {
@@ -335,21 +344,21 @@ templ searchScript() {
 			const toggleBtn = document.getElementById('advanced-search-btn');
 			const advancedSection = document.getElementById('advanced-search-section');
 			const chevronIcon = toggleBtn.querySelector('.chevron-icon');
-			
+
 			if (!toggleBtn || !advancedSection) return;
 
 			// Get stored preference or check if advanced options are set
 			const storageKey = 'ergs-advanced-search-expanded';
 			let shouldExpand = false;
-			
+
 			// Check if user has manually set the preference
 			const storedPreference = localStorage.getItem(storageKey);
 			if (storedPreference !== null) {
 				shouldExpand = storedPreference === 'true';
 			} else {
 				// Auto-expand only if advanced options are set and no preference stored
-				const hasAdvancedOptions = document.querySelector('#datasource-select').value || 
-										 document.querySelector('#start_date').value || 
+				const hasAdvancedOptions = document.querySelector('#datasource-select').value ||
+										 document.querySelector('#start_date').value ||
 										 document.querySelector('#end_date').value ||
 										 (document.querySelector('#limit-select').value && document.querySelector('#limit-select').value !== '30');
 				shouldExpand = hasAdvancedOptions;
@@ -357,7 +366,7 @@ templ searchScript() {
 
 			toggleBtn.addEventListener('click', function() {
 				const isHidden = advancedSection.style.display === 'none';
-				
+
 				if (isHidden) {
 					advancedSection.style.display = 'block';
 					toggleBtn.classList.add('expanded');

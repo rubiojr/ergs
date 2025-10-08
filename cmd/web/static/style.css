@@ -10,15 +10,214 @@ html {
     scrollbar-gutter: stable;
 }
 
+/* Nord Palette Variables */
+:root {
+    /* Polar Night */
+    --nord0: #2e3440;
+    --nord1: #3b4252;
+    --nord2: #434c5e;
+    --nord3: #4c566a;
+    /* Snow Storm */
+    --nord4: #d8dee9;
+    --nord5: #e5e9f0;
+    --nord6: #eceff4;
+    /* Frost */
+    --nord7: #8fbcbb;
+    --nord8: #88c0d0;
+    --nord9: #81a1c1;
+    --nord10: #5e81ac;
+    /* Aurora */
+    --nord11: #bf616a;
+    --nord12: #d08770;
+    --nord13: #ebcb8b;
+    --nord14: #a3be8c;
+    --nord15: #b48ead;
+
+    /* Semantic defaults (overridden by theme classes) */
+    --bg: var(--nord0);
+    --bg-alt: var(--nord1);
+    --surface: var(--nord2);
+    --surface-alt: var(--nord3);
+    --border: var(--nord3);
+    --border-alt: var(--nord2);
+    --text: var(--nord6);
+    --text-dim: var(--nord5);
+    --text-faint: var(--nord4);
+    --accent: var(--nord8);
+    --accent-alt: var(--nord7);
+    --accent-soft: rgba(136, 192, 208, 0.18);
+    --accent-border: rgba(136, 192, 208, 0.35);
+    --accent-hover: color-mix(in srgb, var(--accent) 80%, white 5%);
+    --focus-ring: var(--accent);
+    --error: var(--nord11);
+    --warn: var(--nord13);
+    --success: var(--nord14);
+    --shadow: rgba(0, 0, 0, 0.55);
+    --code-bg: var(--surface-alt);
+
+    /* Additional semantic tokens replacing hardcoded legacy colors */
+    --card-bg: var(--surface);
+    --card-bg-alt: var(--surface-alt);
+    --panel-bg: var(--surface);
+    --panel-bg-alt: var(--surface-alt);
+    --panel-border: var(--border);
+    --pill-bg: var(--surface-alt);
+    --pill-border: var(--border);
+    --link: var(--accent);
+    --link-hover-bg: var(--accent-soft);
+    --muted: var(--text-dim);
+    --muted-strong: var(--text);
+    --danger-bg: color-mix(in srgb, var(--error) 18%, transparent);
+    --danger-border: var(--error);
+    --danger-text: var(--error);
+    --success-bg: color-mix(in srgb, var(--success) 18%, transparent);
+    --success-border: var(--success);
+    --success-text: var(--success);
+    --warn-bg: color-mix(in srgb, var(--warn) 18%, transparent);
+    --warn-border: var(--warn);
+    --warn-text: var(--warn);
+    --border-soft: var(--border-alt);
+    --gradient-soft: linear-gradient(
+        135deg,
+        var(--surface-alt),
+        var(--surface)
+    );
+    --highlight: var(--accent-soft);
+    /* Contrast helpers */
+    --accent-contrast-text: var(--nord0);
+    --accent-surface: color-mix(in srgb, var(--accent) 22%, var(--bg));
+    --focus-ring-strong: 0 0 0 4px
+        color-mix(in srgb, var(--accent) 55%, transparent);
+
+    /* Font size scale */
+    --font-size-xx-small: 0.625rem; /* 10px */
+    --font-size-x-small: 0.75rem; /* 12px */
+    --font-size-small: 0.875rem; /* 14px */
+    --font-size-medium: 1rem; /* 16px */
+    --font-size-large: 1.125rem; /* 18px */
+    --font-size-x-large: 1.25rem; /* 20px */
+    --font-size-xx-large: 1.5rem; /* 24px */
+}
+
+/* Theme: Polar Night (dark) */
+.theme-polar-night {
+    --bg: var(--nord0);
+    --bg-alt: var(--nord1);
+    --surface: var(--nord2);
+    --surface-alt: var(--nord1);
+    --border: var(--nord3);
+    --border-alt: var(--nord2);
+    --text: var(--nord6);
+    --text-dim: var(--nord5);
+    --text-faint: var(--nord4);
+    --accent: var(--nord8);
+    --accent-alt: var(--nord7);
+    --accent-soft: rgba(136, 192, 208, 0.18);
+    --accent-border: rgba(136, 192, 208, 0.35);
+    --accent-hover: color-mix(in srgb, var(--accent) 80%, white 5%);
+    --focus-ring: var(--accent);
+    --error: var(--nord11);
+    --warn: var(--nord13);
+    --success: var(--nord14);
+    --shadow: rgba(0, 0, 0, 0.55);
+    --code-bg: var(--nord1);
+    --accent-contrast-text: var(--nord0);
+    --accent-surface: color-mix(in srgb, var(--accent) 25%, var(--bg));
+    --focus-ring-strong: 0 0 0 4px
+        color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+/* Theme: Frost (light) */
+.theme-frost {
+    --bg: var(--nord6);
+    --bg-alt: var(--nord5);
+    /* Light surfaces flattened to remove dark Nord2/3 usage */
+    --surface: var(--nord5);
+    --surface-alt: var(--nord6);
+    --border: color-mix(in srgb, var(--nord3) 18%, var(--nord6));
+    --border-alt: color-mix(in srgb, var(--nord3) 28%, var(--nord6));
+    --text-strong: var(--nord2);
+    --text: var(--nord2);
+    --text-dim: color-mix(in srgb, var(--nord2) 70%, var(--nord4) 30%);
+    --text-faint: color-mix(in srgb, var(--nord2) 45%, var(--nord4) 55%);
+    --accent: var(--nord9);
+    --accent-alt: var(--nord10);
+    /* Light theme tweaks for improved contrast & softer accent surfaces */
+    --accent-soft: rgba(129, 161, 193, 0.12);
+    --accent-border: rgba(129, 161, 193, 0.3);
+    --accent-hover: color-mix(in srgb, var(--accent) 75%, black 5%);
+    --accent-contrast-text: var(--nord6);
+    --accent-surface: color-mix(in srgb, var(--accent) 12%, var(--nord6));
+    --focus-ring: var(--accent);
+    --error: var(--nord11);
+    --warn: var(--nord13);
+    --success: var(--nord14);
+    --shadow: rgba(0, 0, 0, 0.12);
+    --code-bg: var(--surface);
+    /* Explicit semantic overrides to avoid fallback to dark tones */
+    --card-bg: var(--surface);
+    --card-bg-alt: var(--surface-alt);
+    --panel-bg: var(--surface);
+    --panel-bg-alt: var(--surface-alt);
+    --panel-border: var(--border);
+    --pill-bg: var(--surface);
+    --pill-border: var(--border-alt);
+}
+
+/* Theme toggle controls */
+.theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-left: 1rem;
+    padding-left: 0.75rem;
+    border-left: 1px solid var(--border);
+}
+
+.theme-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid var(--border);
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.08);
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.theme-dot:hover {
+    transform: scale(1.15);
+    box-shadow: 0 0 0 2px var(--accent);
+}
+
+.theme-dot.active {
+    box-shadow:
+        0 0 0 2px var(--accent),
+        0 0 0 4px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+/* Specific dot colors */
+.theme-dot.polar-night {
+    background: linear-gradient(135deg, var(--nord2), var(--nord0));
+}
+
+.theme-dot.frost {
+    background: linear-gradient(135deg, var(--nord6), var(--nord9));
+}
+
 body {
     font-family:
         -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     line-height: 1.6;
-    color: #333;
-    background: #f8f9fa;
+    color: var(--text);
+    background: var(--bg);
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    transition:
+        background 0.25s ease,
+        color 0.25s ease;
 }
 
 main {
@@ -33,11 +232,14 @@ main {
 
 /* Header */
 header {
-    background: #fff;
-    border-bottom: 1px solid #e9ecef;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
     padding: 0.5rem 0;
     margin-bottom: 1rem; /* Reduced to help avoid tiny-page overflow */
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transition:
+        background 0.25s ease,
+        border-color 0.25s ease;
 }
 
 .header-content {
@@ -47,10 +249,11 @@ header {
 }
 
 h1 {
-    color: #495057;
+    color: var(--text); /* softened from --text-strong */
     font-size: 1.5rem;
     margin: 0;
     flex-shrink: 0;
+    transition: color 0.25s ease;
 }
 
 h1 a {
@@ -65,23 +268,31 @@ nav {
 }
 
 nav a {
-    color: #6c757d;
+    color: var(--text-dim);
     text-decoration: none;
-    padding: 0.4rem 0.75rem;
+    padding: 0.45rem 0.85rem;
     border-radius: 6px;
-    transition: all 0.2s ease;
     font-weight: 500;
-    border-bottom: 2px solid transparent;
+    line-height: 1.2;
+    position: relative;
+    transition:
+        background 0.18s ease,
+        color 0.18s ease,
+        border-color 0.18s ease;
+    border: 1px solid transparent;
 }
 
 nav a:hover {
-    background: #e9ecef;
-    color: #495057;
+    background: var(--surface-alt);
+    color: var(--text);
+    border-color: var(--border-alt);
 }
 
 nav a.active {
-    color: #007bff;
-    border-bottom: 2px solid #007bff;
+    background: var(--accent);
+    color: var(--accent-contrast-text);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-border);
 }
 
 /* Footer */
@@ -95,7 +306,7 @@ footer {
 .footer-content {
     padding: 0.4rem 0;
     font-size: 0.7rem;
-    color: #6c757d;
+    color: var(--text-dim);
     text-align: center;
     backdrop-filter: none;
 }
@@ -109,16 +320,20 @@ footer {
 
 /* Search Form */
 .search-form {
-    background: #fff;
+    background: var(--surface);
     padding: 2rem;
     border-radius: 12px;
     margin-bottom: 2rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--border);
+    transition:
+        background 0.25s ease,
+        border-color 0.25s ease;
 }
 
 .search-form h2 {
     margin-bottom: 1.5rem;
-    color: #495057;
+    color: var(--text-strong, var(--text));
     font-weight: 600;
 }
 
@@ -126,18 +341,20 @@ footer {
     width: 100%;
     padding: 0.875rem 1rem;
     font-size: 1rem;
-    border: 2px solid #e9ecef;
+    border: 2px solid var(--border);
     border-radius: 8px;
     margin-bottom: 1rem;
     transition: border-color 0.2s ease;
     box-sizing: border-box;
     height: 48px;
+    background: var(--surface-alt);
+    color: var(--text);
 }
 
 .search-input:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 40%, transparent);
 }
 
 .search-options {
@@ -149,32 +366,35 @@ footer {
 
 .search-options label {
     font-weight: 500;
-    color: #495057;
+    color: var(--text);
 }
 
 .search-options select {
     padding: 8px 12px;
-    border: 2px solid #e9ecef;
+    border: 2px solid var(--border);
     border-radius: 6px;
-    background: white;
+    background: var(--surface-alt);
+    color: var(--text);
     font-size: 14px;
     cursor: pointer;
-    transition: border-color 0.2s ease;
+    transition:
+        border-color 0.2s ease,
+        background 0.25s ease;
 }
 
 .search-options select:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 40%, transparent);
 }
 
 /* Header navigation select */
 nav select {
     padding: 0.5rem 1rem;
-    border: 1px solid #e9ecef;
+    border: 1px solid var(--border);
     border-radius: 6px;
-    background: white;
-    color: #495057;
+    background: var(--surface-alt);
+    color: var(--text);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -182,20 +402,20 @@ nav select {
 }
 
 nav select:hover {
-    background: #f8f9fa;
-    border-color: #007bff;
+    background: var(--surface);
+    border-color: var(--accent);
 }
 
 nav select:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus-ring) 40%, transparent);
 }
 
 /* Buttons */
 .btn {
-    background: #007bff;
-    color: white;
+    background: var(--accent);
+    color: var(--accent-contrast-text);
     border: none;
     padding: 12px 24px;
     border-radius: 8px;
@@ -204,12 +424,16 @@ nav select:focus {
     cursor: pointer;
     text-decoration: none;
     display: inline-block;
-    transition: all 0.2s ease;
+    transition:
+        background 0.2s ease,
+        transform 0.15s ease,
+        color 0.25s ease;
 }
 
 .btn:hover {
-    background: #0056b3;
+    background: var(--accent-hover);
     transform: translateY(-1px);
+    color: var(--text);
 }
 
 /* Results */
@@ -220,29 +444,33 @@ nav select:focus {
 .results-summary {
     margin-bottom: 2rem;
     padding: 1rem 1.5rem;
-    background: #e3f2fd;
-    border: 1px solid #bbdefb;
+    background: var(--panel-bg-alt);
+    border: 1px solid var(--panel-border);
     border-radius: 8px;
-    color: #1565c0;
+    color: var(--text);
     font-weight: 500;
 }
 
 .datasource-section {
-    background: #fff;
+    background: var(--card-bg);
     border-radius: 12px;
     margin-bottom: 2rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px var(--shadow);
     overflow: hidden;
 }
 
 .datasource-header {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: linear-gradient(
+        135deg,
+        var(--surface-alt) 0%,
+        var(--surface) 100%
+    );
     padding: 1.5rem;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid var(--border);
 }
 
 .datasource-title {
-    color: #495057;
+    color: var(--text-strong, var(--text));
     font-size: 1.3rem;
     margin-bottom: 0.25rem;
     font-weight: 600;
@@ -254,11 +482,11 @@ nav select:focus {
 }
 
 .datasource-title a:hover {
-    color: #007bff;
+    color: var(--accent);
 }
 
 .block-count {
-    color: #6c757d;
+    color: var(--text-dim);
     font-size: 0.9rem;
     font-weight: 500;
 }
@@ -266,7 +494,7 @@ nav select:focus {
 /* Blocks */
 .block {
     padding: 2rem;
-    border-bottom: 1px solid #f1f3f4;
+    border-bottom: 1px solid var(--border-alt);
     transition: background-color 0.2s ease;
 }
 
@@ -275,7 +503,7 @@ nav select:focus {
 }
 
 .block:hover {
-    background: #fafbfc;
+    background: var(--surface-alt);
 }
 
 .block-header {
@@ -289,42 +517,50 @@ nav select:focus {
     display: flex;
     gap: 1rem;
     font-size: 0.85rem;
-    color: #6c757d;
+    color: var(--text-dim);
     flex-wrap: wrap;
 }
 
 .block-date {
     font-weight: 600;
-    color: #495057;
+    color: var(--text-strong, var(--text));
 }
 
 .block-source {
-    background: #e7f3ff;
-    color: #0066cc;
+    background: var(--accent-soft);
+    color: var(--accent);
     padding: 0.3rem 0.8rem;
     border-radius: 16px;
     font-size: 0.8rem;
     font-weight: 500;
+    border: 1px solid var(--accent-border);
 }
 
 .block-id {
     font-family: "SF Mono", Monaco, monospace;
     font-size: 0.75rem;
-    color: #adb5bd;
-    background: #f8f9fa;
+    color: var(--text-faint);
+    background: var(--surface-alt);
     padding: 0.2rem 0.5rem;
     border-radius: 4px;
 }
 
 .block-content {
-    color: #495057;
+    color: var(--text);
     line-height: 1.7;
-    font-size: 15px;
+    font-size: var(--font-size-small);
     margin-bottom: 1rem;
 }
 
+.block-content p,
+.block-content div,
+.block-content span,
+.block-content li {
+    font-size: var(--font-size-small) !important;
+}
+
 .block-content a {
-    color: #007bff;
+    color: var(--accent);
     text-decoration: none;
     font-weight: 500;
 }
@@ -337,12 +573,12 @@ nav select:focus {
 .block-links {
     margin-top: 1.5rem;
     padding-top: 1.5rem;
-    border-top: 1px solid #f1f3f4;
+    border-top: 1px solid var(--border-alt);
 }
 
 .block-links-title {
     font-size: 0.85rem;
-    color: #6c757d;
+    color: var(--text-dim);
     margin-bottom: 0.75rem;
     font-weight: 600;
 }
@@ -356,17 +592,17 @@ nav select:focus {
 .block-link {
     display: inline-block;
     padding: 0.4rem 0.8rem;
-    background: #e7f3ff;
-    color: #0066cc;
+    background: var(--accent-soft);
+    color: var(--accent);
     text-decoration: none;
     border-radius: 6px;
     font-size: 0.8rem;
-    border: 1px solid #b3d9ff;
+    border: 1px solid var(--accent-border);
     transition: all 0.2s ease;
 }
 
 .block-link:hover {
-    background: #cce7ff;
+    background: var(--link-hover-bg);
     transform: translateY(-1px);
 }
 
@@ -377,24 +613,36 @@ nav select:focus {
 
 .block-metadata summary {
     cursor: pointer;
-    color: #6c757d;
+    color: var(--text);
     font-size: 0.9rem;
-    font-weight: 500;
+    font-weight: 600;
     padding: 0.5rem 0;
+    background: var(--panel-bg-alt);
+    border-radius: 4px;
+    transition:
+        color 0.2s ease,
+        background 0.25s ease;
+}
+
+.block-metadata summary:hover,
+.block-metadata summary:focus {
+    color: var(--accent);
+    background: var(--panel-bg);
+    outline: none;
 }
 
 .block-metadata summary:hover {
-    color: #495057;
+    color: var(--text);
 }
 
 .block-metadata-content {
     margin-top: 0.75rem;
     padding: 1rem;
-    background: #f8f9fa;
+    background: var(--panel-bg-alt);
     border-radius: 6px;
     font-family: "SF Mono", Monaco, monospace;
     font-size: 0.8rem;
-    border: 1px solid #e9ecef;
+    border: 1px solid var(--panel-border);
 }
 
 .block-metadata-content div {
@@ -402,7 +650,7 @@ nav select:focus {
 }
 
 .block-metadata-content strong {
-    color: #495057;
+    color: var(--text);
 }
 
 /* Datasource Grid */
@@ -414,12 +662,12 @@ nav select:focus {
 }
 
 .datasource-card {
-    background: #fff;
+    background: var(--card-bg);
     padding: 2rem;
     border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px var(--shadow);
     transition: all 0.3s ease;
-    border: 1px solid #e9ecef;
+    border: 1px solid var(--border);
 }
 
 .datasource-card:hover {
@@ -428,7 +676,7 @@ nav select:focus {
 }
 
 .datasource-card h3 {
-    color: #495057;
+    color: var(--text-strong, var(--text));
     margin-bottom: 0.75rem;
     font-size: 1.2rem;
     font-weight: 600;
@@ -440,7 +688,7 @@ nav select:focus {
 }
 
 .datasource-type {
-    color: #6c757d;
+    color: var(--muted);
     font-size: 0.9rem;
     margin-bottom: 1rem;
     font-weight: 500;
@@ -448,7 +696,7 @@ nav select:focus {
 
 .datasource-stats {
     font-size: 0.85rem;
-    color: #6c757d;
+    color: var(--muted);
     margin-bottom: 1.5rem;
 }
 
@@ -465,30 +713,30 @@ nav select:focus {
 }
 
 .alert-error {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
+    background: var(--danger-bg);
+    color: var(--danger-text);
+    border: 1px solid var(--danger-border);
 }
 
 .alert-success {
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
+    background: var(--success-bg);
+    color: var(--success-text);
+    border: 1px solid var(--success-border);
 }
 
 /* Empty States */
 .empty-state {
     padding: 3rem 2rem;
     text-align: center;
-    color: #6c757d;
-    background: #fff;
+    color: var(--muted);
+    background: var(--card-bg);
     border-radius: 12px;
     margin: 2rem 0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px var(--shadow);
 }
 
 .empty-state h3 {
-    color: #495057;
+    color: var(--text-strong, var(--text));
     margin-bottom: 1rem;
     font-weight: 600;
 }
@@ -502,50 +750,50 @@ nav select:focus {
 .info-box {
     margin-top: 3rem;
     padding: 2rem;
-    background: #fff;
+    background: var(--card-bg);
     border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px var(--shadow);
 }
 
 .info-box h3 {
-    color: #495057;
+    color: var(--text-strong, var(--text));
     margin-bottom: 1rem;
     font-weight: 600;
 }
 
 .info-box h4 {
-    color: #495057;
+    color: var(--text-strong, var(--text));
     margin-bottom: 0.5rem;
     margin-top: 1.5rem;
     font-weight: 600;
 }
 
 .info-box p {
-    color: #6c757d;
+    color: var(--muted);
     line-height: 1.6;
     margin-bottom: 1rem;
 }
 
 .info-box ul {
-    color: #6c757d;
+    color: var(--muted);
     padding-left: 1.5rem;
     line-height: 1.6;
 }
 
 .info-box code {
-    background: #f8f9fa;
+    background: var(--code-bg);
     padding: 0.2rem 0.4rem;
     border-radius: 4px;
     font-family: "SF Mono", Monaco, monospace;
     font-size: 0.85em;
-    color: #495057;
+    color: var(--text);
 }
 
 /* Loading */
 .loading {
     text-align: center;
     padding: 3rem;
-    color: #6c757d;
+    color: var(--muted);
     font-weight: 500;
 }
 
@@ -649,12 +897,12 @@ nav select:focus {
 }
 
 .page-info {
-    color: #495057;
+    color: var(--text);
     font-weight: 600;
     font-size: 1rem;
     padding: 0.75rem 1rem;
-    background: white;
-    border: 1px solid #dee2e6;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
     border-radius: 6px;
     min-width: 100px;
     text-align: center;
@@ -662,7 +910,7 @@ nav select:focus {
 
 .pagination-stats {
     margin-left: auto;
-    color: #6c757d;
+    color: var(--text-dim);
     font-size: 0.9rem;
     font-weight: 500;
 }
@@ -695,7 +943,7 @@ nav select:focus {
 
 .hero-section p {
     font-size: 1.2rem;
-    color: #6c757d;
+    color: var(--text-dim);
 }
 
 .search-section {
@@ -712,43 +960,50 @@ nav select:focus {
     padding: 0 !important;
     border-radius: 0 !important;
     box-shadow: none !important;
+    border: none !important;
 }
 
 .home-page .search-input {
     flex: 1;
     padding: 0.75rem 1rem;
-    border: 2px solid #e9ecef;
+    border: 2px solid var(--border);
     border-radius: 8px;
     font-size: 1rem;
     font-family: inherit;
     line-height: 1.5;
     box-sizing: border-box;
     height: 48px;
+    background: var(--surface-alt);
+    color: var(--text);
 }
 
 .home-page .search-input:focus {
     outline: none;
-    border-color: #007bff;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 40%, transparent);
 }
 
 .home-page .search-button {
     padding: 0.75rem 1.5rem;
-    background-color: #007bff;
-    color: white;
-    border: 2px solid #007bff;
+    background: var(--accent);
+    color: var(--accent-contrast-text);
+    border: 2px solid var(--accent);
     border-radius: 8px;
     font-size: 1rem;
     font-family: inherit;
     line-height: 1.5;
     cursor: pointer;
-    transition: background-color 0.2s ease;
     white-space: nowrap;
     box-sizing: border-box;
     height: 48px;
+    transition:
+        background 0.2s ease,
+        color 0.25s ease;
 }
 
 .home-page .search-button:hover {
-    background-color: #0056b3;
+    background: var(--accent-hover);
+    color: var(--text);
 }
 
 .advanced-search-link {
@@ -757,22 +1012,23 @@ nav select:focus {
 }
 
 .advanced-search-link a {
-    color: #6c757d;
+    color: var(--text-dim);
     text-decoration: none;
     font-size: 0.9rem;
-    border-bottom: 1px dotted #6c757d;
+    border-bottom: 1px dotted var(--text-dim);
 }
 
 .advanced-search-link a:hover {
-    color: #007bff;
-    border-bottom-color: #007bff;
+    color: var(--accent);
+    border-bottom-color: var(--accent);
 }
 
 .stats-section {
     text-align: center;
-    background: #f8f9fa;
+    background: var(--surface-alt);
     padding: 1.25rem;
     border-radius: 8px;
+    border: 1px solid var(--border);
 }
 
 .stats-section h3 {
@@ -794,34 +1050,15 @@ nav select:focus {
 .stat-number {
     font-size: 2rem;
     font-weight: bold;
-    color: #007bff;
+    color: var(--accent);
 }
 
 .stat-label {
-    color: #6c757d;
+    color: var(--text-dim);
     font-size: 0.9rem;
 }
 
 /* Search Page Styles */
-.search-page {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 1rem;
-}
-
-.search-header {
-    margin-bottom: 2rem;
-}
-
-.search-header h2 {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1.5rem;
-    color: #2c3e50;
-    font-size: 1.5rem;
-    font-weight: 600;
-}
 
 .search-controls {
     display: flex;
@@ -846,10 +1083,6 @@ nav select:focus {
     margin: 0;
 }
 
-.search-page .search-input {
-    margin-bottom: 0;
-}
-
 .form-row {
     display: flex;
     gap: 0.75rem;
@@ -857,49 +1090,32 @@ nav select:focus {
 }
 
 .datasource-select {
-    flex: 1 1 auto;
     min-width: 0;
 }
 
-.limit-select {
-    padding: 0.5rem 0.75rem;
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
-    background: white;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: border-color 0.2s ease;
-    width: 80px;
-    height: 40px;
-    box-sizing: border-box;
+.limit-control .choices {
+    width: 25%;
 }
 
-.limit-select:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
-}
-
-.control-group .limit-select {
-    width: 120px;
-}
-
-.search-page .search-button {
+.firehose-page .search-button {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
     padding: 0 1.25rem;
-    background: linear-gradient(135deg, #007bff, #0056b3);
-    color: white;
+    background: var(--accent);
+    color: var(--accent-contrast-text);
     border: none;
     border-radius: 8px;
     cursor: pointer;
-    transition: all 0.2s ease;
     font-size: 0.9rem;
     font-weight: 500;
     height: 48px;
     box-sizing: border-box;
+    transition:
+        background 0.2s ease,
+        color 0.25s ease,
+        box-shadow 0.2s ease;
 }
 
 /* Date Filters */
@@ -913,25 +1129,67 @@ nav select:focus {
 .date-filters label {
     font-size: 0.9rem;
     font-weight: 500;
-    color: #495057;
+    color: var(--text);
     margin-right: 0.25rem;
 }
 
 .date-input {
     padding: 0.5rem 0.75rem;
-    border: 1px solid #e9ecef;
+    border: 1px solid var(--border);
     border-radius: 8px;
-    background: white;
+    background: var(--surface-alt);
+    color: var(--text);
     font-size: 0.9rem;
+    line-height: 1.2;
     cursor: pointer;
-    transition: border-color 0.2s ease;
+    transition:
+        border-color 0.2s ease,
+        background-color 0.25s ease;
     min-width: 120px;
+}
+
+.date-input:hover {
+    background: var(--surface);
 }
 
 .date-input:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 40%, transparent);
+    background: var(--surface);
+}
+
+/* Reverted custom calendar picker styling to allow browser/OS default rendering.
+   Note: The highlight color of the selected day inside the native picker dialog
+   is not controllable with standard CSS across browsers. To theme it fully,
+   we would need a custom date picker component. */
+.date-input::-webkit-calendar-picker-indicator {
+    color: inherit; /* keep native icon; non-empty to satisfy linter */
+}
+
+/* Text fields inside date input */
+.date-input::-webkit-datetime-edit,
+.date-input::-webkit-datetime-edit-fields-wrapper,
+.date-input::-webkit-datetime-edit-text,
+.date-input::-webkit-datetime-edit-month-field,
+.date-input::-webkit-datetime-edit-day-field,
+.date-input::-webkit-datetime-edit-year-field {
+    color: var(--text);
+    padding: 0;
+}
+
+/* Remove unwanted native controls */
+.date-input::-webkit-clear-button,
+.date-input::-webkit-inner-spin-button {
+    display: none;
+}
+
+.date-input::-moz-focus-inner {
+    border: 0;
+}
+.date-input::-moz-placeholder {
+    color: var(--text-dim);
+    opacity: 0.7;
 }
 
 @media (max-width: 768px) {
@@ -952,7 +1210,7 @@ nav select:focus {
     padding: 0;
 }
 
-.search-page .search-button {
+.firehose-page .search-button {
     height: 40px;
     box-sizing: border-box;
 }
@@ -961,7 +1219,7 @@ nav select:focus {
 .advanced-search-toggle {
     margin-top: 1rem;
     padding-top: 1rem;
-    border-top: 1px solid #e9ecef;
+    border-top: 1px solid var(--border);
 }
 
 .advanced-toggle-btn {
@@ -970,16 +1228,16 @@ nav select:focus {
     gap: 0.5rem;
     background: none;
     border: none;
-    color: #007bff;
+    color: var(--accent);
     cursor: pointer;
     font-size: 0.9rem;
     font-weight: 500;
     padding: 0.5rem 0;
-    transition: color 0.2s ease;
+    transition: color 0.25s ease;
 }
 
 .advanced-toggle-btn:hover {
-    color: #0056b3;
+    color: var(--accent-hover);
 }
 
 .advanced-toggle-btn .chevron-icon {
@@ -996,8 +1254,8 @@ nav select:focus {
 .advanced-search-section {
     margin-top: 1rem;
     padding: 1.5rem;
-    background: #f8f9fa;
-    border: 1px solid #e9ecef;
+    background: var(--panel-bg-alt);
+    border: 1px solid var(--panel-border);
     border-radius: 8px;
     animation: slideDown 0.2s ease-out;
 }
@@ -1015,7 +1273,7 @@ nav select:focus {
 
 .advanced-search-section h4 {
     margin: 0 0 1rem 0;
-    color: #495057;
+    color: var(--text);
     font-size: 1rem;
     font-weight: 600;
 }
@@ -1035,7 +1293,7 @@ nav select:focus {
 .control-group label {
     font-size: 0.9rem;
     font-weight: 500;
-    color: #495057;
+    color: var(--text);
 }
 
 .control-group .datasource-select {
@@ -1052,13 +1310,17 @@ nav select:focus {
     }
 }
 
-.search-page .search-button:hover {
-    background: linear-gradient(135deg, #0056b3, #004085);
+.firehose-page .search-button:hover {
+    background: linear-gradient(
+        135deg,
+        var(--accent),
+        color-mix(in srgb, var(--accent) 70%, black)
+    );
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
-.search-page .search-button svg {
+.firehose-page .search-button svg {
     width: 16px;
     height: 16px;
 }
@@ -1071,7 +1333,7 @@ nav select:focus {
 }
 
 .choices__inner {
-    border-color: #e9ecef;
+    border-color: var(--border);
     border-radius: 8px;
     min-height: 40px;
     height: 40px;
@@ -1082,17 +1344,18 @@ nav select:focus {
 
 .choices:focus-within .choices__inner,
 .choices.is-focused .choices__inner {
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 40%, transparent);
 }
 
 .choices__list--multiple .choices__item {
-    background-color: #007bff;
-    border: 1px solid #0056b3;
+    background-color: var(--nord8) !important;
+    border: 1px solid var(--nord8) !important;
     border-radius: 6px;
     font-size: 0.85rem;
     padding: 4px 8px;
     margin: 2px 4px 2px 0;
+    color: var(--nord0) !important;
 }
 
 .choices__list--multiple .choices__item[data-deletable] {
@@ -1101,7 +1364,8 @@ nav select:focus {
 
 .choices[data-type*="select-multiple"] .choices__button,
 .choices[data-type*="text"] .choices__button {
-    opacity: 0.8 !important;
+    opacity: 1 !important;
+    border-left-color: var(--nord2) !important;
 }
 
 .choices[data-type*="select-multiple"] .choices__button:hover,
@@ -1109,97 +1373,92 @@ nav select:focus {
     opacity: 1 !important;
 }
 
+.choices[data-type*="select-multiple"] .choices__button svg,
+.choices[data-type*="text"] .choices__button svg {
+    background-image: url("data:image/svg+xml,%3Csvg width='21' height='21' viewBox='0 0 21 21' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23434c5e' fill-rule='evenodd'%3E%3Cpath d='M2.592.044l18.364 18.364-2.548 2.548L.044 2.592z'/%3E%3Cpath d='M0 18.364L18.364 0l2.548 2.548L2.548 20.912z'/%3E%3C/g%3E%3C/svg%3E") !important;
+}
+
 .search-help {
     text-align: center;
     padding: 3rem;
-    background: white;
+    background: var(--panel-bg-alt);
+    border: 1px solid var(--border);
     border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    color: #6c757d;
+    box-shadow: 0 2px 8px var(--shadow);
+    color: var(--text);
+    --link-color: var(--accent);
+    --subtle-color: var(--text-dim);
 }
 
 .search-help h3 {
     margin-bottom: 1rem;
-    color: #2c3e50;
+    color: var(--text);
     font-weight: 600;
 }
 
 .search-help p {
     margin-bottom: 0.75rem;
     line-height: 1.6;
+    color: var(--text);
 }
 
-.search-help a {
-    color: #007bff;
+.search-help a,
+.search-help a:visited {
+    color: var(--accent);
     text-decoration: none;
     font-weight: 500;
+    transition: color 0.18s ease;
 }
 
 .search-help a:hover {
     text-decoration: underline;
+    color: var(--accent-hover);
 }
 
 .no-results {
     text-align: center;
-    padding: 3rem;
-    background: white;
+    padding: 2.5rem 2rem;
+    background: var(--panel-bg);
     border-radius: 12px;
-    border: 2px dashed #dee2e6;
-    color: #6c757d;
+    border: 1px solid var(--border);
+    color: var(--text);
+    box-shadow: 0 2px 8px var(--shadow);
+}
+
+.no-results h3 {
+    color: var(--text);
+    font-weight: 600;
+    margin: 0 0 1rem;
+}
+
+.no-results p {
+    color: var(--text-dim);
+    line-height: 1.55;
+    margin: 0 0 0.75rem;
+}
+
+.no-results a,
+.no-results a:visited {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.18s ease;
+}
+
+.no-results a:hover {
+    color: var(--accent-hover);
+    text-decoration: underline;
 }
 
 /* Search Results Styles */
-.results-summary {
-    margin-bottom: 1.5rem;
-    padding: 1rem 1.25rem;
-    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-    border: 1px solid #dee2e6;
-    border-radius: 10px;
-}
+/* Unified .results-summary styling defined earlier (lines ~426-434) for both themes.
+   Removed duplicate darker variant that caused overly dark background in light theme. */
 
 .results-summary p {
     margin: 0;
-    color: #495057;
+    color: var(--text);
     font-weight: 600;
     font-size: 0.95rem;
-}
-
-.datasource-results {
-    margin-bottom: 2rem;
-    background: white;
-    border-radius: 12px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.datasource-title {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1.25rem;
-    color: #2c3e50;
-    border-bottom: 2px solid #e9ecef;
-    padding-bottom: 0.75rem;
-}
-
-.datasource-title a {
-    text-decoration: none;
-    color: inherit;
-    font-weight: 600;
-    transition: color 0.2s ease;
-}
-
-.datasource-title a:hover {
-    color: #007bff;
-}
-
-.result-count {
-    background: #007bff;
-    color: white;
-    padding: 0.25rem 0.5rem;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 600;
 }
 
 /* Datasources List Page Styles */
@@ -1219,7 +1478,7 @@ nav select:focus {
     align-items: center;
     justify-content: center;
     gap: 0.75rem;
-    color: #2c3e50;
+    color: var(--text-strong, var(--text));
     margin-bottom: 0.5rem;
     font-size: 1.75rem;
     font-weight: 600;
@@ -1228,11 +1487,11 @@ nav select:focus {
 .header-icon {
     width: 28px;
     height: 28px;
-    color: #007bff;
+    color: var(--accent);
 }
 
 .page-header p {
-    color: #6c757d;
+    color: var(--text-dim);
     margin: 0;
     font-size: 1rem;
 }
@@ -1247,27 +1506,26 @@ nav select:focus {
     display: flex;
     align-items: center;
     gap: 1rem;
-    background: white;
-    border: 1px solid #e9ecef;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 12px;
     padding: 1.25rem;
     text-decoration: none;
-    color: inherit;
+    color: var(--text);
     transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .datasources-page .datasource-card:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    border-color: #007bff;
+    box-shadow: 0 4px 12px var(--shadow);
+    border-color: var(--accent);
 }
 
 .card-icon {
     flex-shrink: 0;
     width: 48px;
     height: 48px;
-    background: linear-gradient(135deg, #007bff, #0056b3);
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
     border-radius: 10px;
     display: flex;
     align-items: center;
@@ -1290,15 +1548,15 @@ nav select:focus {
     margin: 0 0 0.25rem 0;
     font-size: 1.1rem;
     font-weight: 600;
-    color: #2c3e50;
+    color: var(--text);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .datasource-type {
-    background: #f8f9fa;
-    color: #6c757d;
+    background: var(--surface-alt);
+    color: var(--text-dim);
     padding: 0.125rem 0.5rem;
     border-radius: 8px;
     font-size: 0.75rem;
@@ -1307,6 +1565,7 @@ nav select:focus {
     letter-spacing: 0.5px;
     display: inline-block;
     margin-bottom: 0.5rem;
+    border: 1px solid var(--border);
 }
 
 .stats-info {
@@ -1314,7 +1573,7 @@ nav select:focus {
 }
 
 .no-data {
-    color: #dc3545;
+    color: var(--error);
     font-weight: 500;
 }
 
@@ -1322,13 +1581,15 @@ nav select:focus {
     flex-shrink: 0;
     width: 24px;
     height: 24px;
-    color: #6c757d;
-    transition: transform 0.2s ease;
+    color: var(--text-dim);
+    transition:
+        transform 0.2s ease,
+        color 0.25s ease;
 }
 
 .datasources-page .datasource-card:hover .card-arrow {
     transform: translateX(3px);
-    color: #007bff;
+    color: var(--accent);
 }
 
 .card-arrow svg {
@@ -1339,17 +1600,17 @@ nav select:focus {
 .datasources-page .empty-state {
     text-align: center;
     padding: 3rem 2rem;
-    background: white;
-    border: 2px dashed #dee2e6;
+    background: var(--surface);
+    border: 2px dashed var(--border);
     border-radius: 12px;
-    color: #6c757d;
+    color: var(--text-dim);
 }
 
 .empty-icon {
     width: 64px;
     height: 64px;
     margin: 0 auto 1.5rem;
-    color: #dee2e6;
+    color: var(--border);
 }
 
 .empty-icon svg {
@@ -1358,7 +1619,7 @@ nav select:focus {
 }
 
 .datasources-page .empty-state h3 {
-    color: #495057;
+    color: var(--text);
     margin-bottom: 0.75rem;
     font-size: 1.25rem;
     font-weight: 600;
@@ -1370,166 +1631,15 @@ nav select:focus {
 }
 
 .help-link {
-    background: #f8f9fa;
-    border: 1px solid #e9ecef;
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
     border-radius: 8px;
     padding: 0.75rem;
     font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
     font-size: 0.85rem;
-    color: #495057;
+    color: var(--text);
     max-width: fit-content;
     margin: 0 auto;
-}
-
-/* Single Datasource Page Styles */
-.datasource-page {
-    max-width: 900px;
-    margin: 0 auto;
-}
-
-.breadcrumb {
-    margin-bottom: 1rem;
-}
-
-.breadcrumb a {
-    color: #6c757d;
-    text-decoration: none;
-    font-size: 0.9rem;
-}
-
-.breadcrumb a:hover {
-    color: #007bff;
-    text-decoration: underline;
-}
-
-.content-header {
-    margin-bottom: 1.5rem;
-}
-
-.content-info {
-    padding: 1rem 1.25rem;
-    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-    border: 1px solid #dee2e6;
-    border-radius: 10px;
-}
-
-.blocks-container {
-    margin-bottom: 2rem;
-}
-
-.datasource-page .block {
-    margin-bottom: 2rem;
-    padding: 1.5rem;
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
-    background: white;
-    transition: box-shadow 0.2s ease;
-}
-
-.datasource-page .block:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.datasource-page .block-header {
-    margin-bottom: 1rem;
-}
-
-.datasource-page .block-meta {
-    display: flex;
-    gap: 1rem;
-    font-size: 0.85rem;
-    color: #6c757d;
-    flex-wrap: wrap;
-}
-
-.datasource-page .block-date {
-    font-weight: 500;
-}
-
-.datasource-page .block-source,
-.datasource-page .block-id {
-    background: #f8f9fa;
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-}
-
-.datasource-page .block-content {
-    line-height: 1.7;
-    color: #495057;
-    margin-bottom: 1rem;
-}
-
-.datasource-page .block-links {
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid #f1f3f4;
-}
-
-.links-header {
-    font-size: 0.9rem;
-    color: #6c757d;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-}
-
-.links-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-}
-
-.datasource-page .block-link {
-    color: #007bff;
-    text-decoration: none;
-    font-size: 0.9rem;
-    word-break: break-all;
-}
-
-.datasource-page .block-link:hover {
-    text-decoration: underline;
-}
-
-.datasource-page .block-metadata {
-    margin-top: 1rem;
-    border: 1px solid #e9ecef;
-    border-radius: 4px;
-}
-
-.datasource-page .block-metadata summary {
-    padding: 0.5rem 0.75rem;
-    background: #f8f9fa;
-    cursor: pointer;
-    font-size: 0.9rem;
-    color: #6c757d;
-}
-
-.metadata-content {
-    padding: 0.75rem;
-    font-size: 0.85rem;
-}
-
-.metadata-item {
-    margin-bottom: 0.5rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid #f1f3f4;
-}
-
-.metadata-item:last-child {
-    margin-bottom: 0;
-    border-bottom: none;
-}
-
-.no-blocks {
-    text-align: center;
-    padding: 3rem;
-    background: #f8f9fa;
-    border-radius: 8px;
-    color: #6c757d;
-}
-
-.no-blocks h3 {
-    color: #495057;
-    margin-bottom: 1rem;
 }
 
 .pagination {
@@ -1539,25 +1649,34 @@ nav select:focus {
     gap: 1rem;
     margin-top: 2rem;
     padding: 1.5rem;
-    background: white;
+    background: var(--panel-bg-alt);
+    border: 1px solid var(--panel-border);
     border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 8px var(--shadow);
+    color: var(--text);
 }
 
 .pagination-btn {
-    padding: 0.75rem 1.25rem;
-    background: linear-gradient(135deg, #6c757d, #495057);
-    color: white;
+    padding: 0.65rem 1.15rem;
+    background: var(--surface-alt);
+    color: var(--text);
     text-decoration: none;
     border-radius: 8px;
-    transition: all 0.2s ease;
+    border: 1px solid var(--border);
     font-weight: 500;
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
 }
 
 .pagination-btn:hover {
-    background: linear-gradient(135deg, #495057, #343a40);
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--accent);
+    box-shadow: 0 2px 6px var(--shadow);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
 }
 
 .page-numbers {
@@ -1572,30 +1691,36 @@ nav select:focus {
     justify-content: center;
     width: 40px;
     height: 40px;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--border);
     border-radius: 6px;
-    color: #6c757d;
+    color: var(--text-dim);
     text-decoration: none;
     font-weight: 500;
-    transition: all 0.2s ease;
-    background: white;
+    background: var(--surface-alt);
+    transition:
+        background 0.18s ease,
+        color 0.18s ease,
+        border-color 0.18s ease,
+        box-shadow 0.18s ease;
 }
 
 .page-num:hover {
-    border-color: #007bff;
-    color: #007bff;
-    background: #f8f9fa;
+    border-color: var(--accent);
+    color: var(--text);
+    background: var(--accent-soft);
 }
 
 .page-num.current {
-    background: #007bff;
-    color: white;
-    border-color: #007bff;
+    background: var(--accent);
+    color: var(--accent-contrast-text);
+    border-color: var(--accent);
+    font-weight: 600;
+    box-shadow: 0 0 0 1px var(--accent-border);
     cursor: default;
 }
 
 .page-ellipsis {
-    color: #6c757d;
+    color: var(--text-dim);
     padding: 0 0.5rem;
     font-weight: 500;
 }
@@ -1612,7 +1737,7 @@ nav select:focus {
         align-items: stretch;
     }
 
-    .search-page .search-button {
+    .firehose-page .search-button {
         justify-content: center;
     }
 
@@ -1706,12 +1831,12 @@ nav select:focus {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    color: #2c3e50;
+    color: var(--text-strong, var(--text));
     margin-bottom: 0.5rem;
 }
 
 .firehose-description {
-    color: #6c757d;
+    color: var(--text-dim);
     font-size: 1rem;
     margin-top: 0.5rem;
 }
@@ -1730,20 +1855,22 @@ nav select:focus {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: #007bff;
-    color: #fff;
+    background: var(--nord8);
+    color: var(--nord2);
     padding: 0.35rem 0.75rem;
     margin-bottom: 0.75rem;
     border-radius: 6px;
+    width: 25%;
 }
 
 .datasource-name {
     font-size: 0.875rem;
     font-weight: 600;
+    color: var(--nord2);
 }
 
 .datasource-name a {
-    color: #fff;
+    color: var(--nord2);
     text-decoration: none;
 }
 
@@ -1752,26 +1879,151 @@ nav select:focus {
 }
 
 .block-timestamp {
-    color: #fff;
+    color: var(--nord2);
     font-size: 0.875rem;
     font-weight: 500;
     font-family:
         -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-.block-id-pill {
-    background: #f1f8ff;
-    color: #0366d6;
-    padding: 0.25rem 0.75rem;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    font-family: "Courier New", monospace;
+.firehose-block-content {
+    color: var(--text);
+    line-height: 1.6;
+    font-size: var(--font-size-small);
 }
 
-.firehose-block-content {
-    color: #2c3e50;
-    line-height: 1.6;
+.firehose-block-content p,
+.firehose-block-content div,
+.firehose-block-content span,
+.firehose-block-content li {
+    font-size: var(--font-size-small) !important;
+}
+
+/* Choices.js theme overrides (appended after library CSS for proper cascade) */
+.choices__inner {
+    background: var(--panel-bg);
+    color: var(--text);
+    border-color: var(--border);
+}
+
+.choices.is-focused .choices__inner,
+.choices:focus-within .choices__inner {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 40%, transparent);
+}
+
+.choices__list--multiple .choices__item {
+    background: var(--nord8) !important;
+    border: 1px solid var(--nord8) !important;
+    color: var(--nord0) !important;
+}
+
+.choices__list--multiple .choices__item.is-highlighted {
+    background: var(--accent-hover);
+    border-color: var(--accent);
+    color: var(--accent-contrast-text);
+}
+
+.choices__list--dropdown,
+.choices__list[aria-expanded] {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    color: var(--text);
+}
+
+.theme-polar-night .choices__inner,
+.theme-polar-night .choices__list--dropdown,
+.theme-polar-night .choices__list[aria-expanded] {
+    background: var(--surface);
+    border-color: var(--border);
+    color: var(--text);
+}
+
+.theme-frost .choices__inner,
+.theme-frost .choices__list--dropdown,
+.theme-frost .choices__list[aria-expanded] {
+    background: var(--surface);
+    border-color: var(--border);
+    color: var(--text);
+}
+
+.choices__placeholder {
+    color: var(--text-dim) !important;
+    opacity: 0.7;
+}
+
+/* Added: Ensure cloned input (user typing area) matches themed surfaces
+   and does not turn white in dark theme. Also prevent placeholder overlap. */
+.choices__input--cloned {
+    background: var(--panel-bg) !important;
+    color: var(--text) !important;
+    border: none !important;
+    box-shadow: none !important;
+    line-height: 1.2;
+    padding: 4px 2px !important;
+    margin: 2px 0 0 0 !important;
+    outline: none !important;
+}
+
+/* Light theme keeps a subtle surface */
+.theme-frost .choices__input--cloned {
+    background: var(--surface) !important;
+}
+
+/* Dark theme aligns with surface for consistency */
+.theme-polar-night .choices__input--cloned {
+    background: var(--surface) !important;
+}
+
+/* Make the inner wrapper positioning context for custom placeholder */
+.choices__inner {
+    position: relative;
+}
+
+/* Style any custom placeholder injected via JS for better readability */
+.custom-placeholder {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    max-width: calc(100% - 24px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Hide custom placeholder once user has typed or tags exist */
+.choices__inner:has(.choices__input--cloned:not([value=""]))
+    .custom-placeholder,
+.choices__inner:has(.choices__list--multiple .choices__item)
+    .custom-placeholder {
+    display: none;
+}
+
+/* Fallback for browsers without :has - JS already toggles display but ensure readability */
+.choices__input--cloned:not([value=""]) + .custom-placeholder {
+    display: none;
+}
+
+.choices__list--dropdown .choices__item--selectable.is-highlighted,
+.choices__list[aria-expanded] .choices__item--selectable.is-highlighted {
+    background: var(--nord8) !important;
+    color: var(--nord2) !important;
+}
+
+.choices[data-type*="select-multiple"] .choices__button,
+.choices[data-type*="text"] .choices__button {
+    background-image: url("data:image/svg+xml,%3Csvg width='21' height='21' viewBox='0 0 21 21' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23434c5e' fill-rule='evenodd'%3E%3Cpath d='M2.592.044l18.364 18.364-2.548 2.548L.044 2.592z'/%3E%3Cpath d='M0 18.364L18.364 0l2.548 2.548L2.548 20.912z'/%3E%3C/g%3E%3C/svg%3E") !important;
+    border-left-color: var(--nord2) !important;
+}
+
+.choices[data-type*="select-multiple"] .choices__button:hover,
+.choices[data-type*="text"] .choices__button:hover {
+    opacity: 0.7 !important;
 }
 
 @media (max-width: 768px) {

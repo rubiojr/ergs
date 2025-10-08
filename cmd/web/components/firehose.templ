@@ -14,19 +14,26 @@ templ Firehose(data types.PageData) {
 	}
 }
 
-// firehoseHeader renders the page header with title and icon
-templ firehoseHeader() {
+// blocksPageHeader renders a generic blocks page header with icon, title and optional description
+templ blocksPageHeader(title string, description string) {
 	<div class="firehose-header">
 		<h2>
 			<svg class="header-icon" viewBox="0 0 24 24" fill="currentColor">
 				<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"></path>
 			</svg>
-			Firehose
+			{ title }
 		</h2>
-		<p class="firehose-description">
-			Latest blocks across all datasources, ordered by creation time
-		</p>
+		if description != "" {
+			<p class="firehose-description">
+				{ description }
+			</p>
+		}
 	</div>
+}
+
+// firehoseHeader deprecated wrapper for Firehose page (kept for backward compatibility)
+templ firehoseHeader() {
+	@blocksPageHeader("Firehose", "Latest blocks across all datasources, ordered by creation time")
 }
 
 // firehoseResults renders the firehose results and pagination
@@ -58,17 +65,7 @@ templ firehoseBlocks(data types.PageData) {
 	<div class="firehose-blocks">
 		for datasource, blocks := range data.Results {
 			for _, block := range blocks {
-				<div class="firehose-block-wrapper">
-					<div class="firehose-block-header">
-						<span class="datasource-name">
-							<a href={ templ.URL("/datasource/" + datasource) }>{ datasource }</a>
-						</span>
-						<span class="block-timestamp">{ block.CreatedAt.Format("2006-01-02 15:04") }</span>
-					</div>
-					<div class="firehose-block-content">
-						@templ.Raw(block.FormattedText)
-					</div>
-				</div>
+				@UnifiedBlock(block, datasource)
 			}
 		}
 	</div>
