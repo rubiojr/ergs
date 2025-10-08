@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.2.0] - 2025-10-08
+
+### ✨ New Features
+
+- **Firehose page**: Ergs web page to list latest blocks stored
+
 ## [3.1.4] - 2025-10-08
 
 ### 🔧 Improvements
