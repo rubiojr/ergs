@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.3.0] - 2025-10-08
+
+### ✨ New Features
+
+- **New Style**: Dark and light themes for Ergs web using the Nord color palettes
+
 ## [3.2.0] - 2025-10-08
 
 ### ✨ New Features
