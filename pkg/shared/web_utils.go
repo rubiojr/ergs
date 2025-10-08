@@ -15,6 +15,10 @@ func GetDatasourceList(registry *core.Registry, storageManager *storage.Manager)
 	stats, _ := storageManager.GetStats()
 
 	for name, ds := range datasources {
+		if ds.Type() == "importer" {
+			// Skip importer datasource (it only routes blocks to other datasources and has no own stored data)
+			continue
+		}
 		info := types.DatasourceInfo{
 			Name: name,
 			Type: ds.Type(),

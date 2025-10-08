@@ -90,7 +90,30 @@ func Layout(data types.PageData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</div></main><script>\n\t\t\t\t// Add active navigation highlighting\n\t\t\t\tdocument.addEventListener(\"DOMContentLoaded\", function () {\n\t\t\t\t\tconst currentPath = window.location.pathname;\n\t\t\t\t\tconst navLinks = document.querySelectorAll(\"nav a\");\n\n\t\t\t\t\tnavLinks.forEach((link) => {\n\t\t\t\t\t\tif (\n\t\t\t\t\t\t\tlink.getAttribute(\"href\") === currentPath ||\n\t\t\t\t\t\t\t(currentPath.startsWith(\"/datasource/\") &&\n\t\t\t\t\t\t\t\tlink.getAttribute(\"href\") === \"/datasources\")\n\t\t\t\t\t\t) {\n\t\t\t\t\t\t\tlink.style.fontWeight = \"bold\";\n\t\t\t\t\t\t\tlink.style.color = \"#007bff\";\n\t\t\t\t\t\t}\n\t\t\t\t\t});\n\t\t\t\t});\n\t\t\t</script><script src=\"/static/choices.min.js\"></script><script src=\"/static/script.js\"></script></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</div></main>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if data.Version != "" {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<footer><div class=\"container\"><div class=\"footer-content\" style=\"padding: 0.75rem 0; font-size: 0.75rem; color: #6c757d; text-align: center;\"><span>Ergs v")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var5 string
+			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(data.Version)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/layout.templ`, Line: 54, Col: 33}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</span></div></div></footer>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<script>\n\t\t\t\t// Add active navigation highlighting\n\t\t\t\tdocument.addEventListener(\"DOMContentLoaded\", function () {\n\t\t\t\t\tconst currentPath = window.location.pathname;\n\t\t\t\t\tconst navLinks = document.querySelectorAll(\"nav a\");\n\n\t\t\t\t\tnavLinks.forEach((link) => {\n\t\t\t\t\t\tif (\n\t\t\t\t\t\t\tlink.getAttribute(\"href\") === currentPath ||\n\t\t\t\t\t\t\t(currentPath.startsWith(\"/datasource/\") &&\n\t\t\t\t\t\t\t\tlink.getAttribute(\"href\") === \"/datasources\")\n\t\t\t\t\t\t) {\n\t\t\t\t\t\t\tlink.style.fontWeight = \"bold\";\n\t\t\t\t\t\t\tlink.style.color = \"#007bff\";\n\t\t\t\t\t\t}\n\t\t\t\t\t});\n\t\t\t\t});\n\t\t\t</script><script src=\"/static/choices.min.js\"></script><script src=\"/static/script.js\"></script></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
