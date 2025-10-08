@@ -1,4 +1,4 @@
-package codeberg
+package renderer
 
 import (
 	_ "embed"

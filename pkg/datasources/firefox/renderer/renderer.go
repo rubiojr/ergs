@@ -1,4 +1,4 @@
-package firefox
+package renderer
 
 import (
 	_ "embed"

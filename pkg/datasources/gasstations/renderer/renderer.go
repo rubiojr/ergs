@@ -1,4 +1,4 @@
-package gasstations
+package renderer
 
 import (
 	_ "embed"

@@ -1,4 +1,4 @@
-package chromium
+package renderer
 
 import (
 	_ "embed"

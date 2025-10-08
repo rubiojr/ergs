@@ -1,4 +1,4 @@
-package rtve
+package renderer
 
 import (
 	_ "embed"

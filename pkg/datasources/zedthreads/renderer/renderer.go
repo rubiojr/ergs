@@ -1,4 +1,4 @@
-package zedthreads
+package renderer
 
 import (
 	_ "embed"

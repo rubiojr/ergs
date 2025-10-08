@@ -1,4 +1,4 @@
-package github
+package renderer
 
 import (
 	_ "embed"

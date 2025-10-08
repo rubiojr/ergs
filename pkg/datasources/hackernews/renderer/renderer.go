@@ -1,4 +1,4 @@
-package hackernews
+package renderer
 
 import (
 	_ "embed"

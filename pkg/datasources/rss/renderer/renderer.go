@@ -1,4 +1,4 @@
-package rss
+package renderer
 
 import (
 	_ "embed"
@@ -17,7 +17,7 @@ type RSSRenderer struct {
 	template *template.Template
 }
 
-// init function automatically registers this renderer with the global registry
+// init registers this renderer with the global registry (migrated under pkg/datasources/rss/renderer)
 func init() {
 	renderer := NewRSSRenderer()
 	if renderer != nil {
