@@ -5,6 +5,11 @@
     box-sizing: border-box;
 }
 
+/* Reserve vertical scrollbar space to prevent horizontal layout shift */
+html {
+    scrollbar-gutter: stable;
+}
+
 body {
     font-family:
         -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -37,14 +42,15 @@ header {
 
 .header-content {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
 }
 
 h1 {
     color: #495057;
     font-size: 1.5rem;
-    font-weight: 600;
+    margin: 0;
+    flex-shrink: 0;
 }
 
 h1 a {
@@ -55,6 +61,7 @@ h1 a {
 nav {
     display: flex;
     gap: 0.5rem;
+    margin-left: auto;
 }
 
 nav a {
@@ -64,11 +71,17 @@ nav a {
     border-radius: 6px;
     transition: all 0.2s ease;
     font-weight: 500;
+    border-bottom: 2px solid transparent;
 }
 
 nav a:hover {
     background: #e9ecef;
     color: #495057;
+}
+
+nav a.active {
+    color: #007bff;
+    border-bottom: 2px solid #007bff;
 }
 
 /* Footer */

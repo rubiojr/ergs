@@ -71,8 +71,7 @@ templ Layout(data types.PageData) {
 							(currentPath.startsWith("/firehose") &&
 								link.getAttribute("href") === "/firehose")
 						) {
-							link.style.fontWeight = "bold";
-							link.style.color = "#007bff";
+							link.classList.add("active");
 						}
 					});
 				});
