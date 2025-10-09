@@ -33,8 +33,7 @@ func NewGenericStorage(dbPath, datasourceName string) (*GenericStorage, error) {
 		"PRAGMA journal_mode = WAL",
 		"PRAGMA synchronous = NORMAL",
 		"PRAGMA busy_timeout = 30000",
-		"PRAGMA cache_size = -64000", // 64MB cache
-		"PRAGMA temp_store = memory",
+		"PRAGMA cache_size = -64000",   // 64MB cache
 		"PRAGMA mmap_size = 268435456", // 256MB mmap
 		"PRAGMA optimize",
 	}
