@@ -13,6 +13,7 @@ import (
 
 type Config struct {
 	OptimizeInterval time.Duration
+	EventSocketPath  string // Optional Unix domain socket path for realtime warehouse->web events
 }
 
 type Warehouse struct {
@@ -29,10 +30,13 @@ type Warehouse struct {
 	mu                  sync.RWMutex
 	wg                  sync.WaitGroup
 	running             bool
+
+	// Realtime event bridge (optional; nil if EventSocketPath is empty)
+	eventBridge *eventBridge
 }
 
 func NewWarehouse(config Config, storageManager *storage.Manager) *Warehouse {
-	return &Warehouse{
+	w := &Warehouse{
 		config:              config,
 		storageManager:      storageManager,
 		datasources:         make([]core.Datasource, 0),
@@ -41,6 +45,13 @@ func NewWarehouse(config Config, storageManager *storage.Manager) *Warehouse {
 		datasourceTickers:   make(map[string]*time.Ticker),
 		stopCh:              make(chan struct{}),
 	}
+
+	// Initialize event bridge if configured
+	if config.EventSocketPath != "" {
+		w.eventBridge = newEventBridge(config.EventSocketPath)
+	}
+
+	return w
 }
 
 // AddDatasource adds a datasource to the warehouse with the default 30-minute fetch interval.
@@ -143,6 +154,15 @@ func (w *Warehouse) Start(ctx context.Context) error {
 	// Store context for use in dynamic datasource management
 	w.ctx, w.ctxCancel = context.WithCancel(ctx)
 	w.running = true
+
+	// Start event bridge if configured
+	if w.eventBridge != nil {
+		if err := w.eventBridge.start(); err != nil {
+			log.Printf("Warning: failed to start event bridge on %s: %v", w.config.EventSocketPath, err)
+		} else {
+			log.Printf("Event bridge started on %s", w.config.EventSocketPath)
+		}
+	}
 
 	// Log all configured datasources and their intervals
 	log.Printf("Starting warehouse with %d datasources:", len(w.datasources))
@@ -396,6 +416,18 @@ func (w *Warehouse) storeBlock(block core.Block) error {
 		return fmt.Errorf("storing block %s: %w", block.ID(), err)
 	}
 
+	// Broadcast real-time event after successful persistence (if bridge enabled)
+	if w.eventBridge != nil {
+		w.eventBridge.publishBlock(
+			block.ID(),
+			block.Source(),
+			datasourceType,
+			block.CreatedAt(),
+			block.Text(),
+			block.Metadata(),
+		)
+	}
+
 	return nil
 }
 
@@ -418,6 +450,10 @@ func (w *Warehouse) Stop() {
 	}
 	if w.optimizeTicker != nil {
 		w.optimizeTicker.Stop()
+	}
+	// Stop event bridge if active
+	if w.eventBridge != nil {
+		w.eventBridge.stop()
 	}
 	w.running = false
 

@@ -31,6 +31,7 @@ func main() {
 			cmd.InitCommand(),
 			cmd.DatasourceCommand(),
 			cmd.FetchCommand(),
+			cmd.FirehoseCommand(),
 			cmd.SearchCommand(),
 			cmd.ListCommand(),
 			cmd.TodayCommand(),

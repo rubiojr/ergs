@@ -20,7 +20,8 @@ import (
 	"github.com/rubiojr/ergs/pkg/api"
 	"github.com/rubiojr/ergs/pkg/config"
 	"github.com/rubiojr/ergs/pkg/core"
-	renderers "github.com/rubiojr/ergs/pkg/renderers"
+	"github.com/rubiojr/ergs/pkg/realtime"
+	"github.com/rubiojr/ergs/pkg/render"
 	"github.com/rubiojr/ergs/pkg/version"
 
 	"github.com/rubiojr/ergs/pkg/shared"
@@ -59,8 +60,13 @@ type WebServer struct {
 	registry         *core.Registry
 	storageManager   *storage.Manager
 	config           *config.Config
-	rendererRegistry *renderers.RendererRegistry
+	rendererRegistry *render.RendererRegistry
+	pipelineService  *render.Service
 	apiServer        *api.Server
+
+	// Realtime firehose integration (optional; active when EventSocketPath configured)
+	firehoseHub    *realtime.FirehoseHub
+	bridgeConsumer *BridgeConsumer
 }
 
 // startWebServer starts the web server with both API and UI
@@ -96,16 +102,38 @@ func startWebServer(ctx context.Context, configPath, host, port string) error {
 	}
 
 	// Initialize renderer registry with auto-registered renderers
-	rendererRegistry := renderers.GetGlobalRegistry()
+	rendererRegistry := render.GetGlobalRegistry()
+	pipelineService := render.NewService(rendererRegistry)
 
 	apiServer := api.NewServer(registry, storageManager)
+	apiServer.SetRendererService(pipelineService)
+
+	// Initialize realtime firehose hub & bridge consumer (if configured)
+	var (
+		firehoseHub    *realtime.FirehoseHub
+		bridgeConsumer *BridgeConsumer
+	)
+	if cfg.EventSocketPath != "" {
+		firehoseHub = realtime.NewFirehoseHub(64)
+		bridgeConsumer = NewBridgeConsumer(cfg.EventSocketPath, 256)
+		bridgeConsumer.Start()
+		AttachConsumer(ctx, bridgeConsumer, firehoseHub)
+		log.Printf("Realtime firehose: enabled (socket=%s)", cfg.EventSocketPath)
+		// Inject hub into API server so future WS endpoint can use it
+		apiServer.SetFirehoseHub(firehoseHub)
+	} else {
+		log.Printf("Realtime firehose: disabled (event_socket_path not set in config)")
+	}
 
 	webServer := &WebServer{
 		registry:         registry,
 		storageManager:   storageManager,
 		config:           cfg,
 		rendererRegistry: rendererRegistry,
+		pipelineService:  pipelineService,
 		apiServer:        apiServer,
+		firehoseHub:      firehoseHub,
+		bridgeConsumer:   bridgeConsumer,
 	}
 
 	mux := http.NewServeMux()
@@ -493,17 +521,33 @@ func (s *WebServer) convertBlocksToWebBlocks(results map[string][]core.Block) ma
 
 // convertBlockToWebBlock converts a core block to a web block using custom renderers
 func (s *WebServer) convertBlockToWebBlock(block core.Block) types.WebBlock {
-	webBlock := types.WebBlock{
-		ID:        block.ID(),
-		Text:      block.Text(),
-		Source:    block.Source(),
-		CreatedAt: block.CreatedAt(),
-		Metadata:  block.Metadata(),
-		Links:     extractLinks(block.Text()),
+	if block == nil {
+		return types.WebBlock{}
 	}
 
-	// Use the renderer registry to get properly formatted HTML
-	webBlock.FormattedText = string(s.rendererRegistry.Render(block))
+	var (
+		renderedHTML string
+		links        []string
+	)
+
+	// Prefer shared pipeline service (ensures parity with websocket enrichment)
+	if s.pipelineService != nil {
+		renderedHTML, links = s.pipelineService.Render(block)
+	} else {
+		// Fallback to legacy path
+		renderedHTML = string(s.rendererRegistry.Render(block))
+		links = extractLinks(block.Text())
+	}
+
+	webBlock := types.WebBlock{
+		ID:            block.ID(),
+		Text:          block.Text(),
+		Source:        block.Source(),
+		CreatedAt:     block.CreatedAt(),
+		Metadata:      block.Metadata(),
+		Links:         links,
+		FormattedText: renderedHTML,
+	}
 
 	return webBlock
 }

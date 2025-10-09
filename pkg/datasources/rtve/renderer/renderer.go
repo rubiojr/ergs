@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/rubiojr/ergs/pkg/core"
-	"github.com/rubiojr/ergs/pkg/renderers"
+	"github.com/rubiojr/ergs/pkg/render"
 )
 
 //go:embed template.html
@@ -21,13 +21,13 @@ type RTVERenderer struct {
 func init() {
 	renderer := NewRTVERenderer()
 	if renderer != nil {
-		renderers.RegisterRenderer(renderer)
+		render.RegisterRenderer(renderer)
 	}
 }
 
 // NewRTVERenderer creates a new RTVE renderer
 func NewRTVERenderer() *RTVERenderer {
-	tmpl, err := template.New("rtve").Funcs(renderers.GetTemplateFuncs()).Parse(rtveTemplate)
+	tmpl, err := template.New("rtve").Funcs(render.GetTemplateFuncs()).Parse(rtveTemplate)
 	if err != nil {
 		return nil
 	}
@@ -39,10 +39,10 @@ func NewRTVERenderer() *RTVERenderer {
 
 // Render creates an HTML representation of an RTVE video block
 func (r *RTVERenderer) Render(block core.Block) template.HTML {
-	data := renderers.TemplateData{
+	data := render.TemplateData{
 		Block:    block,
 		Metadata: block.Metadata(),
-		Links:    renderers.ExtractLinks(block.Text()),
+		Links:    render.ExtractLinks(block.Text()),
 	}
 
 	var buf strings.Builder

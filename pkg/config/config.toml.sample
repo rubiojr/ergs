@@ -3,6 +3,18 @@
 
 storage_dir = '/home/user/.local/share/ergs'
 
+# Real-time event streaming (optional)
+# When running 'ergs serve' (warehouse) and 'ergs web' (API) as separate processes,
+# set this to a Unix domain socket path to enable live firehose streaming over
+# the socket. Leave empty or comment out to disable.
+# Recommended runtime location (systemd): /run/ergs/bridge.sock
+# Example:
+# event_socket_path = '/run/ergs/bridge.sock'
+# NOTE: The web process needs read access to the socket file; adjust permissions accordingly.
+# If unspecified, real-time WebSocket firehose will not stream live updates.
+#event_socket_path = ''
+
+
 # Importer API configuration
 # Used by both the importer API server (ergs importer) and importer datasource
 [importer]

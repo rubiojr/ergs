@@ -2,6 +2,8 @@
 
 The Ergs REST API provides programmatic access to your datasources, enabling search functionality, data retrieval, and system monitoring. The API returns JSON responses and supports advanced search features including full-text search, pagination, and date filtering.
 
+NEW: A real-time WebSocket Firehose endpoint (`/api/firehose/ws`) is now available for streaming newly ingested blocks with minimal latency. See section "WebSocket Firehose (Real-Time Streaming)" below.
+
 ## API Endpoints
 
 All API endpoints are available under the `/api` path prefix. The API returns JSON responses and uses HTTP method-specific routing for security.
@@ -516,3 +518,211 @@ For production environments, consider:
 6. **Rate Limiting:** Add rate limiting at the proxy level
 
 See the main documentation for datasource configuration details and deployment best practices.
+
+## WebSocket Firehose (Real-Time Streaming)
+
+The WebSocket Firehose provides near real-time delivery of newly ingested blocks across all datasources. It complements the REST endpoints by pushing updates instead of requiring clients to poll.
+
+### Endpoint
+
+`GET /api/firehose/ws`
+
+### Upgrade
+
+Establish a standard WebSocket connection. No authentication is currently required. CORS/Origin checks are permissive (all origins allowed). This may change for hardened deployments.
+
+### Initial Payload
+
+Upon connection the server sends an `init` message containing the most recent slice of blocks (equivalent to the first page of the REST firehose). If the client supplies a `since` query parameter (`?since=<RFC3339 timestamp>`), only blocks with `created_at` strictly greater than that timestamp are included (high‑precision boundary; supersedes date-based `start_date` filtering):
+
+```/dev/null/api_firehose_ws_init.json#L1-1
+{
+  "type": "init",
+  "count": <number_of_blocks>,
+  "blocks": [
+    {
+      "id": "block-id",
+      "text": "Block text",
+      "source": "datasource_instance_name",
+      "created_at": "2025-01-01T12:00:00Z",
+      "metadata": {
+        "datasource": "datasource_instance_name",
+        "...": "..."
+      }
+    }
+  ]
+}
+```
+
+### Live Update Messages
+
+After the initial snapshot, new blocks are streamed as discrete messages:
+
+```/dev/null/api_firehose_ws_block.json#L1-1
+{
+  "type": "block",
+  "block": {
+    "id": "block-id",
+    "text": "Block text",
+    "source": "datasource_instance_name",
+    "created_at": "2025-01-01T12:00:05Z",
+    "metadata": {
+      "datasource": "datasource_instance_name"
+    }
+  }
+}
+```
+
+When batching is necessary (e.g., fallback polling or catch-up), a `block_batch` message may be sent:
+
+```/dev/null/api_firehose_ws_block_batch.json#L1-1
+{
+  "type": "block_batch",
+  "count": 3,
+  "blocks": [ ... same block objects ... ]
+}
+```
+
+### Heartbeats
+
+A heartbeat message is emitted approximately every 30 seconds so clients can detect stale connections:
+
+```/dev/null/api_firehose_ws_heartbeat.json#L1-1
+{
+  "type": "heartbeat",
+  "ts": "2025-01-01T12:05:00.123456789Z"
+}
+```
+
+Clients should disconnect and reconnect if no heartbeat or block messages are received within 2× the heartbeat interval.
+
+### Error Messages
+
+Recoverable errors (e.g., transient search/poll failure) are sent as:
+
+```/dev/null/api_firehose_ws_error.json#L1-1
+{
+  "type": "error",
+  "error": "poll_failed",
+  "info": "details or diagnostic hint"
+}
+```
+
+### Message Types Summary
+
+| type         | Purpose                                       |
+|--------------|-----------------------------------------------|
+| init         | Initial snapshot with recent blocks (optionally filtered by `since`) |
+| block        | Single newly ingested block (push)            |
+| block_batch  | Multiple new blocks (fallback batch)          |
+| heartbeat    | Liveness indicator                            |
+| error        | Non-fatal error / diagnostic                  |
+
+### Ordering & De-duplication
+
+- Ordering is generally chronological by `created_at`, but interleaving from multiple datasources can cause slight reordering on high throughput.
+- Clients should maintain a de-dup key `(source, id)` to avoid duplicates if reconnecting or processing both `block_batch` and `block` messages.
+- When reconnecting, clients can compare the latest `created_at` they have with incoming snapshot data and ignore older blocks.
+
+#### The `since` Query Parameter
+Clients may pass `?since=<RFC3339>` when opening the WebSocket (e.g. `wss://host/api/firehose/ws?since=2025-01-01T12:34:56Z`).  
+Rules:
+- Must be a valid RFC3339 timestamp (e.g. `2025-01-01T12:34:56Z` or with nanoseconds).
+- Returns only blocks with `created_at` strictly greater than `since`.
+- Overrides any lower-bound implied by `start_date` (the WebSocket endpoint ignores `start_date` when `since` is present).
+- The server echoes back an updated high-water mark inside subsequent messages (`init` and any `block_batch`) via the `since` field so clients can persist and reuse it on reconnect.
+- If no new blocks exist after that boundary, `init.count` may be zero.
+
+Example:
+`wss://localhost:8080/api/firehose/ws?since=2025-01-10T09:00:00Z`
+
+If the newest block you receive has:
+```
+"created_at": "2025-01-10T09:05:12.345678Z"
+```
+Store `2025-01-10T09:05:12.345678Z` and use it as the next `since` on reconnect.
+
+### Reconnect Strategy
+
+Suggested client behavior:
+1. Connect to `/api/firehose/ws`
+2. Process `init` → populate cache
+3. Stream `block` / `block_batch` messages
+4. On socket close:
+   - Exponential backoff reconnect
+   - Optionally perform a REST call (`/api/firehose`) to fill any gap
+
+### Backfill Beyond Initial Snapshot
+
+If you need more history than provided in `init`, use the REST firehose endpoint with pagination:
+`GET /api/firehose?limit=30&page=N`
+
+### When the Realtime Bridge Is Disabled
+
+If the warehouse event bridge (Unix domain socket) is not configured, the server may fall back to periodic polling, sending `block_batch` messages rather than immediate `block` messages. Heartbeats continue to function regardless of the backend mode.
+
+### Future Extensions (Planned / Possible)
+
+- Optional `since` parameter for reduced initial payload
+- Authentication / API keys
+- Client-driven ack or cursor offsets
+- Compression (permessage-deflate)
+- Fine-grained filters (e.g., subset of datasources)
+
+### Example Client (JavaScript)
+
+```/dev/null/api_firehose_ws_client.js#L1-1
+const ws = new WebSocket("ws://localhost:8080/api/firehose/ws");
+
+const dedup = new Set();
+
+ws.onmessage = (evt) => {
+  const msg = JSON.parse(evt.data);
+  switch (msg.type) {
+    case "init":
+      msg.blocks.forEach(handleBlock);
+      break;
+    case "block":
+      handleBlock(msg.block);
+      break;
+    case "block_batch":
+      msg.blocks.forEach(handleBlock);
+      break;
+    case "heartbeat":
+      // Optionally update a lastSeen timestamp
+      break;
+    case "error":
+      console.warn("Firehose error:", msg.error, msg.info);
+      break;
+  }
+};
+
+function handleBlock(b) {
+  const key = `${b.source}:${b.id}`;
+  if (dedup.has(key)) return;
+  dedup.add(key);
+  console.log("New block:", b);
+}
+```
+
+### Operational Notes
+
+- Ensure both processes (warehouse & web) share filesystem permissions for the Unix domain socket when using the real-time bridge.
+- If deploying under systemd, consider placing the socket under `/run/ergs/bridge.sock` with an appropriate `RuntimeDirectory=` directive.
+- The WebSocket layer is stateless; horizontal scaling requires each web instance to connect to the same bridge or a future broker.
+
+### Security Considerations
+
+Currently open; for production:
+- Restrict origins or add token-based auth.
+- Limit connection count.
+- Consider rate limiting clients that reconnect aggressively.
+
+### Troubleshooting
+
+| Symptom | Possible Cause | Action |
+|---------|----------------|--------|
+| No block messages after init | Low ingestion or bridge disabled | Verify warehouse running & socket path configured |
+| Frequent reconnects | Network or reverse proxy timeout | Ensure idle timeout > heartbeat interval |
+| Duplicate blocks | Reconnect overlap | Implement de-dup logic (see above) |
+| Missing recent blocks on reconnect | Gap during downtime | Use REST firehose pages to backfill |

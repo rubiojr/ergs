@@ -1,13 +1,21 @@
-package renderers
+package render
 
 import (
-	_ "embed"
 	"html/template"
 	"strings"
 
 	"github.com/rubiojr/ergs/pkg/core"
 )
 
+// defaultTemplate is the fallback HTML template used when no specific renderer
+// claims a block. It provides a clean, consistent visual presentation including:
+//   - Timestamp
+//   - Raw (escaped) block text
+//   - Extracted links (if any)
+//   - Filtered metadata (excluding noisy internal fields)
+//
+// NOTE: This template deliberately keeps styling self‑contained to avoid
+// coupling with outer page styles (still uses CSS variables where available).
 var defaultTemplate = `
 <div class="block-default">
   <div class="bd-header">
@@ -42,7 +50,6 @@ var defaultTemplate = `
 </div>
 
 <style>
-
 .block-default {
   border: 1px solid var(--border);
   background: var(--surface);
@@ -148,48 +155,41 @@ var defaultTemplate = `
 </style>
 `
 
-// DefaultRenderer provides basic rendering for any block type
+// DefaultRenderer provides generic rendering when no specific renderer matches.
 type DefaultRenderer struct {
-	template *template.Template
+	tmpl *template.Template
 }
 
-// Note: Default renderer is not auto-registered - it's used as a fallback in the registry
-
-// NewDefaultRenderer creates a new default renderer
+// NewDefaultRenderer constructs a new default renderer instance.
 func NewDefaultRenderer() *DefaultRenderer {
-	tmpl, err := template.New("default").Funcs(GetTemplateFuncs()).Parse(defaultTemplate)
+	t, err := template.New("default_renderer").Funcs(GetTemplateFuncs()).Parse(defaultTemplate)
 	if err != nil {
-		return nil
+		// Fail closed but return a minimal renderer to avoid panics downstream.
+		fallback, _ := template.New("fallback").Parse("<pre>{{.}}</pre>")
+		return &DefaultRenderer{tmpl: fallback}
 	}
-
-	return &DefaultRenderer{
-		template: tmpl,
-	}
+	return &DefaultRenderer{tmpl: t}
 }
 
-// Render creates an HTML representation of any block
+// Render renders any block using the fallback template.
 func (r *DefaultRenderer) Render(block core.Block) template.HTML {
+	if block == nil {
+		return template.HTML("<!-- nil block -->")
+	}
 	data := TemplateData{
 		Block:    block,
 		Metadata: block.Metadata(),
 		Links:    ExtractLinks(block.Text()),
 	}
-
 	var buf strings.Builder
-	err := r.template.Execute(&buf, data)
-	if err != nil {
-		return template.HTML("Error rendering default template")
+	if err := r.tmpl.Execute(&buf, data); err != nil {
+		return template.HTML("<!-- default renderer error -->")
 	}
-
 	return template.HTML(buf.String())
 }
 
-// CanRender returns true for any block (this is the fallback renderer)
-func (r *DefaultRenderer) CanRender(block core.Block) bool {
-	return true // Default renderer can handle any block
-}
+// CanRender always returns true (catch‑all fallback).
+func (r *DefaultRenderer) CanRender(block core.Block) bool { return true }
 
-// GetDatasourceType returns empty string since this handles any datasource
-func (r *DefaultRenderer) GetDatasourceType() string {
-	return "" // Default renderer doesn't have a specific type
-}
+// GetDatasourceType returns empty string to denote generic applicability.
+func (r *DefaultRenderer) GetDatasourceType() string { return "" }

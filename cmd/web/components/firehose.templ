@@ -2,7 +2,6 @@ package components
 
 import (
 	"github.com/rubiojr/ergs/cmd/web/components/types"
-	"strconv"
 )
 
 templ Firehose(data types.PageData) {
@@ -10,6 +9,7 @@ templ Firehose(data types.PageData) {
 		<div class="firehose-page">
 			@firehoseHeader()
 			@firehoseResults(data)
+			<script src="/static/firehose_live.js"></script>
 		</div>
 	}
 }
@@ -22,6 +22,7 @@ templ blocksPageHeader(title string, description string) {
 				<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"></path>
 			</svg>
 			{ title }
+			<span id="firehose-live-status" class="live-status live-dot" data-state="initializing" aria-label="Firehose connection status"></span>
 		</h2>
 		if description != "" {
 			<p class="firehose-description">
@@ -31,15 +32,14 @@ templ blocksPageHeader(title string, description string) {
 	</div>
 }
 
-// firehoseHeader deprecated wrapper for Firehose page (kept for backward compatibility)
 templ firehoseHeader() {
 	@blocksPageHeader("Firehose", "Latest blocks across all datasources, ordered by creation time")
 }
 
 // firehoseResults renders the firehose results and pagination
 templ firehoseResults(data types.PageData) {
-	if len(data.Results) > 0 {
-		@resultsWithFirehosePagination(data)
+	if len(data.Results) > 0 || len(data.FirehoseBlocks) > 0 {
+		@firehoseBlocks(data)
 	} else if data.Error != "" {
 		@firehoseError(data.Error)
 	} else {
@@ -48,17 +48,7 @@ templ firehoseResults(data types.PageData) {
 }
 
 // resultsWithFirehosePagination renders firehose results and pagination
-templ resultsWithFirehosePagination(data types.PageData) {
-	<div class="results-summary">
-		<p>
-			Showing { strconv.Itoa(data.TotalCount) } blocks (Page { strconv.Itoa(data.CurrentPage) })
-		</p>
-	</div>
-	<div class="results-section">
-		@firehoseBlocks(data)
-	</div>
-	@firehosePagination(data)
-}
+
 
 // firehoseBlocks renders a flat, globally time-ordered slice of blocks (FirehoseBlocks).
 // Falls back to grouped Results map if FirehoseBlocks is empty (backward compatibility).
@@ -79,25 +69,7 @@ templ firehoseBlocks(data types.PageData) {
 }
 
 // firehosePagination renders the pagination controls
-templ firehosePagination(data types.PageData) {
-	<div class="pagination">
-		if data.CurrentPage > 1 {
-			<a
-				href={ templ.URL("/firehose?page=" + strconv.Itoa(data.CurrentPage-1) + "&limit=" + strconv.Itoa(data.PageSize)) }
-				class="pagination-btn"
-			>← Previous</a>
-		}
-		<span class="page-info">
-			Page { strconv.Itoa(data.CurrentPage) }
-		</span>
-		if data.HasNextPage {
-			<a
-				href={ templ.URL("/firehose?page=" + strconv.Itoa(data.CurrentPage+1) + "&limit=" + strconv.Itoa(data.PageSize)) }
-				class="pagination-btn"
-			>Next →</a>
-		}
-	</div>
-}
+
 
 // firehoseError renders the error message
 templ firehoseError(errorMsg string) {
@@ -110,10 +82,9 @@ templ firehoseError(errorMsg string) {
 // noFirehoseResults renders the no results message
 templ noFirehoseResults() {
 	<div class="no-results">
-		<h3>No Blocks Found</h3>
-		<p>There are no blocks available in any datasource.</p>
-		<p>
-			<a href="/datasources">View datasources</a> to check their status.
-		</p>
+		<h3>Realtime Firehose Inactive</h3>
+		<p>No live blocks are currently available.</p>
+		<p>Enable the <code>event_socket_path</code> in your configuration and restart the <code>serve</code> (ingestion) and <code>web</code> processes to activate realtime streaming.</p>
+		<p><a href="/datasources">View datasources</a> after enabling to verify new blocks are ingesting.</p>
 	</div>
 }

@@ -7,13 +7,27 @@ import (
 
 	"github.com/rubiojr/ergs/cmd/web/components/types"
 	"github.com/rubiojr/ergs/pkg/core"
+	"github.com/rubiojr/ergs/pkg/realtime"
+	"github.com/rubiojr/ergs/pkg/render"
 	"github.com/rubiojr/ergs/pkg/shared"
 	"github.com/rubiojr/ergs/pkg/storage"
 )
 
+type FirehoseHubAdapter interface {
+	// Broadcast receives a generic event; concrete hub can type-assert as needed.
+	Broadcast(event interface{})
+}
+
+// InternalEvent is now an alias to the shared realtime.InternalEvent type.
+// This preserves backward compatibility for existing references while enabling
+// direct push events from the unified realtime hub.
+type InternalEvent = realtime.InternalEvent
+
 type Server struct {
-	registry       *core.Registry
-	storageManager *storage.Manager
+	registry        *core.Registry
+	storageManager  *storage.Manager
+	firehoseHub     FirehoseHubAdapter // optional; nil when realtime firehose disabled
+	rendererService *render.Service    // optional; when set, enriches WS events with formatted HTML
 }
 
 func NewServer(registry *core.Registry, storageManager *storage.Manager) *Server {
@@ -21,6 +35,18 @@ func NewServer(registry *core.Registry, storageManager *storage.Manager) *Server
 		registry:       registry,
 		storageManager: storageManager,
 	}
+}
+
+// SetFirehoseHub injects a realtime firehose broadcaster (optional).
+func (s *Server) SetFirehoseHub(h FirehoseHubAdapter) {
+	s.firehoseHub = h
+}
+
+// SetRendererService injects a shared rendering service used to enrich
+// WebSocket firehose messages with pre-rendered HTML (formatted_html).
+// Safe to call at startup; can be nil to disable enrichment.
+func (s *Server) SetRendererService(r *render.Service) {
+	s.rendererService = r
 }
 
 func (s *Server) writeJSON(w http.ResponseWriter, status int, data interface{}) {

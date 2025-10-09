@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/rubiojr/ergs/pkg/core"
-	"github.com/rubiojr/ergs/pkg/renderers"
+	"github.com/rubiojr/ergs/pkg/render"
 )
 
 //go:embed template.html
@@ -21,13 +21,13 @@ type GasStationsRenderer struct {
 func init() {
 	renderer := NewGasStationsRenderer()
 	if renderer != nil {
-		renderers.RegisterRenderer(renderer)
+		render.RegisterRenderer(renderer)
 	}
 }
 
 // NewGasStationsRenderer creates a new gas stations renderer
 func NewGasStationsRenderer() *GasStationsRenderer {
-	tmpl, err := template.New("gasstations").Funcs(renderers.GetTemplateFuncs()).Parse(gasStationsTemplate)
+	tmpl, err := template.New("gasstations").Funcs(render.GetTemplateFuncs()).Parse(gasStationsTemplate)
 	if err != nil {
 		return nil
 	}
@@ -39,10 +39,10 @@ func NewGasStationsRenderer() *GasStationsRenderer {
 
 // Render creates an HTML representation of a gas station block
 func (r *GasStationsRenderer) Render(block core.Block) template.HTML {
-	data := renderers.TemplateData{
+	data := render.TemplateData{
 		Block:    block,
 		Metadata: block.Metadata(),
-		Links:    renderers.ExtractLinks(block.Text()),
+		Links:    render.ExtractLinks(block.Text()),
 	}
 
 	var buf strings.Builder

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/rubiojr/ergs/pkg/core"
-	"github.com/rubiojr/ergs/pkg/renderers"
+	"github.com/rubiojr/ergs/pkg/render"
 )
 
 //go:embed template.html
@@ -21,13 +21,13 @@ type ZedThreadsRenderer struct {
 func init() {
 	renderer := NewZedThreadsRenderer()
 	if renderer != nil {
-		renderers.RegisterRenderer(renderer)
+		render.RegisterRenderer(renderer)
 	}
 }
 
 // NewZedThreadsRenderer creates a new Zed Threads renderer
 func NewZedThreadsRenderer() *ZedThreadsRenderer {
-	tmpl, err := template.New("zedthreads").Funcs(renderers.GetTemplateFuncs()).Parse(zedThreadsTemplate)
+	tmpl, err := template.New("zedthreads").Funcs(render.GetTemplateFuncs()).Parse(zedThreadsTemplate)
 	if err != nil {
 		return nil
 	}
@@ -39,10 +39,10 @@ func NewZedThreadsRenderer() *ZedThreadsRenderer {
 
 // Render creates an HTML representation of a Zed Threads block
 func (r *ZedThreadsRenderer) Render(block core.Block) template.HTML {
-	data := renderers.TemplateData{
+	data := render.TemplateData{
 		Block:    block,
 		Metadata: block.Metadata(),
-		Links:    renderers.ExtractLinks(block.Text()),
+		Links:    render.ExtractLinks(block.Text()),
 	}
 
 	var buf strings.Builder

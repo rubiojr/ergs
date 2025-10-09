@@ -11,13 +11,23 @@ func formatTimestamp(t time.Time) string {
 	return t.Local().Format("2006-01-02 15:04")
 }
 
+// formatTimestampRFC3339 returns a stable RFC3339 UTC timestamp for data attributes / cursors
+func formatTimestampRFC3339(t time.Time) string {
+	return t.UTC().Format(time.RFC3339)
+}
+
 // UnifiedBlock renders a single block using the firehose visual style so it can be reused
 // across firehose, search results and individual datasource pages.
 //
 // Keep styling consistent by using existing "firehose-*" class names.
 // The surrounding template is responsible for wrapping multiple blocks.
 templ UnifiedBlock(block types.WebBlock, datasource string) {
-	<div class="firehose-block-wrapper">
+	<div
+		class="firehose-block-wrapper"
+		data-block-id={ block.ID }
+		data-block-source={ datasource }
+		data-created-at={ formatTimestampRFC3339(block.CreatedAt) }
+	>
 		<div class="firehose-block-header">
 			<span class="datasource-name">
 				<a href={ templ.URL("/datasource/" + datasource) }>{ datasource }</a>

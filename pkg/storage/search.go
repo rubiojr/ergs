@@ -48,6 +48,11 @@ type SearchParams struct {
 	// Automatically set to end of day (23:59:59) when parsed from date string.
 	// If nil, no end date filtering is applied.
 	EndDate *time.Time
+
+	// Since is an optional high-precision time boundary (created_at > Since).
+	// Takes precedence over StartDate when provided. Used by real-time clients
+	// to request only blocks strictly newer than a previously seen cursor.
+	Since *time.Time
 }
 
 // SearchResults contains the results of a search operation along with
@@ -505,6 +510,17 @@ func ParseSearchParams(queryParams map[string][]string) (SearchParams, error) {
 			params.EndDate = &endOfDay
 		} else {
 			return params, fmt.Errorf("invalid end_date format: %w", err)
+		}
+	}
+
+	// Parse high-precision 'since' timestamp (RFC3339)
+	if sinceStr := queryParams["since"]; len(sinceStr) > 0 && sinceStr[0] != "" {
+		if parsed, err := time.Parse(time.RFC3339, sinceStr[0]); err == nil {
+			params.Since = &parsed
+			// Since supersedes StartDate lower bound
+			params.StartDate = nil
+		} else {
+			return params, fmt.Errorf("invalid since format (expected RFC3339): %w", err)
 		}
 	}
 

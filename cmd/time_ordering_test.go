@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rubiojr/ergs/pkg/renderers"
 	"github.com/rubiojr/ergs/pkg/api"
 	"github.com/rubiojr/ergs/pkg/config"
 	"github.com/rubiojr/ergs/pkg/core"
+	"github.com/rubiojr/ergs/pkg/render"
 	"github.com/rubiojr/ergs/pkg/storage"
 
 	// Import test datasources to register their factories
@@ -70,7 +70,7 @@ func TestTimeBasedOrderingIntegration(t *testing.T) {
 		}
 	}()
 
-	rendererRegistry := renderers.NewRendererRegistry()
+	rendererRegistry := render.NewRendererRegistry()
 
 	// Create test data with specific timestamps across multiple datasources
 	baseTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)

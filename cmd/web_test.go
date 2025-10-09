@@ -14,7 +14,7 @@ import (
 	"github.com/rubiojr/ergs/pkg/api"
 	"github.com/rubiojr/ergs/pkg/config"
 	"github.com/rubiojr/ergs/pkg/core"
-	renderers "github.com/rubiojr/ergs/pkg/renderers"
+	"github.com/rubiojr/ergs/pkg/render"
 	"github.com/rubiojr/ergs/pkg/storage"
 
 	// Import test datasources to register their factories
@@ -121,7 +121,7 @@ func setupTestWebServer(t *testing.T) (*WebServer, func()) {
 	}
 
 	// Initialize renderer registry for web interface tests
-	rendererRegistry := renderers.NewRendererRegistry()
+	rendererRegistry := render.NewRendererRegistry()
 
 	// Initialize API server
 	apiServer := api.NewServer(registry, storageManager)
@@ -366,7 +366,7 @@ func TestWebSearchErrorHandling(t *testing.T) {
 	}
 
 	// Initialize renderer registry
-	rendererRegistry := renderers.GetGlobalRegistry()
+	rendererRegistry := render.GetGlobalRegistry()
 
 	// Create web server
 	webServer := &WebServer{
@@ -1215,7 +1215,7 @@ func TestAPISearchDateFiltering(t *testing.T) {
 		}
 	}
 
-	rendererRegistry := renderers.NewRendererRegistry()
+	rendererRegistry := render.NewRendererRegistry()
 	registry := core.GetGlobalRegistry()
 	apiServer := api.NewServer(registry, storageManager)
 	server := &WebServer{
@@ -1416,7 +1416,7 @@ func TestWebSearchDateFiltering(t *testing.T) {
 		}
 	}
 
-	rendererRegistry := renderers.NewRendererRegistry()
+	rendererRegistry := render.NewRendererRegistry()
 	registry := core.GetGlobalRegistry()
 	apiServer := api.NewServer(registry, storageManager)
 	server := &WebServer{
@@ -1497,7 +1497,7 @@ func TestDateFilterParameterParsing(t *testing.T) {
 		}
 	}()
 
-	rendererRegistry := renderers.NewRendererRegistry()
+	rendererRegistry := render.NewRendererRegistry()
 	registry := core.GetGlobalRegistry()
 	apiServer := api.NewServer(registry, storageManager)
 	server := &WebServer{

@@ -59,6 +59,7 @@ func serve(ctx context.Context, configPath string) error {
 
 	warehouseConfig := warehouse.Config{
 		OptimizeInterval: time.Hour, // Optimize every hour
+		EventSocketPath:  cfg.EventSocketPath,
 	}
 	wh := warehouse.NewWarehouse(warehouseConfig, storageManager)
 	defer func() {

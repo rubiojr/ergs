@@ -1,4 +1,4 @@
-package renderers
+package render
 
 import (
 	"html/template"
@@ -6,6 +6,36 @@ import (
 
 	"github.com/rubiojr/ergs/pkg/core"
 )
+
+/*
+Registry & Rendering Service Consolidation
+
+This file contains the unified renderer registry logic originally split across:
+
+  - pkg/renderers/registry.go
+  - pkg/renderers/default.go (default / fallback renderer)
+  - pkg/renderpipeline (higher-level rendering service – now in service.go)
+
+The goal of consolidation is to:
+  * Eliminate duplicate abstractions (registry vs. pipeline service)
+  * Provide a single import path: github.com/rubiojr/ergs/pkg/render
+  * Allow both the web (SSR) layer and realtime / API layers to use the same
+    rendering primitives without import cycles.
+
+Key Concepts:
+  - BlockRenderer: Pluggable renderer determined by datasource *type* (or other heuristics).
+  - RendererRegistry: Ordered collection of BlockRenderer implementations + a fallback.
+  - DefaultRenderer: Generic formatter used when no specific renderer matches.
+  - Service (see service.go): High-level convenience for producing HTML + derived metadata.
+
+Thread Safety:
+  - The registry uses a RWMutex; reads (Render / GetRenderer / ListRendererTypes / DefaultRenderer)
+    are lock-free w.r.t. mutation except for a brief copy of the slice pointer.
+
+Extensibility:
+  - Additional renderer discovery mechanisms (e.g. dynamic plugins) can populate the registry.
+  - Future optimization (e.g., caching) can be layered on top of Service without changing this API.
+*/
 
 // RendererRegistry manages a collection of BlockRenderer implementations plus
 // a fallback default renderer used when no specific renderer can handle a block.
@@ -96,6 +126,10 @@ func (r *RendererRegistry) ListRendererTypes() []string {
 	seen := make(map[string]struct{})
 	for _, ren := range r.renderers {
 		t := ren.GetDatasourceType()
+		if t == "" {
+			// Skip empty type (e.g., default renderer) from the list
+			continue
+		}
 		if _, exists := seen[t]; !exists {
 			seen[t] = struct{}{}
 			out = append(out, t)

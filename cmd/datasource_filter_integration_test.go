@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rubiojr/ergs/pkg/renderers"
 	"github.com/rubiojr/ergs/pkg/api"
 	"github.com/rubiojr/ergs/pkg/config"
 	"github.com/rubiojr/ergs/pkg/core"
+	"github.com/rubiojr/ergs/pkg/render"
 	"github.com/rubiojr/ergs/pkg/storage"
 
 	// Import test datasources to register their factories
@@ -41,7 +41,7 @@ func TestDatasourceFilteringIntegration(t *testing.T) {
 		}
 	}()
 
-	rendererRegistry := renderers.NewRendererRegistry()
+	rendererRegistry := render.NewRendererRegistry()
 
 	// Create realistic test data across multiple datasources
 	now := time.Now()

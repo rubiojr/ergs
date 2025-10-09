@@ -15,10 +15,11 @@ import (
 var configTemplate string
 
 type Config struct {
-	StorageDir    string                    `toml:"storage_dir"`
-	FetchInterval Duration                  `toml:"fetch_interval"`
-	Importer      *ImporterConfig           `toml:"importer,omitempty"`
-	Datasources   map[string]DatasourceInfo `toml:"datasources"`
+	StorageDir      string                    `toml:"storage_dir"`
+	FetchInterval   Duration                  `toml:"fetch_interval"`
+	Importer        *ImporterConfig           `toml:"importer,omitempty"`
+	Datasources     map[string]DatasourceInfo `toml:"datasources"`
+	EventSocketPath string                    `toml:"event_socket_path,omitempty"` // Optional Unix domain socket path for realtime warehouse->web events
 }
 
 type ImporterConfig struct {
