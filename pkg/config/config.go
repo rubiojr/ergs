@@ -50,7 +50,7 @@ type DatasourceInfo struct {
 }
 
 func GetDefaultConfig() (*Config, error) {
-	storageDir, err := GetDefaultStorageDir()
+	storageDir, err := getDefaultStorageDir()
 	if err != nil {
 		return nil, fmt.Errorf("getting default storage directory: %w", err)
 	}
@@ -77,11 +77,16 @@ func LoadConfig(configPath string) (*Config, error) {
 	}
 
 	if config.StorageDir == "" {
-		storageDir, err := GetDefaultStorageDir()
+		storageDir, err := getDefaultStorageDir()
 		if err != nil {
 			return nil, fmt.Errorf("getting default storage directory: %w", err)
 		}
 		config.StorageDir = storageDir
+	}
+
+	// Create the directory if it doesn't exist
+	if err := os.MkdirAll(config.StorageDir, 0755); err != nil {
+		return nil, fmt.Errorf("creating storage directory %s: %w", config.StorageDir, err)
 	}
 
 	if config.FetchInterval.Duration == 0 {
@@ -124,7 +129,7 @@ func (c *Config) generateConfigTemplate() (string, error) {
 	storageDir := c.StorageDir
 	if storageDir == "" {
 		var err error
-		storageDir, err = GetDefaultStorageDir()
+		storageDir, err = getDefaultStorageDir()
 		if err != nil {
 			return "", fmt.Errorf("getting default storage directory: %w", err)
 		}
@@ -189,8 +194,7 @@ func (c *Config) RemoveDatasource(name string) {
 	delete(c.Datasources, name)
 }
 
-// GetDefaultStorageDir returns the default storage directory for databases
-func GetDefaultStorageDir() (string, error) {
+func getDefaultStorageDir() (string, error) {
 	// Use XDG_DATA_HOME if set, otherwise use ~/.local/share
 	dataDir := os.Getenv("XDG_DATA_HOME")
 	if dataDir == "" {
@@ -203,17 +207,12 @@ func GetDefaultStorageDir() (string, error) {
 
 	ergsDir := filepath.Join(dataDir, "ergs")
 
-	// Create the directory if it doesn't exist
-	if err := os.MkdirAll(ergsDir, 0755); err != nil {
-		return "", fmt.Errorf("creating storage directory %s: %w", ergsDir, err)
-	}
-
 	return ergsDir, nil
 }
 
 // GetDefaultDBPath returns the default database path in the user's data directory
 func GetDefaultDBPath() (string, error) {
-	storageDir, err := GetDefaultStorageDir()
+	storageDir, err := getDefaultStorageDir()
 	if err != nil {
 		return "", err
 	}

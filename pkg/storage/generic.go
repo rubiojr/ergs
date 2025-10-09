@@ -260,24 +260,6 @@ func (s *GenericStorage) GetStats() (map[string]interface{}, error) {
 	return stats, nil
 }
 
-// GetLastFetchTime retrieves the last recorded fetch time for this datasource.
-// Returns zero time if no fetch time has been recorded yet.
-func (s *GenericStorage) GetLastFetchTime() (time.Time, error) {
-	var lastFetchStr string
-	err := s.db.QueryRow(`
-		SELECT value FROM fetch_metadata WHERE key = 'last_fetch'
-	`).Scan(&lastFetchStr)
-
-	if err == sql.ErrNoRows {
-		return time.Time{}, nil
-	}
-	if err != nil {
-		return time.Time{}, err
-	}
-
-	return time.Parse(time.RFC3339, lastFetchStr)
-}
-
 // ExecuteQuery executes a SQL query with optional parameters and returns the result rows.
 // The caller is responsible for closing the returned rows.
 func (s *GenericStorage) ExecuteQuery(query string, args ...interface{}) (*sql.Rows, error) {
