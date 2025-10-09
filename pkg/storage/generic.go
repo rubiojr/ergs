@@ -101,8 +101,15 @@ func (s *GenericStorage) StoreBlocks(blocks []core.Block, datasourceType string)
 	}()
 
 	stmt, err := tx.Prepare(`
-		INSERT OR REPLACE INTO blocks (id, text, created_at, source, datasource, metadata, hostname)
+		INSERT INTO blocks (id, text, created_at, source, datasource, metadata, hostname)
 		VALUES (?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(id) DO UPDATE SET
+			text=excluded.text,
+			created_at=excluded.created_at,
+			source=excluded.source,
+			datasource=excluded.datasource,
+			metadata=excluded.metadata,
+			hostname=excluded.hostname
 	`)
 	if err != nil {
 		return fmt.Errorf("preparing statement: %w", err)
