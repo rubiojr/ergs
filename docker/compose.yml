@@ -1,8 +1,44 @@
 services:
+  # Init container to set up proper permissions for the data volume
+  ergs-init:
+    container_name: ergs-init
+    image: ghcr.io/rubiojr/ergs
+    user: "0:0"
+    command:
+      [
+        "sh",
+        "-c",
+        "mkdir -p /data/internal && chown -R 1000:1000 /data && echo 'Permissions fixed'",
+      ]
+    volumes:
+      - ergs-data:/data
+    restart: "no"
+
+  # Run database migrations before starting other services
+  ergs-migrate:
+    image: ghcr.io/rubiojr/ergs
+    container_name: ergs-migrate
+    user: "1000:1000"
+    # Run a permissions fix (defensive) before applying migrations
+    command:
+      [
+        "sh",
+        "-c",
+        "chown -R 1000:1000 /data || true; exec ergs migrate --config /config/config.toml",
+      ]
+    volumes:
+      - ergs-data:/data
+      - ./config.toml:/config/config.toml:ro,z
+    depends_on:
+      ergs-init:
+        condition: service_completed_successfully
+    restart: "no"
+
   # Ergs scheduler daemon - fetches data from datasources
   ergs-serve:
     image: ghcr.io/rubiojr/ergs
     container_name: ergs-serve
+    user: "1000:1000"
     command: ["ergs", "serve", "--config", "/config/config.toml"]
     volumes:
       - ergs-data:/data
@@ -11,7 +47,10 @@ services:
       - TZ=UTC
     restart: unless-stopped
     depends_on:
-      - ergs-init
+      ergs-migrate:
+        condition: service_completed_successfully
+      ergs-init:
+        condition: service_completed_successfully
     healthcheck:
       disable: true
 
@@ -19,6 +58,7 @@ services:
   ergs-web:
     image: ghcr.io/rubiojr/ergs
     container_name: ergs-web
+    user: "1000:1000"
     command:
       ["ergs", "web", "--host", "0.0.0.0", "--config", "/config/config.toml"]
     ports:
@@ -30,8 +70,10 @@ services:
       - TZ=UTC
     restart: unless-stopped
     depends_on:
-      - ergs-serve
-      - ergs-init
+      ergs-migrate:
+        condition: service_completed_successfully
+      ergs-serve:
+        condition: service_started
     healthcheck:
       test:
         [
@@ -51,6 +93,7 @@ services:
   ergs-importer:
     image: ghcr.io/rubiojr/ergs
     container_name: ergs-importer
+    user: "1000:1000"
     command:
       [
         "ergs",
@@ -71,8 +114,10 @@ services:
       - TZ=UTC
     restart: unless-stopped
     depends_on:
-      - ergs-serve
-      - ergs-init
+      ergs-migrate:
+        condition: service_completed_successfully
+      ergs-serve:
+        condition: service_started
     healthcheck:
       test:
         [
@@ -87,21 +132,6 @@ services:
       timeout: 3s
       start_period: 5s
       retries: 3
-
-  # Init container to set up proper permissions for the data volume
-  ergs-init:
-    container_name: ergs-init
-    image: ghcr.io/rubiojr/ergs
-    user: "0:0"
-    command:
-      [
-        "sh",
-        "-c",
-        "mkdir -p /data/internal && chown -R 1000:1000 /data && echo 'Permissions fixed'",
-      ]
-    volumes:
-      - ergs-data:/data
-    restart: "no"
 
 volumes:
   ergs-data:
