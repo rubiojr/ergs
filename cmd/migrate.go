@@ -74,6 +74,10 @@ func RunMigrations(configPath string, statusOnly bool, datasourceName string) er
 
 	// Run migrations for each datasource database
 	for name := range datasources {
+		// Skip importer datasource (it has no dedicated persistent database / schema)
+		if name == "importer" {
+			continue
+		}
 		fmt.Printf("\n=== Datasource: %s ===\n", name)
 
 		dbPath := filepath.Join(cfg.StorageDir, fmt.Sprintf("%s.db", name))
