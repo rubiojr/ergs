@@ -1,0 +1,552 @@
+<div class="block-ha">
+    {{$eventType := index .Metadata "event_type"}} {{$entityID := index
+    .Metadata "entity_id"}} {{$domain := index .Metadata "domain"}} {{$service
+    := index .Metadata "service"}} {{$origin := index .Metadata "origin"}}
+    {{$timeFired := index .Metadata "time_fired"}} {{$contextID := index
+    .Metadata "context_id"}} {{$userID := index .Metadata "context_user_id"}}
+    {{$dataJSON := index .Metadata "data_json"}}
+
+    <div class="ha-header">
+        <div class="ha-icon" title="Home Assistant Event">🏠</div>
+        <div class="ha-content">
+            <div class="ha-title">
+                <span class="ha-event-type"
+                    >{{$eventType | default "event"}}</span
+                >
+                {{if $entityID}}
+                <span class="ha-entity">{{$entityID}}</span>
+                {{else if $domain}}
+                <span class="ha-domain">{{$domain}}</span>
+                {{end}} {{if $service}}
+                <span class="ha-service-badge">{{$service}}</span>
+                {{end}}
+            </div>
+
+            <div class="ha-meta">
+                <span class="ha-time" title="{{$timeFired}}"
+                    >{{formatTime .Block.CreatedAt}}</span
+                >
+                {{if $origin}}
+                <span class="ha-sep">|</span>
+                <span class="ha-origin">{{$origin}}</span>
+                {{end}} {{/* Enhanced state_changed header: show icon + old→new
+                diff (or single state if unchanged) */}} {{if eq $eventType
+                "state_changed"}} {{$hdrParsed := parseJSON $dataJSON}} {{$new
+                := index $hdrParsed "new_state"}} {{$old := index $hdrParsed
+                "old_state"}} {{if (and (isMap $new) (isMap $old))}} {{$newMap
+                := asMap $new}} {{$oldMap := asMap $old}} {{$newAttr := index
+                $newMap "attributes"}} {{$domainGuess := ""}} {{if (isMap
+                $newAttr)}} {{$tmpAttr := asMap $newAttr}} {{$domainGuess =
+                (printf "%v" (index $tmpAttr "device_class"))}} {{end}}
+                {{$newState := index $newMap "state"}} {{$oldState := index
+                $oldMap "state"}}
+                <span class="ha-sep">|</span>
+                {{$icon := stateIcon $domain $newState}}
+                <span
+                    class="ha-state-pill {{stateChangeClass $oldState $newState}}"
+                >
+                    {{if $icon}}<span class="ha-state-icon">{{$icon}}</span
+                    >{{end}}{{stateDiff $oldState $newState}}
+                </span>
+                {{end}} {{else}} {{/* Suppress context id unless debug flag
+                present */}} {{$debug := index .Metadata "debug"}} {{if and
+                $debug $contextID}}
+                <span class="ha-sep">|</span>
+                <span class="ha-context">ctx: {{truncate $contextID 10}}</span>
+                {{end}} {{end}} {{if $userID}}
+                <span class="ha-sep">|</span>
+                <span class="ha-user">user: {{truncate $userID 10}}</span>
+                {{end}}
+            </div>
+        </div>
+    </div>
+
+    {{/* DATA PANEL */}} {{if $dataJSON}}
+    <div class="ha-data">
+        <details class="ha-details">
+            <summary>Event data</summary>
+            <div class="ha-data-content">
+                {{$parsed := parseJSON $dataJSON}} {{if $parsed}} {{/* Special
+                diff view for state_changed with old/new state */}} {{if eq
+                $eventType "state_changed"}} {{$new := index $parsed
+                "new_state"}} {{$old := index $parsed "old_state"}} {{if (and
+                (isMap $new) (isMap $old))}} {{$newMap := asMap $new}} {{$oldMap
+                := asMap $old}} {{$newState := index $newMap "state"}}
+                {{$oldState := index $oldMap "state"}}
+                <div class="ha-state-diff">
+                    <span class="ha-state-diff-label">state:</span>
+                    <span class="ha-state-old">{{$oldState}}</span>
+                    <span class="ha-state-arrow">→</span>
+                    <span class="ha-state-new">{{$newState}}</span>
+                </div>
+                <div class="ha-state-columns">
+                    <div class="ha-state-col">
+                        <div class="ha-state-col-title">new_state</div>
+                        {{$newAttr := index $newMap "attributes"}} {{if (isMap
+                        $newAttr)}}
+                        <table class="ha-mini-table">
+                            <tbody>
+                                {{range $k := sortedKeys (asMap $newAttr)}}
+                                <tr>
+                                    <th>{{$k}}</th>
+                                    <td>
+                                        {{printf "%v" (index (asMap $newAttr)
+                                        $k)}}
+                                    </td>
+                                </tr>
+                                {{end}}
+                            </tbody>
+                        </table>
+                        {{end}}
+                    </div>
+                    <div class="ha-state-col">
+                        <div class="ha-state-col-title">old_state</div>
+                        {{$oldAttr := index $oldMap "attributes"}} {{if (isMap
+                        $oldAttr)}}
+                        <table class="ha-mini-table">
+                            <tbody>
+                                {{range $k := sortedKeys (asMap $oldAttr)}}
+                                <tr>
+                                    <th>{{$k}}</th>
+                                    <td>
+                                        {{printf "%v" (index (asMap $oldAttr)
+                                        $k)}}
+                                    </td>
+                                </tr>
+                                {{end}}
+                            </tbody>
+                        </table>
+                        {{end}}
+                    </div>
+                </div>
+                {{end}} {{end}}
+                <table class="ha-data-table">
+                    <tbody>
+                        {{if $contextID}}
+                        <tr>
+                            <th>context_id</th>
+                            <td>{{$contextID}}</td>
+                        </tr>
+                        {{end}} {{range $k := sortedKeys (asMap $parsed)}} {{if
+                        and (ne $k "new_state") (ne $k "old_state")}} {{$v :=
+                        index $parsed $k}}
+                        <tr>
+                            <th>{{$k}}</th>
+                            <td>
+                                {{if (isMap $v)}}
+                                <pre
+                                    class="ha-json-inline"
+                                ><code>{{prettyJSON $v}}</code></pre>
+                                {{else if (isSlice $v)}}
+                                <pre
+                                    class="ha-json-inline"
+                                ><code>{{prettyJSON $v}}</code></pre>
+                                {{else}}{{printf "%v" $v}}{{end}}
+                            </td>
+                        </tr>
+                        {{end}} {{end}}
+                    </tbody>
+                </table>
+                <details class="ha-raw-json">
+                    <summary>Raw JSON</summary>
+                    <pre><code>{{prettyJSON $parsed}}</code></pre>
+                </details>
+                {{else}}
+                <pre><code>{{$dataJSON}}</code></pre>
+                {{end}}
+            </div>
+        </details>
+    </div>
+    {{end}} {{/* EXTRA METADATA (filtered) */}} {{$ex := slice "event_type"
+    "entity_id" "domain" "service" "origin" "time_fired" "context_id"
+    "context_user_id" "data_json" "source" "dstype"}} {{$extra := filterMetadata
+    .Metadata $ex}} {{if $extra}}
+    <div class="ha-extra">
+        <details class="ha-details">
+            <summary>Additional fields</summary>
+            <div class="ha-extra-content">
+                <dl class="ha-metadata">
+                    {{range $k, $v := $extra}}
+                    <dt>{{$k}}</dt>
+                    <dd>{{$v}}</dd>
+                    {{end}}
+                </dl>
+            </div>
+        </details>
+    </div>
+    {{end}}
+</div>
+
+<style>
+    .block-ha {
+        margin-bottom: 1.25rem;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--surface);
+        font-size: 13px;
+        line-height: 1.35;
+        overflow: hidden;
+        transition:
+            background 0.25s ease,
+            border-color 0.25s ease;
+    }
+
+    .ha-header {
+        display: flex;
+        gap: 10px;
+        padding: 8px 12px;
+        background: var(--surface-alt);
+        align-items: flex-start;
+    }
+
+    .block-ha:hover .ha-header {
+        background: var(--surface);
+    }
+
+    .ha-icon {
+        font-size: 18px;
+        line-height: 1;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+
+    .ha-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .ha-title {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text);
+        margin-bottom: 4px;
+    }
+
+    .ha-event-type {
+        background: var(--accent-soft);
+        color: var(--accent);
+        padding: 2px 8px;
+        border-radius: 14px;
+        font-size: 11px;
+        line-height: 1.2;
+        font-weight: 600;
+        border: 1px solid var(--accent-border);
+        text-transform: lowercase;
+    }
+
+    .ha-entity,
+    .ha-domain {
+        font-family: monospace;
+        background: var(--surface-alt);
+        padding: 2px 6px;
+        border-radius: 4px;
+        border: 1px solid var(--border);
+        font-size: 12px;
+        max-width: 420px;
+        white-space: normal;
+        word-break: break-all;
+    }
+
+    .ha-service-badge {
+        background: var(--surface-alt);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text-dim);
+    }
+
+    .ha-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        font-size: 11px;
+        color: var(--text-dim);
+        align-items: center;
+    }
+
+    .ha-time {
+        font-variant-numeric: tabular-nums;
+    }
+
+    .ha-origin {
+        color: var(--text);
+    }
+
+    .ha-context,
+    .ha-user,
+    .ha-state-pill {
+        font-family: monospace;
+        background: var(--surface-alt);
+        padding: 2px 6px;
+        border-radius: 4px;
+        border: 1px solid var(--border);
+    }
+    .ha-state-pill {
+        color: var(--accent);
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+    }
+    .ha-state-icon {
+        font-size: 12px;
+        line-height: 1;
+    }
+    .ha-diff-up {
+        background: var(--success-bg, var(--accent-soft));
+        color: var(--success-fg, var(--accent));
+        border-color: var(--success-border, var(--accent-border));
+    }
+    .ha-diff-down {
+        background: var(--error-bg, #ffebe9);
+        color: var(--error, #cf222e);
+        border-color: var(--error-border, #cf222e40);
+    }
+    .ha-diff-changed {
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+    .ha-diff-same {
+        background: var(--surface-alt);
+        color: var(--text-dim);
+    }
+
+    .ha-sep {
+        color: var(--border-alt);
+    }
+
+    .ha-data,
+    .ha-extra {
+        border-top: 1px solid var(--border);
+        background: var(--surface-alt);
+        padding: 6px 10px;
+    }
+
+    .ha-details {
+        font-size: 12px;
+    }
+
+    .ha-details summary {
+        cursor: pointer;
+        color: var(--text-dim);
+        padding: 4px 0;
+        transition: color 0.2s ease;
+        outline: none;
+    }
+
+    .ha-details summary:hover {
+        color: var(--text);
+    }
+
+    .ha-details[open] summary {
+        margin-bottom: 6px;
+        border-bottom: 1px solid var(--border-alt);
+        padding-bottom: 6px;
+    }
+
+    .ha-data-content,
+    .ha-extra-content {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 8px 10px;
+        max-height: 420px;
+        overflow: auto;
+    }
+
+    .ha-state-diff {
+        font-size: 12px;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: monospace;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
+    .ha-state-diff-label {
+        color: var(--text-dim);
+        font-weight: 600;
+        text-transform: lowercase;
+    }
+    .ha-state-old {
+        color: var(--text-dim);
+    }
+    .ha-state-arrow {
+        color: var(--border-alt);
+    }
+    .ha-state-new {
+        color: var(--accent);
+        font-weight: 600;
+    }
+
+    .ha-state-columns {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+    }
+    .ha-state-col {
+        flex: 1 1 240px;
+        min-width: 200px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 6px;
+    }
+    .ha-state-col-title {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: lowercase;
+        color: var(--text-dim);
+        margin-bottom: 4px;
+    }
+    .ha-mini-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11px;
+        table-layout: fixed;
+        word-break: break-word;
+    }
+    .ha-mini-table th {
+        text-align: left;
+        padding: 2px 4px;
+        background: var(--surface-alt);
+        border: 1px solid var(--border);
+        width: 110px;
+        vertical-align: top;
+        font-weight: 600;
+        color: var(--text-dim);
+    }
+    .ha-mini-table td {
+        padding: 2px 4px;
+        border: 1px solid var(--border);
+        vertical-align: top;
+        color: var(--text);
+    }
+
+    .ha-data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11px;
+        table-layout: fixed;
+        word-break: break-word;
+        margin: 0 0 6px 0;
+    }
+
+    .ha-data-table th {
+        text-align: left;
+        padding: 2px 6px;
+        background: var(--surface-alt);
+        border: 1px solid var(--border);
+        width: 140px;
+        vertical-align: top;
+        font-weight: 600;
+        color: var(--text-dim);
+    }
+
+    .ha-data-table td {
+        padding: 2px 6px;
+        border: 1px solid var(--border);
+        vertical-align: top;
+        color: var(--text);
+    }
+
+    .ha-json-inline {
+        margin: 0;
+        max-height: 180px;
+        overflow: auto;
+        background: var(--surface-alt);
+        border: 1px solid var(--border);
+        padding: 4px 6px;
+        border-radius: 4px;
+        line-height: 1.25;
+    }
+
+    .ha-raw-json {
+        margin-top: 8px;
+        font-size: 11px;
+    }
+
+    .ha-raw-json summary {
+        cursor: pointer;
+        color: var(--text-dim);
+        padding: 2px 0;
+    }
+
+    .ha-raw-json summary:hover {
+        color: var(--text);
+    }
+
+    .ha-data-content pre {
+        margin: 0;
+        font-size: 11px;
+        line-height: 1.35;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-family:
+            "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+        color: var(--text);
+    }
+
+    .ha-metadata {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 4px 12px;
+        margin: 0;
+    }
+
+    .ha-metadata dt {
+        font-weight: 600;
+        color: var(--text-dim);
+        font-size: 11px;
+        text-transform: lowercase;
+    }
+
+    .ha-metadata dd {
+        margin: 0;
+        font-size: 11px;
+        color: var(--text);
+        word-break: break-word;
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+        .ha-header {
+            padding: 8px 10px;
+            gap: 8px;
+        }
+        .ha-title {
+            font-size: 13px;
+        }
+        .ha-event-type {
+            font-size: 10px;
+            padding: 2px 6px;
+        }
+        .ha-entity,
+        .ha-domain {
+            max-width: 260px;
+            font-size: 11px;
+            white-space: normal;
+            word-break: break-all;
+        }
+        .ha-service-badge {
+            font-size: 10px;
+        }
+        .ha-meta {
+            font-size: 10px;
+        }
+        .ha-state-columns {
+            flex-direction: column;
+        }
+    }
+</style>

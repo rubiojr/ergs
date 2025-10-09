@@ -8,6 +8,7 @@ import (
 	_ "github.com/rubiojr/ergs/pkg/datasources/gasstations"
 	_ "github.com/rubiojr/ergs/pkg/datasources/github"
 	_ "github.com/rubiojr/ergs/pkg/datasources/hackernews"
+	_ "github.com/rubiojr/ergs/pkg/datasources/homeassistant"
 	_ "github.com/rubiojr/ergs/pkg/datasources/rss"
 	_ "github.com/rubiojr/ergs/pkg/datasources/rtve"
 	_ "github.com/rubiojr/ergs/pkg/datasources/timestamp"

@@ -191,7 +191,27 @@
       b.source ||
       (b.metadata && (b.metadata.datasource || b.metadata.source)) ||
       "unknown";
-    const created = b.created_at || new Date().toISOString();
+    const rawCreated = b.created_at || new Date().toISOString();
+
+    // Format for display: YYYY-MM-DD HH:MM (local time), keep rawCreated for data attribute & cursor logic
+    function formatShort(ts) {
+      const d = new Date(ts);
+      if (isNaN(d)) return ts;
+      const pad = (n) => (n < 10 ? "0" + n : "" + n);
+      return (
+        d.getFullYear() +
+        "-" +
+        pad(d.getMonth() + 1) +
+        "-" +
+        pad(d.getDate()) +
+        " " +
+        pad(d.getHours()) +
+        ":" +
+        pad(d.getMinutes())
+      );
+    }
+    const createdDisplay = formatShort(rawCreated);
+
     const id = b.id || "";
     const key = blockKey(source, id);
 
@@ -203,7 +223,7 @@
     wrapper.className = "firehose-block-wrapper live-incoming";
     wrapper.setAttribute("data-block-id", id);
     wrapper.setAttribute("data-block-source", source);
-    wrapper.setAttribute("data-created-at", created);
+    wrapper.setAttribute("data-created-at", rawCreated);
 
     // Prefer server-provided rendered HTML when available; fallback to escaped plain text.
     const contentHTML = b.formatted_html
@@ -214,7 +234,7 @@
         <span class="datasource-name"><a href="/datasource/${escapeHtml(
           source,
         )}">${escapeHtml(source)}</a></span>
-        <span class="block-timestamp">${escapeHtml(created)}</span>
+        <span class="block-timestamp">${escapeHtml(createdDisplay)}</span>
       </div>
       <div class="firehose-block-content">${contentHTML}</div>
     `;
@@ -225,7 +245,7 @@
       wrapper.classList.add("live-block");
     });
 
-    updateCursorIfNewer(created);
+    updateCursorIfNewer(rawCreated);
     return wrapper;
   }
 

@@ -18,6 +18,7 @@ import (
 	_ "github.com/rubiojr/ergs/pkg/datasources/gasstations/renderer"
 	_ "github.com/rubiojr/ergs/pkg/datasources/github/renderer"
 	_ "github.com/rubiojr/ergs/pkg/datasources/hackernews/renderer"
+	_ "github.com/rubiojr/ergs/pkg/datasources/homeassistant/renderer"
 	_ "github.com/rubiojr/ergs/pkg/datasources/rss/renderer"
 	_ "github.com/rubiojr/ergs/pkg/datasources/rtve/renderer"
 	_ "github.com/rubiojr/ergs/pkg/datasources/timestamp/renderer"

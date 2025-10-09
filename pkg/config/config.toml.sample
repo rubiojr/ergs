@@ -76,6 +76,16 @@ api_key = ''
 # longitude = 2.3199   # Required: Your longitude
 # radius = 10000       # Required: Search radius in meters
 
+# # Home Assistant - Capture events via WebSocket API
+# [datasources.home]
+# type = 'homeassistant'
+# # interval = '30s'  # Short interval approximates near-real-time (adjust as needed)
+# [datasources.home.config]
+# url = 'ws://homeassistant.local:8123/api/websocket'  # Or wss://your.domain/api/websocket
+# token = ''                # Required: Long-lived access token (Profile -> Long-Lived Tokens)
+# max_events = 100          # Optional: max events per fetch (default 100, max 1000)
+# # event_types = ['state_changed','call_service']  # Optional: filter specific event types; empty = all
+#
 # # HackerNews - Fetch stories, comments, and other items from Hacker News
 [datasources.hackernews]
 type = 'hackernews'

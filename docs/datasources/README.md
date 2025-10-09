@@ -15,6 +15,10 @@ This directory contains documentation for individual datasources available in Er
 ### Development Tools
 - **[Zed Threads](zedthreads.md)** - Extract AI conversation threads from Zed editor
 
+### Home Automation
+- **[Home Assistant](homeassistant.md)** - Capture Home Assistant events (state changes, service calls, automations) via the WebSocket API
+
+
 ## General Usage
 
 All datasources follow the same configuration pattern in your `config.toml`:
