@@ -74,6 +74,13 @@ func startImporterServer(ctx context.Context, configPath, host, port string) err
 		return fmt.Errorf("loading config: %w", err)
 	}
 
+	// Enforce that all datasource databases are fully migrated before
+	// starting the importer. This prevents accepting/importing blocks
+	// that target schemas which are not yet upgraded.
+	if err := CheckPendingMigrations(configPath); err != nil {
+		return fmt.Errorf("cannot start importer; %w", err)
+	}
+
 	// Use config values if flags are default and config has values
 	if cfg.Importer != nil {
 		// Use config host if flag is default
