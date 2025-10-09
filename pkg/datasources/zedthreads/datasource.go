@@ -239,7 +239,9 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		updatedAt, err := time.Parse(time.RFC3339, updatedAtStr)
 		if err != nil {
 			log.Printf("Failed to parse timestamp %s: %v", updatedAtStr, err)
-			updatedAt = time.Now()
+			updatedAt = time.Now().UTC()
+		} else {
+			updatedAt = updatedAt.UTC()
 		}
 
 		var threadData *ThreadData

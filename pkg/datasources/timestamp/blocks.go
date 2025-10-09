@@ -144,12 +144,12 @@ func (b *TimestampBlock) Factory(genericBlock *core.GenericBlock, source string)
 	var timestamp time.Time
 	if timestampStr != "" {
 		if parsed, err := time.Parse(time.RFC3339, timestampStr); err == nil {
-			timestamp = parsed
+			timestamp = parsed.UTC()
 		} else {
-			timestamp = time.Unix(unix, 0)
+			timestamp = time.Unix(unix, 0).UTC()
 		}
 	} else {
-		timestamp = time.Unix(unix, 0)
+		timestamp = time.Unix(unix, 0).UTC()
 	}
 
 	// Reconstruct the block with all original data
@@ -194,12 +194,12 @@ func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, s
 	var timestamp time.Time
 	if timestampStr != "" {
 		if parsed, err := time.Parse(time.RFC3339, timestampStr); err == nil {
-			timestamp = parsed
+			timestamp = parsed.UTC()
 		} else {
-			timestamp = time.Unix(unix, 0)
+			timestamp = time.Unix(unix, 0).UTC()
 		}
 	} else {
-		timestamp = time.Unix(unix, 0)
+		timestamp = time.Unix(unix, 0).UTC()
 	}
 
 	// Reconstruct the block with all original data

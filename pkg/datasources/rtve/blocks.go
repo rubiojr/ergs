@@ -65,14 +65,22 @@ func NewRTVEBlock(videoID, longTitle, publicationDate, htmlURL, uri string, hasS
 //   - subtitleText: Spanish subtitle text content (empty if not available)
 //   - source: The datasource instance name (for proper data isolation)
 func NewRTVEBlockWithSource(videoID, longTitle, publicationDate, htmlURL, uri string, hasSubtitles bool, subtitleLangs []string, subtitleText, source string) *RTVEBlock {
-	// Parse publication date - RTVE uses format: "02-01-2006 15:04:05"
+	// Parse publication date - RTVE uses format: "02-01-2006 15:04:05" in Europe/Madrid timezone
 	const rtveLayout = "02-01-2006 15:04:05"
 	var publishedAt time.Time
-	if parsed, err := time.Parse(rtveLayout, publicationDate); err == nil {
-		publishedAt = parsed
+
+	// Load Europe/Madrid timezone for correct parsing
+	madridLoc, err := time.LoadLocation("Europe/Madrid")
+	if err != nil {
+		// Fallback to UTC if timezone loading fails
+		madridLoc = time.UTC
+	}
+
+	if parsed, err := time.ParseInLocation(rtveLayout, publicationDate, madridLoc); err == nil {
+		publishedAt = parsed.UTC() // Convert to UTC for storage
 	} else {
 		// Fallback to current time if parsing fails
-		publishedAt = time.Now()
+		publishedAt = time.Now().UTC()
 	}
 
 	// Generate searchable text - include all relevant terms for full-text search
@@ -229,9 +237,16 @@ func (b *RTVEBlock) Factory(genericBlock *core.GenericBlock, source string) core
 	// Parse publication date
 	const rtveLayout = "02-01-2006 15:04:05"
 	var publishedAt time.Time
+
+	// Load Europe/Madrid timezone for correct parsing
+	madridLoc, err := time.LoadLocation("Europe/Madrid")
+	if err != nil {
+		madridLoc = time.UTC
+	}
+
 	if publicationDate != "" {
-		if parsed, err := time.Parse(rtveLayout, publicationDate); err == nil {
-			publishedAt = parsed
+		if parsed, err := time.ParseInLocation(rtveLayout, publicationDate, madridLoc); err == nil {
+			publishedAt = parsed.UTC() // Convert to UTC for storage
 		} else {
 			publishedAt = genericBlock.CreatedAt()
 		}
@@ -284,9 +299,16 @@ func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, s
 	// Parse publication date
 	const rtveLayout = "02-01-2006 15:04:05"
 	var publishedAt time.Time
+
+	// Load Europe/Madrid timezone for correct parsing
+	madridLoc, err := time.LoadLocation("Europe/Madrid")
+	if err != nil {
+		madridLoc = time.UTC
+	}
+
 	if publicationDate != "" {
-		if parsed, err := time.Parse(rtveLayout, publicationDate); err == nil {
-			publishedAt = parsed
+		if parsed, err := time.ParseInLocation(rtveLayout, publicationDate, madridLoc); err == nil {
+			publishedAt = parsed.UTC() // Convert to UTC for storage
 		} else {
 			publishedAt = createdAt
 		}

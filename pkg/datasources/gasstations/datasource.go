@@ -128,7 +128,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 	log.Printf("Found %d gas stations within %.0fm radius", len(stations), d.config.Radius)
 
 	stationCount := 0
-	now := time.Now()
+	now := time.Now().UTC()
 
 	for _, station := range stations {
 		select {
