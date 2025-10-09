@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.4.1] - 2025-10-09
+
+### 🔧 Improvements
+
+- Fix firehose block ordering issues
+
 ## [3.4.0] - 2025-10-09
 
 ### 🔧 Improvements
