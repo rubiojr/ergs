@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.4.0] - 2025-10-09
+
+### 🔧 Improvements
+
+> [!WARNING]
+> This version requires you run `ergs migrate` manually before starting Ergs services if you are upgrading and not using docker compose.
+
+- **Database layer improvements**: fix FTS5 index consistency issues.
+
 ## [3.3.0] - 2025-10-08
 
 ### ✨ New Features
