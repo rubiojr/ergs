@@ -285,16 +285,6 @@ func (s *SearchService) executeSearch(params SearchParams) (map[string][]core.Bl
 }
 
 // convertResultsToMap converts search results to a map for sorting
-func (s *SearchService) convertResultsToMap(results []searchResult) map[string][]core.Block {
-	resultMap := make(map[string][]core.Block)
-	for _, result := range results {
-		if result.err == nil {
-			resultMap[result.datasource] = result.blocks
-		}
-	}
-	return resultMap
-}
-
 // searchDatasourcesInParallel executes searches across multiple datasources in parallel.
 func (s *SearchService) searchDatasourcesInParallel(datasources []string, query string, limit int, orderByTime bool, startDate, endDate *time.Time) []searchResult {
 	resultChan := make(chan searchResult, len(datasources))

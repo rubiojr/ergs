@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"sync"
 	"time"
 
@@ -352,42 +351,6 @@ func (m *Manager) SearchDatasourcesPagedWithDateRange(datasourceNames []string, 
 
 // sortDatasourcesByNewestBlock sorts datasources by the creation time of their newest block.
 // Returns a slice of datasource names ordered by the newest block time (newest first).
-func (m *Manager) sortDatasourcesByNewestBlock(datasourceResults map[string][]core.Block) []string {
-	type datasourceWithTime struct {
-		name       string
-		newestTime time.Time
-	}
-
-	var datasources []datasourceWithTime
-
-	for dsName, blocks := range datasourceResults {
-		if len(blocks) > 0 {
-			// Find the newest block in this datasource (blocks should already be sorted by time)
-			newestTime := blocks[0].CreatedAt()
-			for _, block := range blocks {
-				if block.CreatedAt().After(newestTime) {
-					newestTime = block.CreatedAt()
-				}
-			}
-			datasources = append(datasources, datasourceWithTime{
-				name:       dsName,
-				newestTime: newestTime,
-			})
-		}
-	}
-
-	// Sort datasources by newest block time (newest first)
-	sort.Slice(datasources, func(i, j int) bool {
-		return datasources[i].newestTime.After(datasources[j].newestTime)
-	})
-
-	result := make([]string, len(datasources))
-	for i, ds := range datasources {
-		result[i] = ds.name
-	}
-
-	return result
-}
 
 // GetStats returns storage statistics for all datasources including total blocks
 // and datasource-specific metrics. The returned map includes individual datasource
