@@ -260,17 +260,6 @@ func (s *GenericStorage) GetStats() (map[string]interface{}, error) {
 	return stats, nil
 }
 
-// UpdateLastFetchTime records the last time data was fetched from the datasource.
-// This is used by datasource implementations to track incremental updates.
-func (s *GenericStorage) UpdateLastFetchTime(t time.Time) error {
-	_, err := s.db.Exec(`
-		INSERT OR REPLACE INTO fetch_metadata (key, value, updated_at)
-		VALUES ('last_fetch', ?, ?)
-	`, t.Format(time.RFC3339), time.Now())
-
-	return err
-}
-
 // GetLastFetchTime retrieves the last recorded fetch time for this datasource.
 // Returns zero time if no fetch time has been recorded yet.
 func (s *GenericStorage) GetLastFetchTime() (time.Time, error) {
