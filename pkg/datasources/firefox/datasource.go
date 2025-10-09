@@ -185,7 +185,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 			continue
 		}
 
-		timestamp := time.Unix(0, visitDate*1000)
+		timestamp := time.Unix(0, visitDate*1000).UTC()
 		blockID := fmt.Sprintf("firefox-visit-%d", visitID)
 
 		block := NewVisitBlockWithSource(

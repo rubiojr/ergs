@@ -344,13 +344,13 @@ func (d *Datasource) convertItemToBlock(item FeedItem, feedTitle, feedURL string
 
 		for _, format := range formats {
 			if t, err := time.Parse(format, item.PubDate); err == nil {
-				createdAt = t
+				createdAt = t.UTC()
 				break
 			}
 		}
 	}
 	if createdAt.IsZero() {
-		createdAt = time.Now()
+		createdAt = time.Now().UTC()
 	}
 
 	// Clean up description/content for search text

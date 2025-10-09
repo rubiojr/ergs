@@ -188,6 +188,66 @@ func TestAPISearchBasic(t *testing.T) {
 	}
 }
 
+func TestFirehoseOrderedSliceIntegration(t *testing.T) {
+	// This test ensures the web layer (via the same setup helper) can access the
+	// backend firehose Ordered slice semantics: global newest-first ordering with
+	// deterministic tie-breakers (CreatedAt DESC, datasource ASC, ID ASC).
+	server, cleanup := setupTestWebServer(t)
+	defer cleanup()
+
+	searchService := server.storageManager.GetSearchService()
+	// Limit large enough to include all seeded blocks (15 + 10 = 25)
+	results, err := searchService.Search(storage.SearchParams{
+		Query: "",
+		Page:  1,
+		Limit: 40,
+	})
+	if err != nil {
+		t.Fatalf("firehose search failed: %v", err)
+	}
+
+	ordered := results.Ordered
+	if len(ordered) != 25 {
+		t.Fatalf("expected 25 blocks in firehose Ordered slice, got %d", len(ordered))
+	}
+
+	// Verify global descending CreatedAt ordering plus tie-breakers for identical timestamps.
+	for i := 0; i < len(ordered)-1; i++ {
+		cur := ordered[i]
+		next := ordered[i+1]
+
+		// Chronological (newest first)
+		if cur.CreatedAt().Before(next.CreatedAt()) {
+			t.Errorf("ordering violation: index %d (%v) is before index %d (%v)",
+				i, cur.CreatedAt(), i+1, next.CreatedAt())
+		}
+
+		// Tie-breaker: when timestamps equal, datasource name asc, then ID asc
+		if cur.CreatedAt().Equal(next.CreatedAt()) {
+			if cur.Source() > next.Source() {
+				t.Errorf("datasource tie-break violation at %d: %s > %s (same time)",
+					i, cur.Source(), next.Source())
+			} else if cur.Source() == next.Source() && cur.ID() > next.ID() {
+				t.Errorf("ID tie-break violation at %d within datasource %s: %s > %s (same time)",
+					i, cur.Source(), cur.ID(), next.ID())
+			}
+		}
+	}
+
+	// Additional sanity: for our seeded data, matching timestamps across datasources
+	// should place datasource_a blocks before datasource_b blocks.
+	seenPairs := 0
+	for i := 0; i < len(ordered)-1; i++ {
+		if ordered[i].CreatedAt().Equal(ordered[i+1].CreatedAt()) &&
+			ordered[i].Source() == "datasource_a" && ordered[i+1].Source() == "datasource_b" {
+			seenPairs++
+		}
+	}
+	if seenPairs == 0 {
+		t.Log("warning: no equal-timestamp cross-datasource pairs observed (tie-breaker scenario not exercised)")
+	}
+}
+
 func TestAPISearchPagination(t *testing.T) {
 	server, cleanup := setupTestWebServer(t)
 	defer cleanup()

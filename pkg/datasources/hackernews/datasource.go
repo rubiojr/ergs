@@ -322,7 +322,7 @@ func (d *Datasource) fetchItem(ctx context.Context, itemID int) (*HNItem, error)
 
 func (d *Datasource) convertItemToBlock(item *HNItem) core.Block {
 	itemID := fmt.Sprintf("hn-%d", item.ID)
-	createdAt := time.Unix(item.Time, 0)
+	createdAt := time.Unix(item.Time, 0).UTC()
 
 	// Build text content for search
 	text := ""

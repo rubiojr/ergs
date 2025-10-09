@@ -60,12 +60,19 @@ templ resultsWithFirehosePagination(data types.PageData) {
 	@firehosePagination(data)
 }
 
-// firehoseBlocks renders all blocks from all datasources in chronological order
+// firehoseBlocks renders a flat, globally time-ordered slice of blocks (FirehoseBlocks).
+// Falls back to grouped Results map if FirehoseBlocks is empty (backward compatibility).
 templ firehoseBlocks(data types.PageData) {
 	<div class="firehose-blocks">
-		for datasource, blocks := range data.Results {
-			for _, block := range blocks {
-				@UnifiedBlock(block, datasource)
+		if len(data.FirehoseBlocks) > 0 {
+			for _, block := range data.FirehoseBlocks {
+				@UnifiedBlock(block, ExtractDatasource(block))
+			}
+		} else {
+			for dsName, blocks := range data.Results {
+				for _, block := range blocks {
+					@UnifiedBlock(block, dsName)
+				}
 			}
 		}
 	</div>

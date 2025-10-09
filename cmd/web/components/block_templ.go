@@ -14,8 +14,9 @@ import (
 )
 
 // formatTimestamp returns standardized timestamp format used in unified block component
+// Displays time in local timezone for better user experience (data is stored in UTC)
 func formatTimestamp(t time.Time) string {
-	return t.Format("2006-01-02 15:04")
+	return t.Local().Format("2006-01-02 15:04")
 }
 
 // UnifiedBlock renders a single block using the firehose visual style so it can be reused
@@ -51,7 +52,7 @@ func UnifiedBlock(block types.WebBlock, datasource string) templ.Component {
 		var templ_7745c5c3_Var2 templ.SafeURL
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL("/datasource/" + datasource))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/block.templ`, Line: 22, Col: 52}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/block.templ`, Line: 23, Col: 52}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -64,7 +65,7 @@ func UnifiedBlock(block types.WebBlock, datasource string) templ.Component {
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(datasource)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/block.templ`, Line: 22, Col: 67}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/block.templ`, Line: 23, Col: 67}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -77,7 +78,7 @@ func UnifiedBlock(block types.WebBlock, datasource string) templ.Component {
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(formatTimestamp(block.CreatedAt))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/block.templ`, Line: 24, Col: 67}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/block.templ`, Line: 25, Col: 67}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {

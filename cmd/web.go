@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"sort"
 
 	"log"
 	"net/http"
@@ -406,8 +407,28 @@ func (s *WebServer) handleFirehose(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		data.Error = fmt.Sprintf("Failed to load firehose: %v", err)
 	} else {
-		// Convert to web blocks
+		// Backward-compatible grouped results (legacy templates still expect map)
 		data.Results = s.convertBlocksToWebBlocks(results.Results)
+
+		// Use backend Ordered slice which is already globally time-ordered with deterministic tie-breakers.
+		var flat []types.WebBlock
+		for _, b := range results.Ordered {
+			wb := s.convertBlockToWebBlock(b)
+			// Ensure datasource metadata is present
+			if wb.Metadata == nil {
+				wb.Metadata = map[string]interface{}{}
+			}
+			if _, ok := wb.Metadata["datasource"]; !ok {
+				wb.Metadata["datasource"] = b.Source()
+			}
+			flat = append(flat, wb)
+		}
+		// (Optional) secondary sort retained to keep behavior stable even if future changes alter Ordered
+		sort.SliceStable(flat, func(i, j int) bool {
+			return flat[i].CreatedAt.After(flat[j].CreatedAt)
+		})
+		data.FirehoseBlocks = flat
+
 		data.TotalCount = results.TotalCount
 		data.HasNextPage = results.HasMore
 		data.TotalPages = results.TotalPages

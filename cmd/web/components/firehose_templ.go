@@ -278,7 +278,8 @@ func resultsWithFirehosePagination(data types.PageData) templ.Component {
 	})
 }
 
-// firehoseBlocks renders all blocks from all datasources in chronological order
+// firehoseBlocks renders a flat, globally time-ordered slice of blocks (FirehoseBlocks).
+// Falls back to grouped Results map if FirehoseBlocks is empty (backward compatibility).
 func firehoseBlocks(data types.PageData) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -304,11 +305,20 @@ func firehoseBlocks(data types.PageData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		for datasource, blocks := range data.Results {
-			for _, block := range blocks {
-				templ_7745c5c3_Err = UnifiedBlock(block, datasource).Render(ctx, templ_7745c5c3_Buffer)
+		if len(data.FirehoseBlocks) > 0 {
+			for _, block := range data.FirehoseBlocks {
+				templ_7745c5c3_Err = UnifiedBlock(block, ExtractDatasource(block)).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
+				}
+			}
+		} else {
+			for dsName, blocks := range data.Results {
+				for _, block := range blocks {
+					templ_7745c5c3_Err = UnifiedBlock(block, dsName).Render(ctx, templ_7745c5c3_Buffer)
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
 				}
 			}
 		}
@@ -354,7 +364,7 @@ func firehosePagination(data types.PageData) templ.Component {
 			var templ_7745c5c3_Var13 templ.SafeURL
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL("/firehose?page=" + strconv.Itoa(data.CurrentPage-1) + "&limit=" + strconv.Itoa(data.PageSize)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/firehose.templ`, Line: 79, Col: 116}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/firehose.templ`, Line: 86, Col: 116}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {
@@ -372,7 +382,7 @@ func firehosePagination(data types.PageData) templ.Component {
 		var templ_7745c5c3_Var14 string
 		templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.CurrentPage))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/firehose.templ`, Line: 84, Col: 40}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/firehose.templ`, Line: 91, Col: 40}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 		if templ_7745c5c3_Err != nil {
@@ -390,7 +400,7 @@ func firehosePagination(data types.PageData) templ.Component {
 			var templ_7745c5c3_Var15 templ.SafeURL
 			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL("/firehose?page=" + strconv.Itoa(data.CurrentPage+1) + "&limit=" + strconv.Itoa(data.PageSize)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/firehose.templ`, Line: 88, Col: 116}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/firehose.templ`, Line: 95, Col: 116}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 			if templ_7745c5c3_Err != nil {
@@ -438,7 +448,7 @@ func firehoseError(errorMsg string) templ.Component {
 		var templ_7745c5c3_Var17 string
 		templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(errorMsg)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/firehose.templ`, Line: 99, Col: 15}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/firehose.templ`, Line: 106, Col: 15}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 		if templ_7745c5c3_Err != nil {

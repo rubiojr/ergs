@@ -59,6 +59,7 @@ func ExtractLinks(text string) []string {
 }
 
 // FormatTime formats a time for display
+// Uses local timezone for relative time calculations to match user's system time
 func FormatTime(t time.Time) string {
 	now := time.Now()
 	diff := now.Sub(t)

@@ -143,15 +143,17 @@ func (s *GenericStorage) StoreBlocks(blocks []core.Block, datasourceType string)
 		}
 
 		// Insert into main blocks table
+		// Normalize timestamps to UTC for consistent storage and comparison
+		createdAtUTC := genericBlock.CreatedAt().UTC()
 		_, err = stmt.Exec(
 			genericBlock.ID(),
 			genericBlock.Text(),
-			genericBlock.CreatedAt(), // preserve original creation time
+			createdAtUTC, // store in UTC for consistent timezone handling
 			genericBlock.Source(),
 			datasourceType,
 			string(metadataJSON),
 			genericBlock.Hostname(),
-			genericBlock.CreatedAt(), // initial updated_at = created_at; future updates set CURRENT_TIMESTAMP
+			createdAtUTC, // initial updated_at = created_at; future updates set CURRENT_TIMESTAMP
 		)
 		if err != nil {
 			return fmt.Errorf("inserting block %s: %w", genericBlock.ID(), err)

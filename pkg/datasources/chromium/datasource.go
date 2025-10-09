@@ -285,5 +285,5 @@ func chromeTimeToUnix(chromeTime int64) time.Time {
 	// Get remaining microseconds for nanosecond precision
 	nanos := (chromeTime % 1000000) * 1000
 
-	return time.Unix(unixSeconds, nanos)
+	return time.Unix(unixSeconds, nanos).UTC()
 }

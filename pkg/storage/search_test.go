@@ -3,6 +3,7 @@ package storage
 import (
 	"fmt"
 	"net/url"
+	"sort"
 	"testing"
 	"time"
 )
@@ -630,6 +631,121 @@ func ExampleSearchParams() {
 	// Search configured for: API documentation
 	// Datasources: 2
 	// Date range: June
+}
+
+// TestGlobalFirehoseOrdering verifies that when performing a "firehose" style
+// search (empty query) with a limit, we only receive the newest global blocks
+// across all datasources rather than all blocks from each datasource.
+func TestGlobalFirehoseOrdering(t *testing.T) {
+	tempDir := t.TempDir()
+	manager := NewManagerWithoutMigrationCheck(tempDir)
+	defer func() {
+		_ = manager.Close()
+	}()
+
+	now := time.Now().UTC()
+
+	// Dataset:
+	// dsA: A1 (oldest), A2 (middle)
+	// dsB: B1 (middle-old), B2 (newest), B3 (very recent but we will trim by limit)
+	// We will request limit=3 and expect only the newest 3 globally.
+	dsData := map[string][]struct {
+		id   string
+		when time.Time
+		text string
+	}{
+		"dsA": {
+			{id: "A1", when: now.Add(-30 * time.Minute), text: "alpha oldest"},
+			{id: "A2", when: now.Add(-10 * time.Minute), text: "alpha newer"},
+		},
+		"dsB": {
+			{id: "B1", when: now.Add(-20 * time.Minute), text: "bravo mid"},
+			{id: "B2", when: now.Add(-5 * time.Minute), text: "bravo newer"},
+			{id: "B3", when: now.Add(-2 * time.Minute), text: "bravo newest"},
+		},
+	}
+
+	for ds, blocks := range dsData {
+		if err := manager.InitializeDatasourceStorage(ds, map[string]any{
+			"text":       "TEXT",
+			"created_at": "DATETIME",
+			"metadata":   "TEXT",
+		}); err != nil {
+			t.Fatalf("init storage %s: %v", ds, err)
+		}
+		st, err := manager.EnsureStorageWithMigrations(ds)
+		if err != nil {
+			t.Fatalf("storage %s: %v", ds, err)
+		}
+		for _, b := range blocks {
+			blk := &mockBlock{
+				id:        b.id,
+				text:      b.text,
+				createdAt: b.when,
+				source:    ds,
+				metadata:  map[string]interface{}{},
+			}
+			if err := st.StoreBlock(blk, ds); err != nil {
+				t.Fatalf("store block %s/%s: %v", ds, b.id, err)
+			}
+		}
+		manager.RegisterBlockPrototype(ds, &mockBlock{})
+	}
+
+	searchService := manager.GetSearchService()
+
+	params := SearchParams{
+		Query: "",
+		Page:  1,
+		Limit: 3,
+	}
+
+	res, err := searchService.Search(params)
+	if err != nil {
+		t.Fatalf("firehose search failed: %v", err)
+	}
+
+	// Collect returned block IDs
+	var returned []string
+	for _, blocks := range res.Results {
+		for _, b := range blocks {
+			returned = append(returned, b.ID())
+		}
+	}
+
+	if len(returned) != 3 {
+		t.Fatalf("expected exactly 3 blocks (limit), got %d (%v)", len(returned), returned)
+	}
+
+	// Determine the globally newest 3 IDs from original dataset
+	type pair struct {
+		id string
+		t  time.Time
+	}
+	var all []pair
+	for _, blocks := range dsData {
+		for _, b := range blocks {
+			all = append(all, pair{id: b.id, t: b.when})
+		}
+	}
+	// Sort newest first
+	sort.Slice(all, func(i, j int) bool { return all[i].t.After(all[j].t) })
+	expectedTop := map[string]struct{}{
+		all[0].id: {},
+		all[1].id: {},
+		all[2].id: {},
+	}
+
+	for _, id := range returned {
+		if _, ok := expectedTop[id]; !ok {
+			t.Errorf("block %s was returned but is not in the newest 3 (expected set: %v)", id, expectedTop)
+		}
+		delete(expectedTop, id)
+	}
+
+	if len(expectedTop) != 0 {
+		t.Errorf("some newest blocks missing from results: %v", expectedTop)
+	}
 }
 
 func TestSQLInjectionProtection(t *testing.T) {

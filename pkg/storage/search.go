@@ -11,6 +11,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -56,6 +57,11 @@ type SearchResults struct {
 	// Results contains blocks grouped by datasource name.
 	// Key is datasource instance name, value is slice of matching blocks.
 	Results map[string][]core.Block
+
+	// Ordered is the globally time-ordered (firehose) slice for this page (newest first).
+	// This preserves true cross-datasource chronological ordering for UI layers that
+	// want an interleaved feed instead of grouped sections.
+	Ordered []core.Block
 
 	// TotalCount is the number of results returned on this page.
 	// Note: This is NOT the total across all pages due to distributed search complexity.
@@ -126,13 +132,14 @@ func NewSearchService(manager *Manager) *SearchService {
 //	}
 //	results, err := searchService.Search(params)
 func (s *SearchService) Search(params SearchParams) (*SearchResults, error) {
-	results, totalResults, hasMoreResults, totalPages, err := s.executeSearch(params)
+	resultsMap, ordered, totalResults, hasMoreResults, totalPages, err := s.executeSearch(params)
 	if err != nil {
 		return nil, err
 	}
 
 	return &SearchResults{
-		Results:    results,
+		Results:    resultsMap,
+		Ordered:    ordered,
 		TotalCount: totalResults,
 		HasMore:    hasMoreResults,
 		TotalPages: totalPages,
@@ -143,7 +150,7 @@ func (s *SearchService) Search(params SearchParams) (*SearchResults, error) {
 }
 
 // executeSearch performs the actual search operation with all parameters.
-func (s *SearchService) executeSearch(params SearchParams) (map[string][]core.Block, int, bool, int, error) {
+func (s *SearchService) executeSearch(params SearchParams) (map[string][]core.Block, []core.Block, int, bool, int, error) {
 	// Determine which datasources to search
 	datasources := params.DatasourceFilters
 	if len(datasources) == 0 {
@@ -161,7 +168,7 @@ func (s *SearchService) executeSearch(params SearchParams) (map[string][]core.Bl
 	s.manager.mu.RUnlock()
 
 	if len(validDatasources) == 0 {
-		return make(map[string][]core.Block), 0, false, 1, nil
+		return make(map[string][]core.Block), []core.Block{}, 0, false, 1, nil
 	}
 
 	// Get enough results to support paging - fetch more than needed from each datasource
@@ -172,27 +179,52 @@ func (s *SearchService) executeSearch(params SearchParams) (map[string][]core.Bl
 	// Check for any errors first - fail fast like original behavior
 	for _, result := range results {
 		if result.err != nil {
-			return nil, 0, false, 0, fmt.Errorf("searching %s: %w", result.datasource, result.err)
+			return nil, nil, 0, false, 0, fmt.Errorf("searching %s: %w", result.datasource, result.err)
 		}
 	}
 
-	// Sort datasources by the creation time of their newest block
-	sortedDatasources := s.manager.sortDatasourcesByNewestBlock(s.convertResultsToMap(results))
+	// Build a global list of all blocks across all datasources and then sort
+	// them strictly by block creation time (descending). This provides a true
+	// firehose ordering (newest first) instead of grouping by datasource.
+	type dsBlock struct {
+		block      core.Block
+		datasource string
+	}
 
-	// Flatten results in datasource order (ordered by newest block per datasource)
+	var merged []dsBlock
+	for _, result := range results {
+		for _, block := range result.blocks {
+			merged = append(merged, dsBlock{block: block, datasource: result.datasource})
+		}
+	}
+
+	// Global stable sort by CreatedAt (newest first)
+	// Deterministic ordering:
+	// 1. Newest CreatedAt first
+	// 2. If same CreatedAt, order by datasource name (ascending)
+	// 3. If same datasource and CreatedAt, order by block ID (ascending)
+	// This prevents unstable ordering across calls which previously caused
+	// duplicates/omissions when paginating (seen in TestPaginationBehaviorDetailed).
+	sort.SliceStable(merged, func(i, j int) bool {
+		ti := merged[i].block.CreatedAt()
+		tj := merged[j].block.CreatedAt()
+		if ti.Equal(tj) {
+			if merged[i].datasource == merged[j].datasource {
+				return merged[i].block.ID() < merged[j].block.ID()
+			}
+			return merged[i].datasource < merged[j].datasource
+		}
+		return ti.After(tj)
+	})
+
+	// Reconstruct parallel slices for pagination logic below
 	var allBlocks []core.Block
 	var blockToDatasource []string
-
-	for _, dsName := range sortedDatasources {
-		for _, result := range results {
-			if result.datasource == dsName {
-				for _, block := range result.blocks {
-					allBlocks = append(allBlocks, block)
-					blockToDatasource = append(blockToDatasource, dsName)
-				}
-				break
-			}
-		}
+	allBlocks = make([]core.Block, len(merged))
+	blockToDatasource = make([]string, len(merged))
+	for i, item := range merged {
+		allBlocks[i] = item.block
+		blockToDatasource[i] = item.datasource
 	}
 
 	// Apply pagination to the flattened list
@@ -200,7 +232,7 @@ func (s *SearchService) executeSearch(params SearchParams) (map[string][]core.Bl
 	endIndex := startIndex + params.Limit
 
 	if startIndex >= len(allBlocks) {
-		return make(map[string][]core.Block), 0, false, params.Page, nil
+		return make(map[string][]core.Block), []core.Block{}, 0, false, params.Page, nil
 	}
 
 	if endIndex > len(allBlocks) {
@@ -209,7 +241,11 @@ func (s *SearchService) executeSearch(params SearchParams) (map[string][]core.Bl
 
 	// Group the paginated results back by datasource
 	groupedResults := make(map[string][]core.Block)
+	// Build ordered page slice (firehose view) first from raw blocks to ensure
+	// stable, globally chronological ordering; then convert types.
+	orderedPage := make([]core.Block, 0, endIndex-startIndex)
 	for i := startIndex; i < endIndex; i++ {
+		orderedPage = append(orderedPage, allBlocks[i])
 		dsName := blockToDatasource[i]
 		block := allBlocks[i]
 		convertedBlocks, err := s.manager.convertBlocksToProperTypes([]core.Block{block})
@@ -218,6 +254,8 @@ func (s *SearchService) executeSearch(params SearchParams) (map[string][]core.Bl
 		}
 		if len(convertedBlocks) > 0 {
 			groupedResults[dsName] = append(groupedResults[dsName], convertedBlocks[0])
+			// Replace orderedPage element with converted version to expose typed blocks
+			orderedPage[len(orderedPage)-1] = convertedBlocks[0]
 		}
 	}
 
@@ -227,7 +265,7 @@ func (s *SearchService) executeSearch(params SearchParams) (map[string][]core.Bl
 	}
 
 	if totalResults == 0 && params.Page > 1 {
-		return make(map[string][]core.Block), 0, false, params.Page, nil
+		return make(map[string][]core.Block), []core.Block{}, 0, false, params.Page, nil
 	}
 
 	// Check if there are more results by looking at remaining blocks beyond the current page
@@ -243,7 +281,7 @@ func (s *SearchService) executeSearch(params SearchParams) (map[string][]core.Bl
 		totalPages = params.Page
 	}
 
-	return groupedResults, totalResults, hasMoreResults, totalPages, nil
+	return groupedResults, orderedPage, totalResults, hasMoreResults, totalPages, nil
 }
 
 // convertResultsToMap converts search results to a map for sorting

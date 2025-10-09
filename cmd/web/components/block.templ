@@ -6,8 +6,9 @@ import (
 )
 
 // formatTimestamp returns standardized timestamp format used in unified block component
+// Displays time in local timezone for better user experience (data is stored in UTC)
 func formatTimestamp(t time.Time) string {
-	return t.Format("2006-01-02 15:04")
+	return t.Local().Format("2006-01-02 15:04")
 }
 
 // UnifiedBlock renders a single block using the firehose visual style so it can be reused
