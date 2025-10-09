@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.4.2] - 2025-10-09
+
+### 🔧 Improvements
+
+- Fix timestamps in some datasources
+
 ## [3.4.1] - 2025-10-09
 
 ### 🔧 Improvements
