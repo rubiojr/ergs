@@ -71,6 +71,75 @@ Adds hostname tracking for better multi-machine deployments using a safe replace
 - **Concurrent write safety**: Dual-write triggers ensure no data loss
 - **Atomic switchover**: Table rename is instantaneous
 
+### Migration 3: FTS Triggers (`003_add_fts_triggers.sql`)
+
+Automates synchronization of the external-content FTS5 table (`blocks_fts`) with the base `blocks` table so application code no longer needs to manually maintain the index after writes.
+
+Added components:
+- AFTER INSERT trigger (`blocks_ai_fts`) inserts new rows into `blocks_fts`
+- AFTER DELETE trigger (`blocks_ad_fts`) issues the FTS5 delete command for removed rows
+- AFTER UPDATE trigger (`blocks_au_fts`) deletes the old rowid entry then inserts the updated row
+
+Pattern used (SQLite FTS5 external content maintenance):
+- Insert: `INSERT INTO blocks_fts(rowid, text, source, datasource, metadata, hostname) VALUES (new.rowid, ...)`
+- Delete: `INSERT INTO blocks_fts(blocks_fts, rowid) VALUES('delete', old.rowid)`
+
+Post‑installation steps inside the migration:
+1. Rebuild the index: `INSERT INTO blocks_fts(blocks_fts) VALUES('rebuild')`
+2. Integrity check: `INSERT INTO blocks_fts(blocks_fts) VALUES('integrity-check')`
+3. Optimize: `INSERT INTO blocks_fts(blocks_fts) VALUES('optimize')`
+
+Safety / Idempotency:
+- Triggers are dropped first (`DROP TRIGGER IF EXISTS ...`) to allow safe reapplication in controlled test environments.
+- Rebuild + integrity + optimize are no-ops if already consistent.
+- Migration assumes schema from 002 (i.e. `hostname` already present).
+
+Operational Impact:
+- Removes need for manual FTS population on each write path.
+- Ensures search results reflect mutations immediately after commit.
+- Maintains external content mode advantages (single source of truth in `blocks`).
+
+Future Considerations:
+- If additional searchable columns are added later, a follow-up migration must (a) recreate or extend triggers if columns are referenced, and (b) rebuild the FTS index again.
+- If performance tuning is required, triggers could be batched or replaced with a deferred job system in a later migration.
+
+### Migration 4: Add updated_at (`004_add_updated_at.sql`)
+
+Adds an `updated_at` column to distinguish the original creation time (`created_at`) from the last modification time. This enables:
+- Incremental syncs (e.g. “give me blocks changed since T”)
+- Efficient cache invalidation
+- Audit/troubleshooting of mutation behavior
+
+Key changes:
+1. `ALTER TABLE blocks ADD COLUMN updated_at DATETIME`
+2. Backfill: `updated_at = created_at` for all existing rows
+3. Index: `CREATE INDEX IF NOT EXISTS idx_blocks_updated_at ON blocks(updated_at)`
+
+Design notes:
+- We deliberately do NOT add `updated_at` to the FTS virtual table; it is not part of search relevance scoring.
+- The application upsert logic changes so:
+  - On first insert: both `created_at` and `updated_at` are set to the block’s creation moment.
+  - On conflict (same id): `created_at` is preserved, `updated_at` is set to `CURRENT_TIMESTAMP`.
+- No trigger is used for `updated_at` to keep control in application code and avoid recursive trigger complexity.
+
+Rationale:
+- Preserving `created_at` keeps the lineage/original event time intact.
+- Many datasources may re-fetch or enrich existing blocks; this surfaces genuine mutations without losing origin time.
+
+Potential downsides:
+- Extra write amplification on frequent updates (one more indexed column to maintain).
+- Storage growth: the new index adds a modest B-tree (generally small relative to text content).
+- For immutable datasets, `updated_at` duplicates `created_at` (harmless; consumers can ignore or coalesce).
+
+Future options:
+- If automatic timestamping is desired later, a follow-up migration could add an AFTER UPDATE trigger to set `updated_at = CURRENT_TIMESTAMP` only when relevant columns change.
+- If per-field change tracking is required, consider adding a lightweight changelog table in a later migration.
+
+Operational impact:
+- Existing queries unaffected unless they explicitly select all columns with positional assumptions.
+- Clients can begin using `updated_at` immediately after migration 4 is applied.
+
+
 ## Using Migrations
 
 ### Check Migration Status

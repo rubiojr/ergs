@@ -101,15 +101,15 @@ func (s *GenericStorage) StoreBlocks(blocks []core.Block, datasourceType string)
 	}()
 
 	stmt, err := tx.Prepare(`
-		INSERT INTO blocks (id, text, created_at, source, datasource, metadata, hostname)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO blocks (id, text, created_at, source, datasource, metadata, hostname, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
 			text=excluded.text,
-			created_at=excluded.created_at,
 			source=excluded.source,
 			datasource=excluded.datasource,
 			metadata=excluded.metadata,
-			hostname=excluded.hostname
+			hostname=excluded.hostname,
+			updated_at=CURRENT_TIMESTAMP
 	`)
 	if err != nil {
 		return fmt.Errorf("preparing statement: %w", err)
@@ -146,11 +146,12 @@ func (s *GenericStorage) StoreBlocks(blocks []core.Block, datasourceType string)
 		_, err = stmt.Exec(
 			genericBlock.ID(),
 			genericBlock.Text(),
-			genericBlock.CreatedAt(),
+			genericBlock.CreatedAt(), // preserve original creation time
 			genericBlock.Source(),
 			datasourceType,
 			string(metadataJSON),
 			genericBlock.Hostname(),
+			genericBlock.CreatedAt(), // initial updated_at = created_at; future updates set CURRENT_TIMESTAMP
 		)
 		if err != nil {
 			return fmt.Errorf("inserting block %s: %w", genericBlock.ID(), err)

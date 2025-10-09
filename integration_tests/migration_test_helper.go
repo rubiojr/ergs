@@ -263,117 +263,59 @@ func (h *MigrationTestHelper) VerifyFTSIntegrity(database *sql.DB, ftsTableName 
 	return true
 }
 
-// CommonMigrationScenarios returns common test scenarios
+// CommonMigrationScenarios returns common test scenarios.
+// Updated to source canonical SQL from embedded migrations instead of duplicating it here.
 func CommonMigrationScenarios() map[string]TestMigrationScenario {
-	return map[string]TestMigrationScenario{
+	embedded, err := db.GetEmbeddedMigrations()
+	if err != nil || len(embedded) == 0 {
+		// Fallback: if for some reason embedded migrations can't be loaded,
+		// we return an empty map (tests depending on scenarios will fail fast).
+		return map[string]TestMigrationScenario{}
+	}
+
+	// Convert embedded migrations into the local TestMigration type
+	toTestMigrations := func(filter func(m db.Migration) bool) []TestMigration {
+		var out []TestMigration
+		for _, m := range embedded {
+			if filter(m) {
+				out = append(out, TestMigration{
+					Version: m.Version,
+					Name:    m.Name,
+					SQL:     m.SQL,
+				})
+			}
+		}
+		return out
+	}
+
+	// Helper predicates
+	isV1 := func(m db.Migration) bool { return m.Version == 1 }
+	isUpToLatest := func(m db.Migration) bool { return true } // all migrations
+	isSchemaTable := "blocks"
+
+	scenarios := map[string]TestMigrationScenario{
 		"initial_only": {
-			Name: "Initial schema only",
-			Migrations: []TestMigration{
-				{
-					Version: 1,
-					Name:    "initial_schema",
-					SQL: `-- Initial schema
-CREATE TABLE IF NOT EXISTS blocks (
-    id TEXT PRIMARY KEY,
-    text TEXT NOT NULL,
-    created_at DATETIME NOT NULL,
-    source TEXT NOT NULL,
-    datasource TEXT NOT NULL,
-    metadata TEXT
-);
-
-CREATE TABLE IF NOT EXISTS fetch_metadata (
-    key TEXT PRIMARY KEY,
-    value TEXT NOT NULL,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE VIRTUAL TABLE IF NOT EXISTS blocks_fts USING fts5(
-    text,
-    source,
-    datasource,
-    metadata,
-    content='blocks',
-    content_rowid='rowid',
-    tokenize='porter'
-);
-
-CREATE TABLE IF NOT EXISTS migrations (
-    version INTEGER PRIMARY KEY,
-    applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);`,
-				},
+			Name:       "Initial schema only",
+			Migrations: toTestMigrations(isV1),
+			ExpectedTables: []string{
+				"blocks", "fetch_metadata", "blocks_fts", "migrations",
 			},
-			ExpectedTables: []string{"blocks", "fetch_metadata", "blocks_fts", "migrations"},
 			ExpectedColumns: map[string][]string{
-				"blocks": {"id", "text", "created_at", "source", "datasource", "metadata"},
+				isSchemaTable: {"id", "text", "created_at", "source", "datasource", "metadata"},
 			},
 		},
+		// Keep key name "with_hostname" to avoid changing existing tests.
 		"with_hostname": {
-			Name: "Initial schema plus hostname",
-			Migrations: []TestMigration{
-				{
-					Version: 1,
-					Name:    "initial_schema",
-					SQL: `-- Initial schema
-CREATE TABLE IF NOT EXISTS blocks (
-    id TEXT PRIMARY KEY,
-    text TEXT NOT NULL,
-    created_at DATETIME NOT NULL,
-    source TEXT NOT NULL,
-    datasource TEXT NOT NULL,
-    metadata TEXT
-);
-
-CREATE TABLE IF NOT EXISTS fetch_metadata (
-    key TEXT PRIMARY KEY,
-    value TEXT NOT NULL,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE VIRTUAL TABLE IF NOT EXISTS blocks_fts USING fts5(
-    text,
-    source,
-    datasource,
-    metadata,
-    content='blocks',
-    content_rowid='rowid',
-    tokenize='porter'
-);
-
-CREATE TABLE IF NOT EXISTS migrations (
-    version INTEGER PRIMARY KEY,
-    applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);`,
-				},
-				{
-					Version: 2,
-					Name:    "add_hostname",
-					SQL: `-- Add hostname field to blocks table
-ALTER TABLE blocks ADD COLUMN hostname TEXT;
-
--- Update the FTS index to include hostname
-DROP TABLE IF EXISTS blocks_fts;
-CREATE VIRTUAL TABLE blocks_fts USING fts5(
-    text,
-    source,
-    datasource,
-    metadata,
-    hostname,
-    content='blocks',
-    content_rowid='rowid',
-    tokenize='porter'
-);
-
--- Rebuild FTS index with existing data
-INSERT INTO blocks_fts(rowid, text, source, datasource, metadata, hostname)
-SELECT rowid, text, source, datasource, metadata, hostname FROM blocks;`,
-				},
+			Name:       "Initial schema plus hostname and triggers",
+			Migrations: toTestMigrations(isUpToLatest), // all embedded migrations (1..N)
+			ExpectedTables: []string{
+				"blocks", "fetch_metadata", "blocks_fts", "migrations",
 			},
-			ExpectedTables: []string{"blocks", "fetch_metadata", "blocks_fts", "migrations"},
 			ExpectedColumns: map[string][]string{
-				"blocks": {"id", "text", "created_at", "source", "datasource", "metadata", "hostname"},
+				isSchemaTable: {"id", "text", "created_at", "source", "datasource", "metadata", "hostname", "updated_at"},
 			},
 		},
 	}
+
+	return scenarios
 }

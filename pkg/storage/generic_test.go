@@ -2,6 +2,10 @@ package storage
 
 import (
 	"testing"
+	"time"
+
+	"github.com/rubiojr/ergs/pkg/core"
+	"github.com/rubiojr/ergs/pkg/db"
 )
 
 func TestEscapeFTS5Query(t *testing.T) {
@@ -182,5 +186,66 @@ func TestFTS5AllowsAllSyntax(t *testing.T) {
 				t.Errorf("All FTS5 syntax should be preserved: escapeFTS5Query(%q) = %q, want %q", tc.input, result, tc.input)
 			}
 		})
+	}
+}
+
+// TestStoreBlocksUpdatedAtPreservedCreatedAt verifies that:
+// 1. created_at is preserved across upserts
+// 2. updated_at is initialized to created_at then advances on conflict update
+func TestStoreBlocksUpdatedAtPreservedCreatedAt(t *testing.T) {
+	tempDir := t.TempDir()
+	dbPath := tempDir + "/test.db"
+
+	st, err := NewGenericStorage(dbPath, "testds")
+	if err != nil {
+		t.Fatalf("NewGenericStorage error: %v", err)
+	}
+	defer func() { _ = st.Close() }()
+
+	if err := db.InitializeDatabase(st.GetDB()); err != nil {
+		t.Fatalf("InitializeDatabase error: %v", err)
+	}
+
+	createdAt := time.Now().Add(-1 * time.Hour).UTC().Truncate(time.Second)
+
+	block1 := core.NewGenericBlock("block-1", "original text", "srcA", "testds", createdAt, map[string]interface{}{"v": 1})
+	if err := st.StoreBlock(block1, "testds"); err != nil {
+		t.Fatalf("StoreBlock initial failed: %v", err)
+	}
+
+	var created1, updated1 time.Time
+	if err := st.GetDB().QueryRow("SELECT created_at, updated_at FROM blocks WHERE id = ?", "block-1").
+		Scan(&created1, &updated1); err != nil {
+		t.Fatalf("query after first insert failed: %v", err)
+	}
+
+	if !created1.Equal(createdAt) {
+		t.Errorf("created_at mismatch: got %v want %v", created1, createdAt)
+	}
+	if !updated1.Equal(created1) {
+		t.Errorf("expected updated_at == created_at on first insert, got created_at=%v updated_at=%v", created1, updated1)
+	}
+
+	time.Sleep(1500 * time.Millisecond) // ensure second-level resolution difference
+
+	block2 := core.NewGenericBlock("block-1", "modified text", "srcA", "testds", createdAt, map[string]interface{}{"v": 2})
+	if err := st.StoreBlock(block2, "testds"); err != nil {
+		t.Fatalf("StoreBlock update failed: %v", err)
+	}
+
+	var created2, updated2 time.Time
+	if err := st.GetDB().QueryRow("SELECT created_at, updated_at FROM blocks WHERE id = ?", "block-1").
+		Scan(&created2, &updated2); err != nil {
+		t.Fatalf("query after update failed: %v", err)
+	}
+
+	if !created2.Equal(created1) {
+		t.Errorf("created_at changed unexpectedly: before=%v after=%v", created1, created2)
+	}
+	if !updated2.After(updated1) {
+		t.Errorf("updated_at not advanced: before=%v after=%v", updated1, updated2)
+	}
+	if time.Until(updated2) > time.Minute {
+		t.Errorf("updated_at appears unrealistic (in the future): %v", updated2)
 	}
 }

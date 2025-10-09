@@ -1,0 +1,65 @@
+-- Migration 004: Add updated_at column to blocks table
+--
+-- Purpose:
+--   Preserve the original creation timestamp in created_at while tracking the
+--   last modification time separately in updated_at. This allows clients to:
+--     * Detect when a block's content/metadata changed after initial creation.
+--     * Perform incremental syncs / cache invalidation based on modifications.
+--
+-- Prior State:
+--   Migration 001 created the base schema (blocks + blocks_fts external content).
+--   Migration 002 added hostname and rebuilt blocks_fts.
+--   Migration 003 installed FTS synchronization triggers (blocks_ai_fts, blocks_ad_fts, blocks_au_fts).
+--
+-- Changes in this migration:
+--   1. Adds a nullable DATETIME column 'updated_at'.
+--   2. Backfills existing rows so updated_at = created_at (preserves original timeline).
+--   3. Creates an index to optimize queries filtering / ordering by updated_at.
+--
+-- Notes:
+--   * We do NOT add updated_at to the FTS5 virtual table (not needed for search relevance).
+--   * Application upsert logic must be updated so:
+--       - created_at is only set on the initial INSERT (never overwritten on conflict)
+--       - updated_at is set to CURRENT_TIMESTAMP (or supplied value) on UPDATE paths
+--   * Triggers are NOT added here to auto-manage updated_at to keep flexibility
+--     (some callers may want deterministic timestamps). If automatic behavior
+--     becomes desirable later, add a follow-up migration with a BEFORE/AFTER
+--     UPDATE trigger (requires careful design to avoid recursion).
+--
+-- Safety:
+--   * ALTER TABLE ... ADD COLUMN in SQLite appends a NULL column for existing rows.
+--   * Backfill step ensures no NULLs remain (unless future rows explicitly insert NULL).
+--   * Index creation guarded with IF NOT EXISTS for idempotency in test replays.
+--
+-- Rollback:
+--   * SQLite cannot DROP COLUMN without table rebuild; no rollback script provided.
+--
+-- Potential Downsides / Considerations:
+--   * Additional write amplification if application frequently updates blocks.
+--   * The new index increases storage and slight insert/update overhead.
+--   * If blocks are immutable in most datasources, updated_at may duplicate created_at.
+--     (This is acceptable; consumers can ignore unchanged pairs.)
+--
+-- ---------------------------------------------------------------------------
+-- 1. Add the updated_at column (nullable initially)
+-- ---------------------------------------------------------------------------
+ALTER TABLE blocks ADD COLUMN updated_at DATETIME;
+--
+-- 2. Backfill existing rows: set updated_at = created_at where still NULL
+UPDATE blocks
+SET updated_at = created_at
+WHERE updated_at IS NULL;
+--
+-- 3. Create an index to optimize recency / incremental sync queries
+CREATE INDEX IF NOT EXISTS idx_blocks_updated_at ON blocks(updated_at);
+--
+-- (Optional) Future enhancement idea:
+--   A migration adding a trigger like (conceptual pseudo-code):
+--     BEFORE UPDATE ON blocks
+--       WHEN (OLD.text != NEW.text OR OLD.metadata != NEW.metadata OR ...)
+--       SET NEW.updated_at = CURRENT_TIMESTAMP;
+--   SQLite does not allow direct assignment to NEW.* so it would need an AFTER UPDATE
+--   trigger issuing a second UPDATE guarded by PRAGMA recursive_triggers. This was
+--   intentionally deferred to avoid complexity & unintended write loops.
+--
+-- End of migration 004

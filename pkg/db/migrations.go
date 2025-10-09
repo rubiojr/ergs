@@ -338,3 +338,49 @@ func InitializeDatabaseFromPath(db *sql.DB, migrationsPath string) error {
 
 	return nil
 }
+
+// GetEmbeddedMigrations returns all embedded migration definitions (version, name, SQL)
+// without needing a database handle. This allows test helpers or other tooling
+// to reuse the canonical embedded migration set instead of duplicating SQL.
+func GetEmbeddedMigrations() ([]Migration, error) {
+	entries, err := migrationsFS.ReadDir("migrations")
+	if err != nil {
+		return nil, fmt.Errorf("reading migrations directory: %w", err)
+	}
+
+	var migrations []Migration
+	for _, entry := range entries {
+		if !strings.HasSuffix(entry.Name(), ".sql") {
+			continue
+		}
+
+		parts := strings.SplitN(entry.Name(), "_", 2)
+		if len(parts) != 2 {
+			continue
+		}
+
+		version, err := strconv.Atoi(parts[0])
+		if err != nil {
+			continue
+		}
+
+		content, err := migrationsFS.ReadFile(filepath.Join("migrations", entry.Name()))
+		if err != nil {
+			return nil, fmt.Errorf("reading migration file %s: %w", entry.Name(), err)
+		}
+
+		name := strings.TrimSuffix(parts[1], ".sql")
+
+		migrations = append(migrations, Migration{
+			Version: version,
+			Name:    name,
+			SQL:     string(content),
+		})
+	}
+
+	sort.Slice(migrations, func(i, j int) bool {
+		return migrations[i].Version < migrations[j].Version
+	})
+
+	return migrations, nil
+}

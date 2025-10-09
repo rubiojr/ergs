@@ -1,5 +1,10 @@
 package integration_tests
 
+// NOTE: Updated after adding migrations 003 (FTS triggers) and 004 (updated_at column).
+// Tests now expect a total of 4 migrations (versions 1, 2, 3, 4) where applicable.
+// Make sure CommonMigrationScenarios (with_hostname) includes all versions so these
+// expectations align with the test migration directory contents.
+
 import (
 	"context"
 	"database/sql"
@@ -66,12 +71,12 @@ func TestMigrationSystemIntegration(t *testing.T) {
 			t.Fatalf("Failed to get applied migrations: %v", err)
 		}
 
-		if len(applied) != 2 {
-			t.Errorf("Expected 2 migrations applied, got %d", len(applied))
+		if len(applied) != 4 {
+			t.Errorf("Expected 4 migrations applied, got %d", len(applied))
 		}
 
-		if applied[0] != 1 || applied[1] != 2 {
-			t.Errorf("Expected migrations [1, 2], got %v", applied)
+		if len(applied) != 4 || applied[0] != 1 || applied[1] != 2 || applied[2] != 3 || applied[3] != 4 {
+			t.Errorf("Expected migrations [1, 2, 3, 4], got %v", applied)
 		}
 	})
 
@@ -129,12 +134,16 @@ func TestMigrationSystemIntegration(t *testing.T) {
 			t.Fatalf("Failed to get pending migrations: %v", err)
 		}
 
-		if len(pending) != 1 {
-			t.Errorf("Expected 1 pending migration, got %d", len(pending))
+		if len(pending) != 3 {
+			t.Errorf("Expected 3 pending migrations, got %d", len(pending))
 		}
 
-		if pending[0].Version != 2 {
-			t.Errorf("Expected pending migration version 2, got %d", pending[0].Version)
+		expectedVersions := []int{2, 3, 4}
+		for i, v := range expectedVersions {
+			if i >= len(pending) || pending[i].Version != v {
+				t.Errorf("Expected pending migration version %d at index %d, got sequence %v", v, i, pending)
+				break
+			}
 		}
 
 		// Apply remaining migration
@@ -382,8 +391,8 @@ interval_seconds = 1
 			t.Errorf("Expected 0 applied migrations, got %d", len(status.Applied))
 		}
 
-		if len(status.Pending) != 2 {
-			t.Errorf("Expected 2 pending migrations, got %d", len(status.Pending))
+		if len(status.Pending) != 4 {
+			t.Errorf("Expected 4 pending migrations, got %d", len(status.Pending))
 		}
 
 		// Apply first migration
@@ -435,8 +444,8 @@ interval_seconds = 1
 			t.Fatalf("Failed to get migration status: %v", err)
 		}
 
-		if len(status.Applied) != 2 {
-			t.Errorf("Expected 2 applied migrations, got %d", len(status.Applied))
+		if len(status.Applied) != 4 {
+			t.Errorf("Expected 4 applied migrations, got %d", len(status.Applied))
 		}
 
 		if len(status.Pending) != 0 {
@@ -483,8 +492,8 @@ interval_seconds = 1
 			}
 
 			// Should always have pending migrations
-			if len(status.Pending) != 2 {
-				t.Errorf("Expected 2 pending migrations on iteration %d, got %d", i, len(status.Pending))
+			if len(status.Pending) != 4 {
+				t.Errorf("Expected 4 pending migrations on iteration %d, got %d", i, len(status.Pending))
 			}
 
 			// Should never have applied migrations (since we're only checking status)
@@ -515,8 +524,8 @@ interval_seconds = 1
 			t.Fatalf("GetMigrationStatus failed after applying migrations: %v", err)
 		}
 
-		if len(statusAfter.Applied) != 2 {
-			t.Errorf("Expected 2 applied migrations after ApplyPendingMigrations, got %d", len(statusAfter.Applied))
+		if len(statusAfter.Applied) != 4 {
+			t.Errorf("Expected 4 applied migrations after ApplyPendingMigrations, got %d", len(statusAfter.Applied))
 		}
 
 		if len(statusAfter.Pending) != 0 {
@@ -583,8 +592,8 @@ interval_seconds = 1
 		}
 
 		// Should have pending migrations
-		if len(status.Pending) != 2 {
-			t.Errorf("Expected 2 pending migrations, got %d", len(status.Pending))
+		if len(status.Pending) != 4 {
+			t.Errorf("Expected 4 pending migrations, got %d", len(status.Pending))
 		}
 
 		// Should have no applied migrations
