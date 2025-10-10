@@ -122,6 +122,14 @@ max_items = 50  # Maximum items to fetch across all feeds (default: 50, max: 200
 # [datasources.rtve]
 # type = 'rtve'
 
+# # Datadis - Fetch electricity consumption data from Datadis (Spanish electricity data platform)
+# [datasources.datadis]
+# type = 'datadis'
+# # interval = '24h0m0s'  # Fetch once per day (default: 24h)
+# [datasources.datadis.config]
+# username = ''  # Required: Your Datadis username
+# password = ''  # Required: Your Datadis password
+
 # # Importer - Generic datasource for importing blocks from external sources
 # # This allows external tools to push blocks via HTTP API
 # # Only ONE importer datasource is needed - it routes blocks to their target datasources

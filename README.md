@@ -74,6 +74,7 @@ Or grab a binary release from https://github.com/rubiojr/ergs/releases.
 
 ### Utilities
 - **Gas Stations** - Local gas station prices and info
+- **Datadis** - Electricity consumption data from Datadis (Spanish electricity data platform)
 - **Timestamp** - Simple timestamp logging (useful for testing)
 
 ## Common Commands

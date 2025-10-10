@@ -14,6 +14,7 @@ package cmd
 import (
 	_ "github.com/rubiojr/ergs/pkg/datasources/chromium/renderer"
 	_ "github.com/rubiojr/ergs/pkg/datasources/codeberg/renderer"
+	_ "github.com/rubiojr/ergs/pkg/datasources/datadis/renderer"
 	_ "github.com/rubiojr/ergs/pkg/datasources/firefox/renderer"
 	_ "github.com/rubiojr/ergs/pkg/datasources/gasstations/renderer"
 	_ "github.com/rubiojr/ergs/pkg/datasources/github/renderer"

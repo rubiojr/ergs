@@ -10,6 +10,7 @@ For configuration and usage information for existing datasources, see:
 - [GitHub Datasource](datasources/github.md) - Fetch GitHub activity and events
 - [Codeberg Datasource](datasources/codeberg.md) - Fetch Codeberg activity and events
 - [Gas Stations Datasource](datasources/gasstations.md) - Fetch Spanish gas station prices and locations
+- [Datadis Datasource](datasources/datadis.md) - Fetch electricity consumption data from Datadis
 
 ## Configurable Fetch Intervals
 
@@ -647,6 +648,315 @@ func (d *Datasource) shouldInclude(item APIItem) bool {
     return true
 }
 ```
+
+## Creating a Web Renderer (Optional)
+
+While not required, creating a custom web renderer provides a polished user experience when viewing your datasource's blocks in the web interface. Without a custom renderer, blocks will use the default generic renderer.
+
+### When to Create a Renderer
+
+Create a custom renderer if:
+- Your blocks have rich metadata that deserves special formatting
+- You want custom styling that matches the data type
+- You have links, images, or other media to display
+- The default renderer doesn't showcase your data well
+
+### Renderer Structure
+
+Create a `renderer` subdirectory in your datasource package:
+
+```
+pkg/datasources/myapi/
+├── datasource.go
+├── blocks.go
+└── renderer/
+    ├── renderer.go     # Renderer implementation
+    └── template.html   # HTML template
+```
+
+### Implementing the Renderer
+
+Create `renderer/renderer.go`:
+
+```go
+package renderer
+
+import (
+    _ "embed"
+    "html/template"
+    "strings"
+
+    "github.com/rubiojr/ergs/pkg/core"
+    "github.com/rubiojr/ergs/pkg/render"
+)
+
+//go:embed template.html
+var myAPITemplate string
+
+type MyAPIRenderer struct {
+    template *template.Template
+}
+
+// init function automatically registers this renderer
+func init() {
+    renderer := NewMyAPIRenderer()
+    if renderer != nil {
+        render.RegisterRenderer(renderer)
+    }
+}
+
+func NewMyAPIRenderer() *MyAPIRenderer {
+    tmpl, err := template.New("myapi").Funcs(render.GetTemplateFuncs()).Parse(myAPITemplate)
+    if err != nil {
+        return nil
+    }
+    return &MyAPIRenderer{template: tmpl}
+}
+
+func (r *MyAPIRenderer) Render(block core.Block) template.HTML {
+    data := render.TemplateData{
+        Block:    block,
+        Metadata: block.Metadata(),
+        Links:    render.ExtractLinks(block.Text()),
+    }
+
+    var buf strings.Builder
+    err := r.template.Execute(&buf, data)
+    if err != nil {
+        return template.HTML("Error rendering template")
+    }
+    return template.HTML(buf.String())
+}
+
+func (r *MyAPIRenderer) CanRender(block core.Block) bool {
+    return block.Type() == "myapi"
+}
+
+func (r *MyAPIRenderer) GetDatasourceType() string {
+    return "myapi"
+}
+```
+
+### Creating the HTML Template
+
+Create `renderer/template.html`:
+
+```html
+<div class="block-myapi">
+    {{$title := index .Metadata "title"}}
+    {{$author := index .Metadata "author"}}
+    {{$category := index .Metadata "category"}}
+    
+    <div class="myapi-header">
+        <div class="myapi-icon">📝</div>
+        <div class="myapi-content">
+            <div class="myapi-title">
+                {{if $title}}
+                <strong>{{$title}}</strong>
+                {{else}}
+                <strong>MyAPI Item</strong>
+                {{end}}
+                {{if $author}}
+                <span class="myapi-author">by {{$author}}</span>
+                {{end}}
+            </div>
+            
+            <div class="myapi-meta">
+                <span class="myapi-time">{{formatTime .Block.CreatedAt}}</span>
+                {{if $category}}
+                <span class="myapi-separator">|</span>
+                <span class="myapi-category">{{$category}}</span>
+                {{end}}
+            </div>
+        </div>
+    </div>
+
+    {{$excludes := slice "title" "author" "category"}}
+    {{$filteredMetadata := filterMetadata .Metadata $excludes}}
+    {{if $filteredMetadata}}
+    <div class="myapi-extras">
+        <details>
+            <summary>Show additional data</summary>
+            <dl class="myapi-metadata">
+                {{range $key, $value := $filteredMetadata}}
+                <dt>{{$key}}</dt>
+                <dd>{{$value}}</dd>
+                {{end}}
+            </dl>
+        </details>
+    </div>
+    {{end}}
+</div>
+
+<style>
+    .block-myapi {
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        background: var(--surface);
+        font-size: 13px;
+    }
+    
+    .myapi-header {
+        display: flex;
+        gap: 8px;
+        padding: 8px;
+        background: var(--surface-alt);
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .myapi-icon {
+        font-size: 20px;
+    }
+    
+    .myapi-content {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .myapi-title {
+        margin-bottom: 4px;
+        font-size: 14px;
+        color: var(--text);
+    }
+    
+    .myapi-author {
+        color: var(--text-dim);
+        font-weight: normal;
+        margin-left: 6px;
+    }
+    
+    .myapi-meta {
+        color: var(--text-dim);
+        font-size: 11px;
+        display: flex;
+        gap: 6px;
+    }
+    
+    .myapi-separator {
+        color: var(--border-alt);
+    }
+    
+    .myapi-extras {
+        padding: 8px;
+        border-top: 1px solid var(--border);
+    }
+    
+    .myapi-metadata {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 4px 12px;
+        margin: 8px 0 0 0;
+        font-size: 12px;
+    }
+    
+    .myapi-metadata dt {
+        font-weight: 500;
+        color: var(--text-dim);
+    }
+    
+    .myapi-metadata dd {
+        margin: 0;
+        color: var(--text);
+    }
+</style>
+```
+
+### Template Functions Available
+
+Your templates have access to these functions (from `render.GetTemplateFuncs()`):
+
+**Time & Formatting:**
+- `formatTime` - Format time.Time as readable string
+- `truncate` - Truncate string to max length
+- `htmlEscape` - Escape HTML entities
+- `safeHTML` - Mark string as safe HTML
+
+**Logic:**
+- `and`, `or` - Logical operations
+- `eq`, `ne`, `gt`, `lt` - Comparisons
+- `default` - Provide default value if empty
+
+**Strings:**
+- `upper`, `lower`, `title` - Case conversion
+- `contains`, `hasPrefix`, `hasSuffix` - String matching
+- `replace`, `split`, `trim`, `join` - String manipulation
+
+**Collections:**
+- `slice` - Create a slice
+- `index` - Access map/slice elements
+- `filterMetadata` - Filter metadata by excluding keys
+
+**Other:**
+- `extractLinks` - Extract URLs from text
+- `parseJSON` - Parse JSON strings
+- `printf` - Format strings
+
+### Template Data Structure
+
+Templates receive this data:
+
+```go
+type TemplateData struct {
+    Block    core.Block                  // The block being rendered
+    Metadata map[string]interface{}      // Block's metadata
+    Links    []string                    // Extracted URLs from block text
+}
+```
+
+### Registering the Renderer
+
+Add a blank import to `cmd/renderers_imports.go`:
+
+```go
+package cmd
+
+import (
+    _ "github.com/rubiojr/ergs/pkg/datasources/chromium/renderer"
+    _ "github.com/rubiojr/ergs/pkg/datasources/myapi/renderer"  // Add this line
+    // ... other renderers
+)
+```
+
+Without this import, the renderer's `init()` function won't run and your custom renderer won't be registered.
+
+### Styling Guidelines
+
+1. **Use CSS Variables**: Use `var(--border)`, `var(--surface)`, `var(--text)`, etc. for theme compatibility
+2. **Scope Styles**: Use a unique class prefix (`.block-myapi`) to avoid conflicts
+3. **Responsive**: Test on mobile/narrow screens
+4. **Minimal**: Keep styling lightweight and consistent with other renderers
+5. **Semantic HTML**: Use appropriate tags (`<details>`, `<summary>`, `<dl>`, etc.)
+
+### Common CSS Variables
+
+- `--border` - Border color
+- `--surface` - Background color
+- `--surface-alt` - Alternate background
+- `--text` - Primary text color
+- `--text-dim` - Secondary text color
+- `--text-faint` - Very dim text
+- `--accent` - Accent/link color
+- `--accent-hover` - Accent hover color
+- `--accent-soft` - Soft accent background
+
+### Testing Your Renderer
+
+1. Build the project: `make build`
+2. Start the web interface: `./bin/ergs web`
+3. Visit `http://localhost:8080`
+4. Search for blocks from your datasource
+5. Verify the custom styling appears correctly
+
+### Renderer Best Practices
+
+1. **Fail Gracefully**: Handle missing metadata with `{{if}}` checks
+2. **Filter Metadata**: Use `filterMetadata` to hide internal/duplicate fields
+3. **Collapse Details**: Use `<details>` for optional/verbose information
+4. **Performance**: Parse template once in `init()`, not per render
+5. **Security**: Always escape user content (automatic unless using `safeHTML`)
+
+For more detailed information about the renderer system, see [docs/renderers.md](renderers.md).
 
 ## Key Changes from Legacy System
 
