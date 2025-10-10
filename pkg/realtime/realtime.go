@@ -4,14 +4,6 @@ package realtime
 // in‑process publish/subscribe hub used to fan out realtime block events to
 // multiple listeners (e.g. WebSocket sessions).
 //
-// Motivation:
-//
-// Previously, the realtime hub + event envelope lived in the cmd layer which
-// prevented the API (pkg/api) layer from type‑asserting hub subscriptions
-// cleanly (duplicate "InternalEvent" types in different packages caused the
-// WebSocket firehose to always fall back to polling). Centralizing these
-// definitions here eliminates import cycles and enables true push delivery.
-//
 // Design Goals:
 //   - Zero external dependencies beyond the standard library.
 //   - Best‑effort fan‑out: slow listeners drop events (never backpressure ingestion).
