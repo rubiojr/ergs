@@ -23,8 +23,8 @@
             </div>
 
             <div class="ha-meta">
-                <span class="ha-time" title="{{$timeFired}}"
-                    >{{formatTime .Block.CreatedAt}}</span
+                <time class="ha-time" datetime="{{.Block.CreatedAt.Format "2006-01-02T15:04:05Z07:00"}}" title="{{$timeFired}}"
+                    >{{formatTime .Block.CreatedAt}}</time
                 >
                 {{if $origin}}
                 <span class="ha-sep">|</span>
@@ -550,3 +550,54 @@
         }
     }
 </style>
+
+<script>
+(function() {
+    // Format time helper - matches the Go formatTime function
+    function formatTime(date) {
+        const now = new Date();
+        const diff = now - date;
+        const seconds = Math.floor(diff / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+
+        if (seconds < 60) {
+            return "just now";
+        } else if (minutes < 60) {
+            return minutes === 1 ? "1 minute ago" : minutes + " minutes ago";
+        } else if (hours < 24) {
+            return hours === 1 ? "1 hour ago" : hours + " hours ago";
+        } else if (days < 7) {
+            return days === 1 ? "1 day ago" : days + " days ago";
+        } else {
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            return months[date.getMonth()] + " " + date.getDate() + ", " + date.getFullYear();
+        }
+    }
+
+    // Update all time elements in Home Assistant blocks
+    function updateTimestamps() {
+        const timeElements = document.querySelectorAll('.block-ha .ha-time[datetime]');
+        timeElements.forEach(function(el) {
+            const datetime = el.getAttribute('datetime');
+            if (datetime) {
+                const date = new Date(datetime);
+                if (!isNaN(date.getTime())) {
+                    el.textContent = formatTime(date);
+                }
+            }
+        });
+    }
+
+    // Update timestamps every 30 seconds
+    setInterval(updateTimestamps, 30000);
+
+    // Initial update when page loads
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', updateTimestamps);
+    } else {
+        updateTimestamps();
+    }
+})();
+</script>

@@ -292,7 +292,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 				"event_type": et,
 			}
 			if err := conn.WriteJSON(sub); err != nil {
-				return fmt.Errorf("homeassistant: subscribe '%s' failed: %w", et, err)
+				return fmt.Errorf("homeassistant: subscribe event %q failed: %w", et, err)
 			}
 			subID++
 			time.Sleep(25 * time.Millisecond) // gentle pacing
