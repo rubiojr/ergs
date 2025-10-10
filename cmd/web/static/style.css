@@ -99,6 +99,22 @@ html {
     --font-size-xx-large: 1.5rem; /* 24px */
 }
 
+/* Brand / Logo */
+.header-content .brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.header-content .brand .logo svg {
+    display: block;
+    height: 24px;
+    width: auto;
+}
+.header-content .brand:hover .logo svg {
+    filter: brightness(1.05);
+    transition: filter 0.25s ease;
+}
+
 /* Theme: Polar Night (dark) */
 .theme-polar-night {
     --bg: var(--nord0);

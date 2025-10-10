@@ -51,7 +51,17 @@ func searchDescription(data types.PageData) string {
 templ Search(data types.PageData) {
 	@Layout(data) {
 		<div class="firehose-page">
-			@blocksPageHeader("Search", searchDescription(data))
+			<div class="firehose-header">
+				<h2>
+					<svg class="header-icon" viewBox="0 0 24 24" fill="currentColor" role="img" aria-label="Search">
+						<path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l4.75 4.75 1.25-1.25L15.5 14zM9.5 14A4.5 4.5 0 119.5 5a4.5 4.5 0 010 9z"></path>
+					</svg>
+					Search
+				</h2>
+				<p class="firehose-description">
+					{ searchDescription(data) }
+				</p>
+			</div>
 			@searchForm(data)
 			@searchResultsFirehoseStyle(data)
 		</div>

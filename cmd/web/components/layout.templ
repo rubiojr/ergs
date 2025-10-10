@@ -20,8 +20,22 @@ templ Layout(data types.PageData) {
 				<div class="container">
 					<div class="header-content">
 						<h1>
-							<a href="/" style="text-decoration: none; color: inherit">
-								Ergs Data Explorer
+							<a href="/" style="text-decoration: none; color: inherit" class="brand">
+								<span class="logo" style="display:inline-block;vertical-align:middle;margin-right:8px;">
+									<svg width="36" height="24" viewBox="0 0 72 48" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ergs Dune Logo">
+										<defs>
+											<linearGradient id="duneGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+												<stop offset="0%" stop-color="#ebcb8b"/>
+												<stop offset="55%" stop-color="#d08770"/>
+												<stop offset="100%" stop-color="#bf616a"/>
+											</linearGradient>
+										</defs>
+										<path d="M4 34c6-2 12-6 18-10 9-6 14-6 22 0 3 2 6 4 10 5 4 2 8 2 14 1v10H4V34Z" fill="url(#duneGrad)"/>
+										<path d="M4 34c6-2 12-6 18-10 9-6 14-6 22 0 3 2 6 4 10 5 4 2 8 2 14 1" fill="none" stroke="rgba(255,255,255,0.20)" stroke-width="2" stroke-linecap="round"/>
+										<circle cx="52" cy="14" r="5" fill="#ebcb8b" opacity="0.9"/>
+									</svg>
+								</span>
+								<span style="vertical-align:middle;display:inline-block;">Ergs Data Explorer</span>
 							</a>
 						</h1>
 						<nav>

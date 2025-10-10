@@ -44,7 +44,7 @@ func Layout(data types.PageData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><link rel=\"icon\" type=\"image/x-icon\" href=\"/static/favicon.ico\"><link rel=\"icon\" type=\"image/png\" sizes=\"32x32\" href=\"/static/favicon-32x32.png\"><link rel=\"icon\" type=\"image/png\" sizes=\"16x16\" href=\"/static/favicon-16x16.png\"><link rel=\"stylesheet\" href=\"/static/style.css\"><link rel=\"stylesheet\" href=\"/static/choices.min.css\"></head><body class=\"theme-polar-night\"><header><div class=\"container\"><div class=\"header-content\"><h1><a href=\"/\" style=\"text-decoration: none; color: inherit\">Ergs Data Explorer</a></h1><nav><a href=\"/\">Home</a> <a href=\"/search\">Search</a> <a href=\"/firehose\">Firehose</a> <a href=\"/datasources\">Datasources</a></nav><div class=\"theme-toggle\" id=\"theme-toggle\"><div class=\"theme-dot polar-night\" data-theme=\"polar-night\" title=\"Polar Night\"></div><div class=\"theme-dot frost\" data-theme=\"frost\" title=\"Frost\"></div></div></div></div></header><main><div class=\"container\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><link rel=\"icon\" type=\"image/x-icon\" href=\"/static/favicon.ico\"><link rel=\"icon\" type=\"image/png\" sizes=\"32x32\" href=\"/static/favicon-32x32.png\"><link rel=\"icon\" type=\"image/png\" sizes=\"16x16\" href=\"/static/favicon-16x16.png\"><link rel=\"stylesheet\" href=\"/static/style.css\"><link rel=\"stylesheet\" href=\"/static/choices.min.css\"></head><body class=\"theme-polar-night\"><header><div class=\"container\"><div class=\"header-content\"><h1><a href=\"/\" style=\"text-decoration: none; color: inherit\" class=\"brand\"><span class=\"logo\" style=\"display:inline-block;vertical-align:middle;margin-right:8px;\"><svg width=\"36\" height=\"24\" viewBox=\"0 0 72 48\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\" aria-label=\"Ergs Dune Logo\"><defs><linearGradient id=\"duneGrad\" x1=\"0%\" y1=\"0%\" x2=\"0%\" y2=\"100%\"><stop offset=\"0%\" stop-color=\"#ebcb8b\"></stop> <stop offset=\"55%\" stop-color=\"#d08770\"></stop> <stop offset=\"100%\" stop-color=\"#bf616a\"></stop></linearGradient></defs> <path d=\"M4 34c6-2 12-6 18-10 9-6 14-6 22 0 3 2 6 4 10 5 4 2 8 2 14 1v10H4V34Z\" fill=\"url(#duneGrad)\"></path> <path d=\"M4 34c6-2 12-6 18-10 9-6 14-6 22 0 3 2 6 4 10 5 4 2 8 2 14 1\" fill=\"none\" stroke=\"rgba(255,255,255,0.20)\" stroke-width=\"2\" stroke-linecap=\"round\"></path> <circle cx=\"52\" cy=\"14\" r=\"5\" fill=\"#ebcb8b\" opacity=\"0.9\"></circle></svg></span> <span style=\"vertical-align:middle;display:inline-block;\">Ergs Data Explorer</span></a></h1><nav><a href=\"/\">Home</a> <a href=\"/search\">Search</a> <a href=\"/firehose\">Firehose</a> <a href=\"/datasources\">Datasources</a></nav><div class=\"theme-toggle\" id=\"theme-toggle\"><div class=\"theme-dot polar-night\" data-theme=\"polar-night\" title=\"Polar Night\"></div><div class=\"theme-dot frost\" data-theme=\"frost\" title=\"Frost\"></div></div></div></div></header><main><div class=\"container\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -56,7 +56,7 @@ func Layout(data types.PageData) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(data.Error)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/layout.templ`, Line: 44, Col: 43}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/layout.templ`, Line: 58, Col: 43}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -75,7 +75,7 @@ func Layout(data types.PageData) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(data.Success)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/layout.templ`, Line: 49, Col: 47}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/layout.templ`, Line: 63, Col: 47}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -102,7 +102,7 @@ func Layout(data types.PageData) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(data.Version)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/layout.templ`, Line: 59, Col: 33}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/layout.templ`, Line: 73, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {

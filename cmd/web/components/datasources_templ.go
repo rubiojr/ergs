@@ -46,14 +46,14 @@ func Datasources(data types.PageData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"datasources-page\"><div class=\"page-header\"><h2><svg class=\"header-icon\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z\"></path></svg> Data Sources</h2><p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"datasources-page\"><div class=\"page-header\"><h2><svg class=\"header-icon\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M12 3c-4.2 0-7.5 1.4-7.5 3.2 0 1.8 3.3 3.2 7.5 3.2s7.5-1.4 7.5-3.2C19.5 4.4 16.2 3 12 3Z\"></path> <path d=\"M4.5 9.2v2.6c0 1.8 3.3 3.2 7.5 3.2s7.5-1.4 7.5-3.2V9.2c-1.7 1.2-4.6 1.8-7.5 1.8s-5.8-.6-7.5-1.8Z\"></path> <path d=\"M4.5 14.4V17c0 1.8 3.3 3.2 7.5 3.2s7.5-1.4 7.5-3.2v-2.6c-1.7 1.2-4.6 1.8-7.5 1.8s-5.8-.6-7.5-1.8Z\" opacity=\".6\"></path></svg> Data Sources</h2><p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(len(data.Datasources)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/datasources.templ`, Line: 20, Col: 44}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/datasources.templ`, Line: 22, Col: 44}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -76,7 +76,7 @@ func Datasources(data types.PageData) templ.Component {
 					var templ_7745c5c3_Var4 templ.SafeURL
 					templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL("/datasource/" + ds.Name))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/datasources.templ`, Line: 25, Col: 51}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/datasources.templ`, Line: 27, Col: 51}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 					if templ_7745c5c3_Err != nil {
@@ -89,7 +89,7 @@ func Datasources(data types.PageData) templ.Component {
 					var templ_7745c5c3_Var5 string
 					templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(ds.Name[:min(2, len(ds.Name))])
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/datasources.templ`, Line: 27, Col: 64}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/datasources.templ`, Line: 29, Col: 64}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 					if templ_7745c5c3_Err != nil {
@@ -102,7 +102,7 @@ func Datasources(data types.PageData) templ.Component {
 					var templ_7745c5c3_Var6 string
 					templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(ds.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/datasources.templ`, Line: 30, Col: 45}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/datasources.templ`, Line: 32, Col: 45}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 					if templ_7745c5c3_Err != nil {
@@ -115,7 +115,7 @@ func Datasources(data types.PageData) templ.Component {
 					var templ_7745c5c3_Var7 string
 					templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(ds.Type)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/datasources.templ`, Line: 31, Col: 47}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/datasources.templ`, Line: 33, Col: 47}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 					if templ_7745c5c3_Err != nil {
@@ -134,7 +134,7 @@ func Datasources(data types.PageData) templ.Component {
 							var templ_7745c5c3_Var8 string
 							templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(totalBlocks))
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/datasources.templ`, Line: 35, Col: 64}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/datasources.templ`, Line: 37, Col: 64}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 							if templ_7745c5c3_Err != nil {

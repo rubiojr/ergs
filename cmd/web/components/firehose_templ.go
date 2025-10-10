@@ -93,14 +93,14 @@ func blocksPageHeader(title string, description string) templ.Component {
 			templ_7745c5c3_Var3 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"firehose-header\"><h2><svg class=\"header-icon\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z\"></path></svg> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"firehose-header\"><h2><svg class=\"header-icon\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M9 3h6l1 2h2v2h-2v2h2v2h-2l-1 8H10l-1-8H7v-2h2V7H7V5h2l1-2Z\"></path> <path d=\"M6 13h2l.8 8H6a1 1 0 0 1-1-1v-5a2 2 0 0 1 1-2Zm12 0h2a2 2 0 0 1 1 2v5a1 1 0 0 1-1 1h-2.8l.8-8Z\" opacity=\".45\"></path></svg> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/firehose.templ`, Line: 24, Col: 10}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/firehose.templ`, Line: 25, Col: 10}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
@@ -118,7 +118,7 @@ func blocksPageHeader(title string, description string) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(description)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/firehose.templ`, Line: 29, Col: 17}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/firehose.templ`, Line: 30, Col: 17}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -293,7 +293,7 @@ func firehoseError(errorMsg string) templ.Component {
 		var templ_7745c5c3_Var10 string
 		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(errorMsg)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/firehose.templ`, Line: 78, Col: 15}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/components/firehose.templ`, Line: 79, Col: 15}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 		if templ_7745c5c3_Err != nil {
