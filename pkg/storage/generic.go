@@ -101,8 +101,8 @@ func (s *GenericStorage) StoreBlocks(blocks []core.Block, datasourceType string)
 	}()
 
 	stmt, err := tx.Prepare(`
-		INSERT INTO blocks (id, text, created_at, source, datasource, metadata, hostname, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO blocks (id, text, created_at, source, datasource, metadata, hostname, updated_at, ingested_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
 		ON CONFLICT(id) DO UPDATE SET
 			text=excluded.text,
 			source=excluded.source,
@@ -110,6 +110,7 @@ func (s *GenericStorage) StoreBlocks(blocks []core.Block, datasourceType string)
 			metadata=excluded.metadata,
 			hostname=excluded.hostname,
 			updated_at=CURRENT_TIMESTAMP
+			-- Note: ingested_at is NOT updated on conflict, preserving original ingestion time
 	`)
 	if err != nil {
 		return fmt.Errorf("preparing statement: %w", err)

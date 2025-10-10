@@ -1,0 +1,103 @@
+-- Migration 005: Add ingested_at column to blocks table
+--
+-- Purpose:
+--   Track when a block was first ingested into Ergs, separate from:
+--     * created_at: when the underlying data/content was originally created (from source)
+--     * updated_at: when the block was last modified in Ergs
+--
+--   This new timestamp enables:
+--     * Understanding data freshness from Ergs' perspective
+--     * Debugging ingestion workflows (when did we first see this?)
+--     * Analytics on data collection timelines
+--     * Distinguishing between content age and ingestion recency
+--
+-- Prior State:
+--   Migration 001: Created base schema (blocks + blocks_fts)
+--   Migration 002: Added hostname column and rebuilt FTS
+--   Migration 003: Added FTS synchronization triggers
+--   Migration 004: Added updated_at to track last modification time
+--
+-- Changes in this migration:
+--   1. Adds a nullable DATETIME column 'ingested_at'
+--   2. Backfills existing rows: ingested_at = updated_at
+--      IMPORTANT: Due to migration 004's backfill (updated_at = created_at), blocks
+--      that existed before migration 004 will have ingested_at = created_at.
+--      This means we've lost the true ingestion timestamp for those blocks.
+--      Only blocks created after migration 004 will have accurate ingestion times.
+--   3. Creates an index to optimize queries filtering/ordering by ingestion time
+--
+-- Semantic Breakdown (after this migration):
+--   * created_at:   When the source data was created (GitHub event time, RSS pubDate, etc.)
+--   * ingested_at:  When Ergs first stored this block (first INSERT, never changes)
+--   * updated_at:   When Ergs last modified this block (updates on conflict/change)
+--
+-- Notes:
+--   * We do NOT add ingested_at to the FTS5 virtual table (not needed for search)
+--   * Application upsert logic must be updated:
+--       - On INSERT: set ingested_at = CURRENT_TIMESTAMP (or supplied value)
+--       - ON CONFLICT: preserve ingested_at (never overwrite)
+--   * For existing blocks, updated_at serves as a proxy for ingestion time, with caveats:
+--       - Blocks that existed before migration 004: ingested_at = created_at (not ideal)
+--       - Blocks created between migrations 004-005: ingested_at ≈ actual ingestion time
+--       - Blocks created after migration 005: ingested_at = accurate ingestion time
+--
+-- Safety:
+--   * ALTER TABLE ... ADD COLUMN in SQLite appends NULL column for existing rows
+--   * Backfill ensures no NULLs remain for existing data
+--   * Index creation guarded with IF NOT EXISTS for idempotency
+--
+-- Rollback:
+--   * SQLite cannot DROP COLUMN without table rebuild; no automatic rollback provided
+--   * To manually rollback: recreate blocks table without ingested_at column
+--
+-- Considerations:
+--   * Adds one more indexed column (slight storage/write overhead)
+--   * For truly immutable blocks, ingested_at may be close to created_at (acceptable)
+--   * The backfill assumes updated_at is a reasonable proxy for ingestion time
+--     (this is true for most cases, though blocks updated after initial ingestion
+--      will show their update time, not true ingestion time)
+--
+-- ---------------------------------------------------------------------------
+-- 1. Add the ingested_at column (nullable initially)
+-- ---------------------------------------------------------------------------
+ALTER TABLE blocks ADD COLUMN ingested_at DATETIME;
+
+--
+-- 2. Backfill existing rows: set ingested_at = updated_at
+--    This is the best approximation we have for when blocks were first ingested
+-- ---------------------------------------------------------------------------
+UPDATE blocks
+SET ingested_at = updated_at
+WHERE ingested_at IS NULL;
+
+--
+-- 3. Create an index to optimize queries filtering by ingestion time
+--    Useful for: "show me blocks ingested in the last hour/day/week"
+-- ---------------------------------------------------------------------------
+CREATE INDEX IF NOT EXISTS idx_blocks_ingested_at ON blocks(ingested_at);
+
+--
+-- Alternative Strategy (for future reference):
+--   If we had foreseen this need earlier, migration 004 could have used CURRENT_TIMESTAMP
+--   for the backfill instead of created_at:
+--     UPDATE blocks SET updated_at = CURRENT_TIMESTAMP WHERE updated_at IS NULL;
+--   This would have given us a better approximation of ingestion time (the migration time).
+--   However, this would have made updated_at misleading for historical "last modified" queries.
+--
+--   The fundamental issue: once ingestion metadata is lost, it cannot be recovered.
+--   Going forward, new fields that track system timestamps (not content timestamps) should
+--   be set to CURRENT_TIMESTAMP on backfills to at least capture "when the system learned this."
+--
+-- End of migration 005
+--
+-- Next steps for application code:
+--   Update pkg/storage/generic.go StoreBlocks() to:
+--     INSERT INTO blocks (..., ingested_at) VALUES (..., CURRENT_TIMESTAMP)
+--     ON CONFLICT(id) DO UPDATE SET
+--       ...(other fields)...
+--       -- Do NOT update ingested_at, preserve original value
+--
+-- Note:
+--   This migration adds the column and tracks the data in the database.
+--   The ingested_at field is not yet exposed through the API or search results.
+--   Future work may add it to block responses if needed for client use cases.
