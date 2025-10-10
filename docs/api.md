@@ -2,8 +2,6 @@
 
 The Ergs REST API provides programmatic access to your datasources, enabling search functionality, data retrieval, and system monitoring. The API returns JSON responses and supports advanced search features including full-text search, pagination, and date filtering.
 
-NEW: A real-time WebSocket Firehose endpoint (`/api/firehose/ws`) is now available for streaming newly ingested blocks with minimal latency. See section "WebSocket Firehose (Real-Time Streaming)" below.
-
 ## API Endpoints
 
 All API endpoints are available under the `/api` path prefix. The API returns JSON responses and uses HTTP method-specific routing for security.
@@ -49,7 +47,7 @@ Retrieve a list of all configured datasources with their statistics.
     },
     {
       "name": "notes",
-      "type": "filesystem", 
+      "type": "filesystem",
       "stats": {
         "total_blocks": 45
       }
@@ -385,7 +383,7 @@ All endpoints return consistent error responses with appropriate HTTP status cod
 
 ```json
 {
-  "error": "Invalid search query", 
+  "error": "Invalid search query",
   "message": "Unmatched single quotes detected. Use double quotes for phrase searches"
 }
 ```
@@ -625,7 +623,7 @@ Recoverable errors (e.g., transient search/poll failure) are sent as:
 - When reconnecting, clients can compare the latest `created_at` they have with incoming snapshot data and ignore older blocks.
 
 #### The `since` Query Parameter
-Clients may pass `?since=<RFC3339>` when opening the WebSocket (e.g. `wss://host/api/firehose/ws?since=2025-01-01T12:34:56Z`).  
+Clients may pass `?since=<RFC3339>` when opening the WebSocket (e.g. `wss://host/api/firehose/ws?since=2025-01-01T12:34:56Z`).
 Rules:
 - Must be a valid RFC3339 timestamp (e.g. `2025-01-01T12:34:56Z` or with nanoseconds).
 - Returns only blocks with `created_at` strictly greater than `since`.
@@ -717,12 +715,3 @@ Currently open; for production:
 - Restrict origins or add token-based auth.
 - Limit connection count.
 - Consider rate limiting clients that reconnect aggressively.
-
-### Troubleshooting
-
-| Symptom | Possible Cause | Action |
-|---------|----------------|--------|
-| No block messages after init | Low ingestion or bridge disabled | Verify warehouse running & socket path configured |
-| Frequent reconnects | Network or reverse proxy timeout | Ensure idle timeout > heartbeat interval |
-| Duplicate blocks | Reconnect overlap | Implement de-dup logic (see above) |
-| Missing recent blocks on reconnect | Gap during downtime | Use REST firehose pages to backfill |
