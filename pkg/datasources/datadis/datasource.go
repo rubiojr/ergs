@@ -44,6 +44,7 @@ type Datasource struct {
 func NewDatasource(instanceName string, config interface{}) (core.Datasource, error) {
 	var cfg *Config
 	if config == nil {
+		// Registry creates datasource with nil config first; defer validation until SetConfig
 		cfg = &Config{}
 	} else {
 		var ok bool
@@ -51,36 +52,17 @@ func NewDatasource(instanceName string, config interface{}) (core.Datasource, er
 		if !ok {
 			return nil, fmt.Errorf("invalid config type for Datadis datasource")
 		}
+		// Only validate when an explicit config struct is provided
+		if err := cfg.Validate(); err != nil {
+			return nil, err
+		}
 	}
-
-	if err := cfg.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid configuration: %w", err)
-	}
-
-	client := datadis.NewClient()
-
-	// Try to login to validate credentials
-	if err := client.Login(cfg.Username, cfg.Password); err != nil {
-		return nil, fmt.Errorf("failed to login to Datadis: %w", err)
-	}
-
-	// Fetch supplies once during initialization
-	supplies, err := client.Supplies()
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch supplies: %w", err)
-	}
-
-	if len(supplies) == 0 {
-		return nil, fmt.Errorf("no electricity supplies found for this account")
-	}
-
-	log.Printf("Datadis datasource initialized with %d supplies", len(supplies))
 
 	return &Datasource{
 		config:       cfg,
-		client:       client,
+		client:       nil, // Will be initialized on first fetch
 		instanceName: instanceName,
-		supplies:     supplies,
+		supplies:     nil, // Will be fetched on first fetch
 	}, nil
 }
 
@@ -158,9 +140,25 @@ func (d *Datasource) GetConfig() interface{} {
 func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block) error {
 	log.Printf("Fetching Datadis consumption data for the current month")
 
-	// Ensure we're logged in
-	if err := d.client.Login(d.config.Username, d.config.Password); err != nil {
-		return fmt.Errorf("failed to login to Datadis: %w", err)
+	// Initialize client and fetch supplies if not already done
+	if d.client == nil {
+		d.client = datadis.NewClient()
+
+		if err := d.client.Login(d.config.Username, d.config.Password); err != nil {
+			return fmt.Errorf("failed to login to Datadis: %w", err)
+		}
+
+		supplies, err := d.client.Supplies()
+		if err != nil {
+			return fmt.Errorf("failed to fetch supplies: %w", err)
+		}
+
+		if len(supplies) == 0 {
+			return fmt.Errorf("no electricity supplies found for this account")
+		}
+
+		d.supplies = supplies
+		log.Printf("Datadis datasource initialized with %d supplies", len(supplies))
 	}
 
 	// Get current date and beginning of month
