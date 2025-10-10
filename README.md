@@ -1,7 +1,5 @@
 ![Ergs - Datahoarder's Paradise](/images/dune-logo-banner.svg)
 
-# Ergs - Datahoarder's Paradise
-
 A flexible data fetching and indexing tool that collects information from various sources and makes it searchable. Perfect for digital packrats who want to hoard and search their data.
 
 ## Quick Start
