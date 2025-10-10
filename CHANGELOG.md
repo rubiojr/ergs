@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.5.1] - 2025-10-10
+
+### 🔧 Improvements
+
+- Home Assistant datasource fixes
+
 ## [3.5.0] - 2025-10-10
 
 ### ✨ New Features
