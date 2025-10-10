@@ -126,7 +126,8 @@ func optimizeAll(configPath string, datasourceName string) error {
 		}
 	}()
 
-	storageManager, err := storage.NewManager(cfg.StorageDir)
+	configuredDatasources := cfg.ListDatasources()
+	storageManager, err := storage.NewManager(cfg.StorageDir, configuredDatasources...)
 	if err != nil {
 		return fmt.Errorf("creating storage manager: %w", err)
 	}
@@ -220,7 +221,8 @@ func analyzeDatabase(configPath string, datasourceName string) error {
 		}
 	}()
 
-	storageManager, err := storage.NewManager(cfg.StorageDir)
+	configuredDatasources := cfg.ListDatasources()
+	storageManager, err := storage.NewManager(cfg.StorageDir, configuredDatasources...)
 	if err != nil {
 		return fmt.Errorf("creating storage manager: %w", err)
 	}
@@ -281,7 +283,8 @@ func vacuumDatabase(configPath string, datasourceName string) error {
 		}
 	}()
 
-	storageManager, err := storage.NewManager(cfg.StorageDir)
+	configuredDatasources := cfg.ListDatasources()
+	storageManager, err := storage.NewManager(cfg.StorageDir, configuredDatasources...)
 	if err != nil {
 		return fmt.Errorf("creating storage manager: %w", err)
 	}
@@ -358,7 +361,8 @@ func checkpointDatabase(configPath string, datasourceName string) error {
 		}
 	}()
 
-	storageManager, err := storage.NewManager(cfg.StorageDir)
+	configuredDatasources := cfg.ListDatasources()
+	storageManager, err := storage.NewManager(cfg.StorageDir, configuredDatasources...)
 	if err != nil {
 		return fmt.Errorf("creating storage manager: %w", err)
 	}
@@ -419,7 +423,8 @@ func checkDatabases(configPath string, datasourceName string, deepFTS bool) erro
 		}
 	}()
 
-	storageManager, err := storage.NewManager(cfg.StorageDir)
+	configuredDatasources := cfg.ListDatasources()
+	storageManager, err := storage.NewManager(cfg.StorageDir, configuredDatasources...)
 	if err != nil {
 		return fmt.Errorf("creating storage manager: %w", err)
 	}
@@ -514,7 +519,8 @@ func rebuildFTS(configPath string, datasourceName string, force bool) error {
 		}
 	}()
 
-	storageManager, err := storage.NewManager(cfg.StorageDir)
+	configuredDatasources := cfg.ListDatasources()
+	storageManager, err := storage.NewManager(cfg.StorageDir, configuredDatasources...)
 	if err != nil {
 		return fmt.Errorf("creating storage manager: %w", err)
 	}

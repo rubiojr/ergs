@@ -39,7 +39,8 @@ func showStats(configPath string) error {
 		}
 	}()
 
-	storageManager, err := storage.NewManager(cfg.StorageDir)
+	configuredDatasources := cfg.ListDatasources()
+	storageManager, err := storage.NewManager(cfg.StorageDir, configuredDatasources...)
 	if err != nil {
 		return fmt.Errorf("creating storage manager: %w", err)
 	}

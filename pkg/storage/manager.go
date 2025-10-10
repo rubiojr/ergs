@@ -48,7 +48,7 @@ type Manager struct {
 // NewManager creates a new storage manager with the specified storage directory.
 // It checks for pending migrations in existing databases and returns an error
 // if any are found. Use NewManagerWithoutMigrationCheck for migration operations.
-func NewManager(storageDir string) (*Manager, error) {
+func NewManager(storageDir string, datasources ...string) (*Manager, error) {
 	manager := &Manager{
 		storageDir:      storageDir,
 		storages:        make(map[string]*GenericStorage),
@@ -56,8 +56,17 @@ func NewManager(storageDir string) (*Manager, error) {
 	}
 	manager.searchService = NewSearchService(manager)
 
-	// Check for pending migrations in existing databases
-	if err := manager.checkPendingMigrations(); err != nil {
+	// If datasources were provided, restrict migration checking to that allow list.
+	// Otherwise (no filter) we preserve legacy behavior and check all *.db files.
+	var allowed map[string]struct{}
+	if len(datasources) > 0 {
+		allowed = make(map[string]struct{}, len(datasources))
+		for _, ds := range datasources {
+			allowed[ds] = struct{}{}
+		}
+	}
+
+	if err := manager.checkPendingMigrations(allowed); err != nil {
 		return nil, err
 	}
 
@@ -587,47 +596,57 @@ func (m *Manager) FTSIntegrityCheckAllWithProgress(progressFn func(datasource st
 	return results
 }
 
-// checkPendingMigrations checks all existing databases for pending migrations.
-// Returns a PendingMigrationsError if any database has pending migrations.
-func (m *Manager) checkPendingMigrations() error {
+// checkPendingMigrations checks existing databases for pending migrations,
+// optionally restricting the check to an allowed set of datasource names.
+// If allowed is nil, all databases are checked (legacy behavior).
+func (m *Manager) checkPendingMigrations(allowed map[string]struct{}) error {
 	// Check if storage directory exists
 	if _, err := os.Stat(m.storageDir); os.IsNotExist(err) {
 		return nil // No storage directory means no databases to check
 	}
 
-	// Read all .db files in storage directory
 	entries, err := os.ReadDir(m.storageDir)
 	if err != nil {
 		return fmt.Errorf("reading storage directory: %w", err)
 	}
 
 	for _, entry := range entries {
-		if !entry.IsDir() && filepath.Ext(entry.Name()) == ".db" {
-			datasourceName := entry.Name()[:len(entry.Name())-3] // Remove .db extension
-			dbPath := filepath.Join(m.storageDir, entry.Name())
+		if entry.IsDir() || filepath.Ext(entry.Name()) != ".db" {
+			continue
+		}
 
-			// Open database connection to check migrations
-			storage, err := NewGenericStorage(dbPath, datasourceName)
-			if err != nil {
-				continue // Skip databases we can't open
+		datasourceName := entry.Name()[:len(entry.Name())-3] // strip .db
+
+		// If we have a filtered allow list and this DB is not part of it, skip it.
+		if allowed != nil {
+			if _, ok := allowed[datasourceName]; !ok {
+				fmt.Printf("Warning: ignoring stray database '%s.db' (not in configured datasources)\n", datasourceName)
+				continue
 			}
+		}
 
-			migrationManager := db.NewMigrationManager(storage.GetDB())
-			pending, err := migrationManager.GetPendingMigrations()
-			if err := storage.Close(); err != nil {
-				// Log close error but continue checking other databases
-				fmt.Printf("Warning: failed to close storage during migration check: %v\n", err)
-			}
+		dbPath := filepath.Join(m.storageDir, entry.Name())
 
-			if err != nil {
-				continue // Skip databases we can't check
-			}
+		storage, err := NewGenericStorage(dbPath, datasourceName)
+		if err != nil {
+			continue // Skip databases we can't open
+		}
 
-			if len(pending) > 0 {
-				return &PendingMigrationsError{
-					Datasource: datasourceName,
-					Count:      len(pending),
-				}
+		migrationManager := db.NewMigrationManager(storage.GetDB())
+		pending, perr := migrationManager.GetPendingMigrations()
+
+		if cerr := storage.Close(); cerr != nil {
+			fmt.Printf("Warning: failed to close storage during migration check: %v\n", cerr)
+		}
+
+		if perr != nil {
+			continue // Skip databases we can't inspect
+		}
+
+		if len(pending) > 0 {
+			return &PendingMigrationsError{
+				Datasource: datasourceName,
+				Count:      len(pending),
 			}
 		}
 	}
