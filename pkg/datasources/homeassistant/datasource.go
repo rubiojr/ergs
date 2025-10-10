@@ -59,6 +59,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/url"
 	"strings"
 	"time"
@@ -233,14 +234,34 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 
 	// Step 1: Expect auth_required
 	var msg haInboundMessage
-	if err := conn.SetReadDeadline(time.Now().Add(15 * time.Second)); err != nil {
-		log.Printf("homeassistant: set read deadline: %v", err)
+
+	// Set up a channel to read auth_required with context support
+	type authResult struct {
+		msg haInboundMessage
+		err error
 	}
-	if err := conn.ReadJSON(&msg); err != nil {
-		return fmt.Errorf("homeassistant: reading auth_required: %w", err)
-	}
-	if msg.Type != "auth_required" {
-		return fmt.Errorf("homeassistant: expected auth_required, got %s", msg.Type)
+	authCh := make(chan authResult, 1)
+
+	go func() {
+		if err := conn.SetReadDeadline(time.Now().Add(15 * time.Second)); err != nil {
+			log.Printf("homeassistant: set read deadline: %v", err)
+		}
+		var m haInboundMessage
+		err := conn.ReadJSON(&m)
+		authCh <- authResult{msg: m, err: err}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case result := <-authCh:
+		if result.err != nil {
+			return fmt.Errorf("homeassistant: reading auth_required: %w", result.err)
+		}
+		msg = result.msg
+		if msg.Type != "auth_required" {
+			return fmt.Errorf("homeassistant: expected auth_required, got %s", msg.Type)
+		}
 	}
 
 	// Step 2: Send auth
@@ -253,19 +274,32 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 	}
 
 	// Step 3: Expect auth_ok / auth_invalid
-	if err := conn.SetReadDeadline(time.Now().Add(15 * time.Second)); err != nil {
-		log.Printf("homeassistant: set read deadline: %v", err)
-	}
-	if err := conn.ReadJSON(&msg); err != nil {
-		return fmt.Errorf("homeassistant: reading auth response: %w", err)
-	}
-	switch msg.Type {
-	case "auth_ok":
-		// proceed
-	case "auth_invalid":
-		return fmt.Errorf("homeassistant: authentication failed (auth_invalid)")
-	default:
-		return fmt.Errorf("homeassistant: unexpected auth phase message: %s", msg.Type)
+	authRespCh := make(chan authResult, 1)
+
+	go func() {
+		if err := conn.SetReadDeadline(time.Now().Add(15 * time.Second)); err != nil {
+			log.Printf("homeassistant: set read deadline: %v", err)
+		}
+		var m haInboundMessage
+		err := conn.ReadJSON(&m)
+		authRespCh <- authResult{msg: m, err: err}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case result := <-authRespCh:
+		if result.err != nil {
+			return fmt.Errorf("homeassistant: reading auth response: %w", result.err)
+		}
+		switch result.msg.Type {
+		case "auth_ok":
+			// proceed
+		case "auth_invalid":
+			return fmt.Errorf("homeassistant: authentication failed (auth_invalid)")
+		default:
+			return fmt.Errorf("homeassistant: unexpected auth phase message: %s", result.msg.Type)
+		}
 	}
 
 	// Step 4: Subscribe
@@ -301,48 +335,85 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 
 	// Step 5: Capture events
 	received := 0
+
+	// Create channels for communication
+	type readResult struct {
+		msg haInboundMessage
+		err error
+	}
+	readCh := make(chan readResult)
+
+	// Start goroutine for reading messages
+	go func() {
+		for {
+			// Use shorter deadline to allow more frequent context checks
+			if err := conn.SetReadDeadline(time.Now().Add(5 * time.Second)); err != nil {
+				log.Printf("homeassistant: set read deadline: %v", err)
+			}
+
+			var im haInboundMessage
+			err := conn.ReadJSON(&im)
+
+			select {
+			case readCh <- readResult{msg: im, err: err}:
+			case <-ctx.Done():
+				return
+			}
+
+			// Check if we should stop reading
+			if err != nil {
+				return
+			}
+		}
+	}()
+
 	for received < d.config.MaxEvents {
 		select {
 		case <-ctx.Done():
+			log.Printf("homeassistant[%s]: context cancelled, stopping", d.instanceName)
 			return ctx.Err()
-		default:
-		}
 
-		// Use short deadline to allow context checks
-		if err := conn.SetReadDeadline(time.Now().Add(30 * time.Second)); err != nil {
-			log.Printf("homeassistant: set read deadline: %v", err)
-		}
-
-		var im haInboundMessage
-		if err := conn.ReadJSON(&im); err != nil {
-			// Consider transient read errors fatal for this fetch invocation
-			return fmt.Errorf("homeassistant: read message: %w", err)
-		}
-
-		if im.Type != "event" || im.Event == nil {
-			// Ignore other messages (e.g., result for subscription)
-			continue
-		}
-
-		block, err := d.convertEventToBlock(im.Event)
-		if err != nil {
-			log.Printf("homeassistant: convert event failed: %v", err)
-			continue
-		}
-		// Entity filtering (only for blocks with an entity_id when configured)
-		if len(d.config.EntityIDs) > 0 {
-			if eb, ok := block.(*EventBlock); ok {
-				if eb.entityID == "" || !d.entityAllowed(eb.entityID) {
-					continue
+		case result := <-readCh:
+			if result.err != nil {
+				// Check if error is due to context cancellation
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				default:
+					// If it's a timeout, continue to allow context checks
+					if netErr, ok := result.err.(net.Error); ok && netErr.Timeout() {
+						continue
+					}
+					return fmt.Errorf("homeassistant: read message: %w", result.err)
 				}
 			}
-		}
 
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case blockCh <- block:
-			received++
+			if result.msg.Type != "event" || result.msg.Event == nil {
+				// Ignore other messages (e.g., result for subscription)
+				continue
+			}
+
+			block, err := d.convertEventToBlock(result.msg.Event)
+			if err != nil {
+				log.Printf("homeassistant: convert event failed: %v", err)
+				continue
+			}
+
+			// Entity filtering (only for blocks with an entity_id when configured)
+			if len(d.config.EntityIDs) > 0 {
+				if eb, ok := block.(*EventBlock); ok {
+					if eb.entityID == "" || !d.entityAllowed(eb.entityID) {
+						continue
+					}
+				}
+			}
+
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case blockCh <- block:
+				received++
+			}
 		}
 	}
 
