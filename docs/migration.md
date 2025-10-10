@@ -139,6 +139,60 @@ Operational impact:
 - Existing queries unaffected unless they explicitly select all columns with positional assumptions.
 - Clients can begin using `updated_at` immediately after migration 4 is applied.
 
+### Migration 5: Add ingested_at (`005_add_ingested_at.sql`)
+
+Adds an `ingested_at` column to track when blocks were first added to Ergs, separate from:
+- `created_at`: when the underlying data/content was originally created (from source)
+- `updated_at`: when the block was last modified in Ergs
+
+This new timestamp enables:
+- Understanding data freshness from Ergs' perspective
+- Debugging ingestion workflows (when did we first see this?)
+- Analytics on data collection timelines
+- Distinguishing between content age and ingestion recency
+
+Key changes:
+1. `ALTER TABLE blocks ADD COLUMN ingested_at DATETIME`
+2. Backfill: `ingested_at = updated_at` for all existing rows (best approximation available)
+3. Index: `CREATE INDEX IF NOT EXISTS idx_blocks_ingested_at ON blocks(ingested_at)`
+
+Semantic Breakdown (after this migration):
+- **created_at**: When the source data was created (GitHub event time, RSS pubDate, etc.)
+- **ingested_at**: When Ergs first stored this block (set on first INSERT, never changes)
+- **updated_at**: When Ergs last modified this block (updates on conflict/change)
+
+Design notes:
+- We do NOT add `ingested_at` to the FTS virtual table (not needed for search)
+- Application upsert logic updated:
+  - On INSERT: set `ingested_at = CURRENT_TIMESTAMP`
+  - ON CONFLICT: preserve `ingested_at` (never overwrite)
+- For existing blocks, `updated_at` serves as a reasonable proxy for ingestion time
+
+Rationale:
+- Many use cases need to know "when did Ergs collect this?" independent of "when was this created?"
+- Example: A GitHub event from 2020 ingested today should show created_at=2020 but ingested_at=today
+- Enables queries like "show me everything ingested in the last hour" regardless of content age
+
+Considerations:
+- Adds one more indexed column (slight storage/write overhead)
+- **Backfill accuracy limitations:**
+  - Blocks that existed before migration 004: `ingested_at = updated_at = created_at` (loses true ingestion time)
+  - Blocks created between migrations 004-005: `ingested_at ≈ actual ingestion time` (reasonably accurate)
+  - Blocks created after migration 005: `ingested_at = accurate ingestion time` (fully accurate)
+- This is the best available approximation given that migration 004 backfilled `updated_at = created_at`
+- For truly accurate ingestion tracking, this field is only reliable for blocks added after this migration
+
+Future options:
+- The `ingested_at` field is tracked in the database but not yet exposed through the API
+- Future work may add it to block responses if needed for client use cases
+- Could enable features like "recently ingested" feeds or ingestion rate analytics
+- Note: For historical analysis, only blocks ingested after this migration have accurate timestamps
+
+Operational impact:
+- Existing queries unaffected (column is added, not required)
+- New blocks automatically track ingestion time
+- Existing blocks have reasonable approximation from `updated_at`
+
 
 ## Using Migrations
 
