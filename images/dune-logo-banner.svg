@@ -15,8 +15,8 @@
   <circle cx="220" cy="60" r="18" fill="#ebcb8b" opacity="0.9"/>
 
   <!-- Text: Ergs -->
-  <text x="320" y="120" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="700" fill="#fafafa">Ergs</text>
+  <text x="320" y="120" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="700" fill="#18181b">Ergs</text>
 
   <!-- Tagline -->
-  <text x="320" y="165" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="300" fill="#a1a1aa">Datahoarder's Paradise</text>
+  <text x="320" y="165" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="300" fill="#3f3f46">Datahoarder's Paradise</text>
 </svg>
