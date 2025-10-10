@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.0] - 2025-10-10
+
+### ✨ New Features
+
+- **Realtime firehose**: Watch blocks being stored realtime.
+- **New Home Assistant datastore**: Pulls events from Home Assistant websocket API.
+
 ## [3.4.2] - 2025-10-09
 
 ### 🔧 Improvements
