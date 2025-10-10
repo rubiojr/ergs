@@ -1,4 +1,4 @@
-![](/ergs.png)
+![Ergs - Datahoarder's Paradise](/images/dune-logo-banner.png)
 
 # Ergs - Datahoarder's Paradise
 
