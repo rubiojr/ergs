@@ -120,6 +120,18 @@ func (r *Registry) ListDatasources() []string {
 	return names
 }
 
+// ListPrototypeTypes returns a list of all registered datasource types
+func (r *Registry) ListPrototypeTypes() []string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	types := make([]string, 0, len(r.prototypes))
+	for dsType := range r.prototypes {
+		types = append(types, dsType)
+	}
+	return types
+}
+
 func (r *Registry) RemoveDatasource(name string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()

@@ -247,9 +247,9 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 
 // parseMeasurementTime converts Datadis date and hour to a time.Time
 func (d *Datasource) parseMeasurementTime(date, hour string) (time.Time, error) {
-	// Datadis returns date as "YYYY/MM/DD" and hour as "HH" (00-23)
+	// Datadis returns date as "YYYY/MM/DD" and hour as "HH:mm" (e.g., "14:00")
 	// Combine them into a single timestamp
-	dateTimeStr := fmt.Sprintf("%s %s:00:00", date, hour)
+	dateTimeStr := fmt.Sprintf("%s %s:00", date, hour)
 
 	// Parse with the expected format
 	t, err := time.ParseInLocation("2006/01/02 15:04:05", dateTimeStr, time.Local)
