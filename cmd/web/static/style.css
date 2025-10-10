@@ -953,7 +953,7 @@ nav select:focus {
 
 .hero-logo {
     width: 180px;
-    height: 180px;
+    height: auto;
     margin-bottom: 0.75rem;
 }
 

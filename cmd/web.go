@@ -493,6 +493,8 @@ func (s *WebServer) handleStatic(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/x-icon")
 	} else if strings.HasSuffix(path, ".png") {
 		w.Header().Set("Content-Type", "image/png")
+	} else if strings.HasSuffix(path, ".svg") {
+		w.Header().Set("Content-Type", "image/svg+xml")
 	}
 
 	// Set cache headers for static assets

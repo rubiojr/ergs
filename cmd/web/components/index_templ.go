@@ -46,7 +46,7 @@ func Index(data types.PageData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"home-page\"><div class=\"hero-section\"><img src=\"/static/ergs-logo.png\" alt=\"Ergs Data Explorer\" class=\"hero-logo\"><p>Search across all your configured datasources to find the content you need.</p></div><div class=\"search-section\"><form action=\"/search\" method=\"GET\" class=\"search-form\"><input type=\"text\" name=\"q\" class=\"search-input\" placeholder=\"Search across all datasources...\" value=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"home-page\"><div class=\"hero-section\"><img src=\"/static/dune-logo.svg\" alt=\"Ergs Data Explorer\" class=\"hero-logo\"><p>Search across all your configured datasources to find the content you need.</p></div><div class=\"search-section\"><form action=\"/search\" method=\"GET\" class=\"search-form\"><input type=\"text\" name=\"q\" class=\"search-input\" placeholder=\"Search across all datasources...\" value=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
