@@ -130,15 +130,6 @@ func extractBlockIDs(t *testing.T, initMsg map[string]any) []string {
 	return ids
 }
 
-func parseRFC3339(t *testing.T, ts string) time.Time {
-	t.Helper()
-	v, err := time.Parse(time.RFC3339, ts)
-	if err != nil {
-		t.Fatalf("parse time: %v", err)
-	}
-	return v
-}
-
 func TestWebSocketFirehoseSinceParameter(t *testing.T) {
 	dsName := "ws_test_ds"
 	dsType := "test_type"
@@ -170,7 +161,7 @@ func TestWebSocketFirehoseSinceParameter(t *testing.T) {
 
 	t.Run("baseline init without since returns both blocks", func(t *testing.T) {
 		conn, initMsg := wsDial(t, ts, "")
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 
 		ids := extractBlockIDs(t, initMsg)
 		if len(ids) == 0 {
@@ -189,7 +180,7 @@ func TestWebSocketFirehoseSinceParameter(t *testing.T) {
 	t.Run("since newer than all blocks returns empty snapshot", func(t *testing.T) {
 		since := url.QueryEscape(blk2.CreatedAt().Add(30 * time.Second).Format(time.RFC3339))
 		conn, initMsg := wsDial(t, ts, "since="+since)
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 
 		if c, ok := initMsg["count"].(float64); !ok || c != 0 {
 			t.Fatalf("expected count 0, got %v", initMsg["count"])
@@ -203,7 +194,7 @@ func TestWebSocketFirehoseSinceParameter(t *testing.T) {
 	t.Run("since between blk1 and blk2 returns only blk2", func(t *testing.T) {
 		cursor := blk1.CreatedAt().Add(30 * time.Second) // after blk1, before blk2
 		conn, initMsg := wsDial(t, ts, "since="+url.QueryEscape(cursor.Format(time.RFC3339)))
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 
 		ids := extractBlockIDs(t, initMsg)
 		if len(ids) != 1 || ids[0] != "b2" {
@@ -216,7 +207,7 @@ func TestWebSocketFirehoseSinceParameter(t *testing.T) {
 		// Connect with since at blk2 time so snapshot empty.
 		since := url.QueryEscape(blk2.CreatedAt().Format(time.RFC3339))
 		conn, initMsg := wsDial(t, ts, "since="+since)
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 
 		if c, _ := initMsg["count"].(float64); c > 1 {
 			t.Fatalf("expected at most one block in init (second-precision since filtering), got count=%v", c)
@@ -240,7 +231,7 @@ func TestWebSocketFirehoseSinceParameter(t *testing.T) {
 		storeTestBlock(t, mgr, dsName, dsType, newBlock)
 
 		readWithTimeout := func() (map[string]any, error) {
-			conn.SetReadDeadline(time.Now().Add(8 * time.Second)) // > poll interval
+			_ = conn.SetReadDeadline(time.Now().Add(8 * time.Second)) // > poll interval
 			_, data, err := conn.ReadMessage()
 			if err != nil {
 				return nil, err

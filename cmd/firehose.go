@@ -117,7 +117,7 @@ func tailFirehose(ctx context.Context, opts firehoseTailOptions) error {
 		opts.maxBackoff = 30 * time.Second
 	}
 
-	fmt.Fprintf(opts.stderr, "Firehose: connecting to %s\n", opts.socketPath)
+	_, _ = fmt.Fprintf(opts.stderr, "Firehose: connecting to %s\n", opts.socketPath)
 	backoff := opts.initialBackoff
 
 	for {
@@ -126,7 +126,7 @@ func tailFirehose(ctx context.Context, opts firehoseTailOptions) error {
 			if opts.noRetry {
 				return fmt.Errorf("dial: %w", err)
 			}
-			fmt.Fprintf(opts.stderr, "Firehose: dial failed (%v), retrying in %s\n", err, backoff)
+			_, _ = fmt.Fprintf(opts.stderr, "Firehose: dial failed (%v), retrying in %s\n", err, backoff)
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
@@ -139,7 +139,7 @@ func tailFirehose(ctx context.Context, opts firehoseTailOptions) error {
 			continue
 		}
 
-		fmt.Fprintf(opts.stderr, "Firehose: connected (backoff reset)\n")
+		_, _ = fmt.Fprintf(opts.stderr, "Firehose: connected (backoff reset)\n")
 		backoff = opts.initialBackoff
 
 		if err := streamEvents(ctx, conn, opts); err != nil {
@@ -151,7 +151,7 @@ func tailFirehose(ctx context.Context, opts firehoseTailOptions) error {
 			if opts.noRetry {
 				return err
 			}
-			fmt.Fprintf(opts.stderr, "Firehose: stream error (%v), reconnecting...\n", err)
+			_, _ = fmt.Fprintf(opts.stderr, "Firehose: stream error (%v), reconnecting...\n", err)
 			// Brief pause before immediate reconnect
 			select {
 			case <-ctx.Done():
@@ -165,12 +165,12 @@ func tailFirehose(ctx context.Context, opts firehoseTailOptions) error {
 		if opts.noRetry {
 			return nil
 		}
-		fmt.Fprintf(opts.stderr, "Firehose: disconnected, attempting reconnect...\n")
+		_, _ = fmt.Fprintf(opts.stderr, "Firehose: disconnected, attempting reconnect...\n")
 	}
 }
 
 func streamEvents(ctx context.Context, conn net.Conn, opts firehoseTailOptions) error {
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	// Increase scanner buffer (metadata could be large)
 	sc := bufio.NewScanner(conn)
@@ -197,7 +197,7 @@ func streamEvents(ctx context.Context, conn net.Conn, opts firehoseTailOptions) 
 			if err := json.Unmarshal(line, &raw); err != nil {
 				// If malformed, just show raw line when includeAll (else skip)
 				if opts.includeAll {
-					fmt.Fprintln(opts.stdout, trimmed)
+					_, _ = fmt.Fprintln(opts.stdout, trimmed)
 				}
 				continue
 			}
@@ -218,21 +218,21 @@ func streamEvents(ctx context.Context, conn net.Conn, opts firehoseTailOptions) 
 				var anyJSON any
 				if err := json.Unmarshal(line, &anyJSON); err != nil {
 					// Fallback: raw
-					fmt.Fprintln(opts.stdout, trimmed)
+					_, _ = fmt.Fprintln(opts.stdout, trimmed)
 					continue
 				}
 				b, err := json.MarshalIndent(anyJSON, "", "  ")
 				if err != nil {
-					fmt.Fprintln(opts.stdout, trimmed)
+					_, _ = fmt.Fprintln(opts.stdout, trimmed)
 					continue
 				}
-				fmt.Fprintln(opts.stdout, string(b))
+				_, _ = fmt.Fprintln(opts.stdout, string(b))
 				continue
 			}
 		}
 
 		// Default pass-through (already filtered if needed)
-		fmt.Fprintln(opts.stdout, trimmed)
+		_, _ = fmt.Fprintln(opts.stdout, trimmed)
 	}
 
 	if err := sc.Err(); err != nil {

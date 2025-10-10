@@ -52,7 +52,7 @@ func (s *Server) HandleFirehoseWS(w http.ResponseWriter, r *http.Request) {
 		log.Printf("firehose ws: upgrade failed: %v", err)
 		return
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	// Initial snapshot (equivalent to firehose REST)
 	// Honor optional ?since=RFC3339 (high precision) plus standard limit/page overrides.

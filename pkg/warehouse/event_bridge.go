@@ -8,7 +8,6 @@ import (
 	"net"
 	"os"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -124,7 +123,7 @@ func (b *eventBridge) acceptLoop() {
 			}
 
 			// Transient error (e.g., EMFILE)
-			if ne, ok := err.(net.Error); ok && ne.Temporary() {
+			if ne, ok := err.(net.Error); ok && ne.Timeout() {
 				time.Sleep(50 * time.Millisecond)
 				continue
 			}
@@ -245,16 +244,4 @@ func (b *eventBridge) stop() {
 
 		b.running = false
 	})
-}
-
-// isAddrInUseError returns true if the error indicates the address/socket is already in use.
-func isAddrInUseError(err error) bool {
-	if err == nil {
-		return false
-	}
-	var errno syscall.Errno
-	if errors.As(err, &errno) {
-		return errno == syscall.EADDRINUSE
-	}
-	return false
 }

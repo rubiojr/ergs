@@ -229,7 +229,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 	if err != nil {
 		return fmt.Errorf("homeassistant: websocket dial failed: %w", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	// Step 1: Expect auth_required
 	var msg haInboundMessage
@@ -279,7 +279,6 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		if err := conn.WriteJSON(subAll); err != nil {
 			return fmt.Errorf("homeassistant: subscribe all events failed: %w", err)
 		}
-		subID++
 	} else {
 		for _, et := range d.config.EventTypes {
 			select {

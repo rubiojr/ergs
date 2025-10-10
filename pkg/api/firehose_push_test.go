@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -102,7 +101,7 @@ func readNextOfType(t *testing.T, conn *websocket.Conn, desired string, timeout 
 	t.Helper()
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+		_ = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
 		_, data, err := conn.ReadMessage()
 		if err != nil {
 			t.Fatalf("read message: %v", err)
@@ -143,7 +142,7 @@ func TestWebSocketPushModeAndModeField(t *testing.T) {
 	defer ts.Close()
 
 	conn, initMsg := wsConnect(t, ts.URL, "")
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	mode, _ := initMsg["mode"].(string)
 	if mode != "push" {
@@ -211,7 +210,7 @@ func TestWebSocketSinceSecondPrecisionFilter(t *testing.T) {
 	// since = base (same second as blockAtSameSecond truncated) should EXCLUDE the block from snapshot
 	since := url.QueryEscape(base.Format(time.RFC3339))
 	conn, initMsg := wsConnect(t, ts.URL, "since="+since)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	if c, ok := initMsg["count"].(float64); !ok || c != 0 {
 		t.Fatalf("expected snapshot count 0 (dedup), got %v", initMsg["count"])
@@ -220,7 +219,7 @@ func TestWebSocketSinceSecondPrecisionFilter(t *testing.T) {
 	// Control case: since one second earlier should include the block
 	earlier := url.QueryEscape(base.Add(-1 * time.Second).Format(time.RFC3339))
 	conn2, initMsg2 := wsConnect(t, ts.URL, "since="+earlier)
-	defer conn2.Close()
+	defer func() { _ = conn2.Close() }()
 
 	if c, ok := initMsg2["count"].(float64); !ok || c != 1 {
 		t.Fatalf("expected snapshot count 1, got %v", initMsg2["count"])
@@ -249,8 +248,8 @@ func captureOutput(t *testing.T, fn func()) (string, string) {
 		defer close(done)
 		// Close writers after fn completes to trigger EOF
 		fn()
-		wOut.Close()
-		wErr.Close()
+		_ = wOut.Close()
+		_ = wErr.Close()
 		scOut := bufio.NewScanner(rOut)
 		for scOut.Scan() {
 			outBuf.WriteString(scOut.Text())
@@ -279,13 +278,13 @@ func startUnixSocketServer(t *testing.T, path string, lines []string, delayBetwe
 			close(ready)
 			return
 		}
-		defer ln.Close()
+		defer func() { _ = ln.Close() }()
 		close(ready)
 		conn, err := ln.Accept()
 		if err != nil {
 			return
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 		for i, l := range lines {
 			if _, err := conn.Write([]byte(l + "\n")); err != nil {
 				return
@@ -297,21 +296,6 @@ func startUnixSocketServer(t *testing.T, path string, lines []string, delayBetwe
 	}()
 	return
 }
-
-func runCLI(t *testing.T, args []string) (stdout, stderr string, err error) {
-	t.Helper()
-	firehoseCmd := cmd.FirehoseCommand()
-	ctx := context.Background()
-	allArgs := append([]string{"ergs", "firehose"}, args...)
-	stdout, stderr = captureOutput(t, func() {
-		_ = firehoseCmd.Run(ctx, allArgs)
-	})
-	return stdout, stderr, nil
-}
-
-// Since we don't have direct access to root app struct (main builds it) we replicate minimal run.
-// Define a tiny adapter to satisfy compilation; no-op container.
-type cmdApp struct{}
 
 // To avoid race conditions when running tests in parallel that use unix sockets, we allocate unique paths.
 func uniqueSocketPath(t *testing.T) string {
@@ -393,16 +377,5 @@ func TestCLIFirehoseNoRetryFailure(t *testing.T) {
 	})
 	// Can't easily assert stderr content without changing command (it writes error logs),
 	// but absence of hang indicates immediate exit behavior worked.
+	// (Left here for potential future refactor.)
 }
-
-// Mutex to serialize CLI tests that manipulate global stdout/stderr replacement
-var cliStdIOSerial sync.Mutex
-
-func captureOutputSerial(t *testing.T, fn func()) (string, string) {
-	cliStdIOSerial.Lock()
-	defer cliStdIOSerial.Unlock()
-	return captureOutput(t, fn)
-}
-
-// Replace earlier tests' captureOutput usage with serialized variant if flakiness observed.
-// (Left here for potential future refactor.)
