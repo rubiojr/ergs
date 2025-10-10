@@ -3,6 +3,7 @@
 
 # Storage directory - must be /data for Docker
 storage_dir = '/data'
+event_socket_path = '/data/.ergs.sock'
 
 [importer]
 api_key = "this-should-be-a-secret-but-its-not"
