@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.6.0] - 2025-10-11
+
+> [!WARNING]
+> This version requires running the `migrate` command before starting Ergs services.
+
+### ✨ New Features
+
+- datadis: new datasource (https://datadis.es) and importer
+
+### 🔧 Improvements
+
+- homeassistant: the datasource is more reliable under rough network conditions
+- services, cli: don't error when unused datasource databases are around
+- docker: realtime firehose is enabled by default when using Docker compose
+- block ingestion time is now stored
+
 ## [3.5.1] - 2025-10-10
 
 ### 🔧 Improvements
