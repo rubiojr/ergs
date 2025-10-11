@@ -7,7 +7,7 @@ package log
 // Key Features
 //
 //   - Per service / datasource loggers via ForService(name)
-//   - Automatic prefix in every line: `[name>]`  (example: `[github>] repository synced`)
+//   - Automatic prefix in every line: `[name]`  (example: `[github] repository synced`)
 //   - Convenience level helpers: Infof, Warnf, Errorf, Debugf
 //   - Debug logging can be enabled globally (SetGlobalDebug) or per service
 //     (EnableDebugFor / DisableDebugFor)
@@ -62,8 +62,8 @@ package log
 //
 // Prefix Format
 //
-// The chosen prefix format `[name>]` (with a trailing > inside the bracket)
-// visually separates the service name from the message while remaining compact.
+// The chosen prefix format `[name]` provides a concise, grep‑friendly service marker
+// without timestamps when running under systemd (journald supplies them).
 //
 // Migration Strategy
 //

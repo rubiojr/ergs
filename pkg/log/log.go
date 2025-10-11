@@ -13,7 +13,7 @@ import (
 // Package log provides a thin wrapper around the Go standard library logger.
 // It adds:
 //   - Named (service/datasource) loggers via ForService(name)
-//   - Automatic message prefix: "[<name>>]" (mirrors project spec; we render "[name>]" so there is a visual '>' separator)
+//   - Automatic message prefix: "[<name>]" (simple per-service marker; '>' removed for cleaner output)
 //   - Warn and Debug levels (Info is the default level, Error is also provided)
 //   - Ability to enable debug globally or selectively per service
 //
@@ -164,7 +164,7 @@ func SetOutput(w io.Writer) {
 
 // prefix builds the standard prefix for the logger, following the spec.
 func (l *Logger) prefix() string {
-	return "[" + l.name + ">]"
+	return "[" + l.name + "]"
 }
 
 // logInternal formats and outputs the final log line.
