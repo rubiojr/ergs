@@ -84,6 +84,7 @@ api_key = ''
 # url = 'ws://homeassistant.local:8123/api/websocket'  # Or wss://your.domain/api/websocket
 # token = ''                # Required: Long-lived access token (Profile -> Long-Lived Tokens)
 # max_events = 100          # Optional: max events per fetch (default 100, max 1000)
+# idle_timeout = '5m'       # Optional: end fetch early if no events arrive for this period (default 5m)
 # # event_types = ['state_changed','call_service']  # Optional: filter specific event types; empty = all
 #
 # # HackerNews - Fetch stories, comments, and other items from Hacker News

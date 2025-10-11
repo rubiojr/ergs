@@ -17,6 +17,7 @@
 //     we derive one from eventType + time_fired.
 //   - Metadata is intentionally compact but includes raw event data (stringified JSON)
 //     for advanced searches.
+//   - Idle timeout: If no events are received for IdleTimeout the fetch ends early.
 //
 // Configuration Example (config.toml):
 //
@@ -29,6 +30,7 @@
 //	token = 'YOUR_LONG_LIVED_ACCESS_TOKEN'
 //	max_events = 200
 //	event_types = ['state_changed', 'call_service']
+//	idle_timeout = '5m'
 //
 // Schema Fields:
 //
@@ -75,11 +77,12 @@ func init() {
 
 // Config holds user‑defined settings for the Home Assistant datasource.
 type Config struct {
-	URL        string   `toml:"url"`         // WebSocket endpoint (ws[s]://.../api/websocket)
-	Token      string   `toml:"token"`       // Long-lived access token (required)
-	EventTypes []string `toml:"event_types"` // Optional filter list; empty => all events
-	EntityIDs  []string `toml:"entity_ids"`  // Optional: only keep events whose entity_id matches any of these; empty => no entity filter
-	MaxEvents  int      `toml:"max_events"`  // Maximum events to capture per fetch (default 100, hard cap 1000)
+	URL         string        `toml:"url"`          // WebSocket endpoint (ws[s]://.../api/websocket)
+	Token       string        `toml:"token"`        // Long-lived access token (required)
+	EventTypes  []string      `toml:"event_types"`  // Optional filter list; empty => all events
+	EntityIDs   []string      `toml:"entity_ids"`   // Optional: only keep events whose entity_id matches any of these; empty => no entity filter
+	MaxEvents   int           `toml:"max_events"`   // Maximum events to capture per fetch (default 100, hard cap 1000)
+	IdleTimeout time.Duration `toml:"idle_timeout"` // Max idle period with no events before returning (default 5m)
 }
 
 // Validate sets defaults and verifies required fields.
@@ -95,6 +98,14 @@ func (c *Config) Validate() error {
 	}
 	if c.MaxEvents > 1000 {
 		c.MaxEvents = 1000
+	}
+	if c.IdleTimeout <= 0 {
+		c.IdleTimeout = 5 * time.Minute
+	}
+	// Validate URL structure (A)
+	u, err := url.Parse(c.URL)
+	if err != nil || (u.Scheme != "ws" && u.Scheme != "wss") || u.Host == "" {
+		return fmt.Errorf("homeassistant: invalid websocket URL %q", c.URL)
 	}
 	// Normalize entity IDs to lower-case (Home Assistant entity_ids are case-insensitive but usually lower)
 	for i, e := range c.EntityIDs {
@@ -221,12 +232,16 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		return fmt.Errorf("homeassistant: invalid URL: %w", err)
 	}
 
+	// Overall dial timeout (B)
+	dialCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+
 	dialer := websocket.Dialer{
 		Proxy:            websocket.DefaultDialer.Proxy,
 		HandshakeTimeout: 15 * time.Second,
 	}
 
-	conn, _, err := dialer.DialContext(ctx, u.String(), nil)
+	conn, _, err := dialer.DialContext(dialCtx, u.String(), nil)
 	if err != nil {
 		return fmt.Errorf("homeassistant: websocket dial failed: %w", err)
 	}
@@ -313,6 +328,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		if err := conn.WriteJSON(subAll); err != nil {
 			return fmt.Errorf("homeassistant: subscribe all events failed: %w", err)
 		}
+		log.Printf("homeassistant[%s]: subscribed to all events", d.instanceName)
 	} else {
 		for _, et := range d.config.EventTypes {
 			select {
@@ -331,10 +347,14 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 			subID++
 			time.Sleep(25 * time.Millisecond) // gentle pacing
 		}
+		log.Printf("homeassistant[%s]: subscribed to %d event types", d.instanceName, len(d.config.EventTypes))
 	}
 
 	// Step 5: Capture events
 	received := 0
+	start := time.Now()
+	lastEvent := start
+	idleTimeout := d.config.IdleTimeout
 
 	// Create channels for communication
 	type readResult struct {
@@ -380,16 +400,21 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 				case <-ctx.Done():
 					return ctx.Err()
 				default:
-					// If it's a timeout, continue to allow context checks
+					// Idle timeout (C): On read timeout, check idle duration
 					if netErr, ok := result.err.(net.Error); ok && netErr.Timeout() {
+						if time.Since(lastEvent) >= idleTimeout {
+							log.Printf("homeassistant[%s]: idle timeout %v reached (captured %d events)", d.instanceName, idleTimeout, received)
+							log.Printf("homeassistant[%s]: captured %d events", d.instanceName, received)
+							return nil
+						}
 						continue
 					}
 					return fmt.Errorf("homeassistant: read message: %w", result.err)
 				}
 			}
 
+			// Ignore non-event messages
 			if result.msg.Type != "event" || result.msg.Event == nil {
-				// Ignore other messages (e.g., result for subscription)
 				continue
 			}
 
@@ -413,6 +438,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 				return ctx.Err()
 			case blockCh <- block:
 				received++
+				lastEvent = time.Now()
 			}
 		}
 	}

@@ -32,17 +32,19 @@ token = 'YOUR_LONG_LIVED_ACCESS_TOKEN'
 max_events = 200
 event_types = ['state_changed', 'call_service']  # Optional; omit for all
 entity_ids = ['sensor.living_room_temp', 'sensor.cpu_load']  # Optional: only keep events for these entity_ids
+idle_timeout = '5m'  # Optional: end fetch early if no events arrive for this period (default 5m)
 ```
 
 ### Configuration Options
 
-| Field         | Type     | Default                                             | Description |
-|---------------|----------|-----------------------------------------------------|-------------|
-| `url`         | string   | `ws://homeassistant.local:8123/api/websocket`       | WebSocket endpoint (use `wss://` if you expose HA securely) |
-| `token`       | string   | (required)                                          | Long‑lived access token from Home Assistant user profile |
-| `event_types` | array    | `[]`                                                | If empty: subscribe to all event types; else one subscription per item |
-| `entity_ids`  | array    | `[]`                                                | If non-empty: only keep events whose `entity_id` matches one of these |
-| `max_events`  | int      | `100` (capped at 1000)                              | Maximum events collected per fetch cycle |
+| Field          | Type     | Default                                             | Description |
+|----------------|----------|-----------------------------------------------------|-------------|
+| `url`          | string   | `ws://homeassistant.local:8123/api/websocket`       | WebSocket endpoint (must include scheme and host; `wss://` for TLS) |
+| `token`        | string   | (required)                                          | Long‑lived access token from Home Assistant user profile |
+| `event_types`  | array    | `[]`                                                | If empty: subscribe to all event types; else one subscription per item |
+| `entity_ids`   | array    | `[]`                                                | If non-empty: only keep events whose `entity_id` matches one of these |
+| `max_events`   | int      | `100` (capped at 1000)                              | Maximum events collected per fetch cycle |
+| `idle_timeout` | duration | `5m`                                                | End a fetch early if no events are received for this period (prevents silent hangs) |
 
 ---
 
@@ -166,6 +168,7 @@ The custom HTML renderer:
 |-------|-------|-----------|
 | Auth fails (`auth_invalid`) | Wrong/missing token | Regenerate token & update config |
 | No events ingested | Empty filter / mismatch | Remove `event_types` to test; verify HA activity |
+| Fetch seems stuck after "connecting" | Bad URL (missing //) or network stall | Ensure URL is like `ws://host:8123/api/websocket` (two slashes) |
 | Missing entity IDs | Some event types lack `entity_id` | Check `data_json` for other identifiers |
 | Duplicate IDs | Rare (context reuse) | Falls back to synthesized ID from time + type |
 | TLS errors | Using `wss://` behind reverse proxy | Verify proxy supports WebSockets and correct path |
