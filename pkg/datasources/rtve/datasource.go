@@ -1,6 +1,10 @@
 // Package rtve provides a datasource implementation for fetching RTVE (Radio Televisión Española)
 // TV show episodes and their metadata using the rtve-go library.
 //
+// Logging: This datasource now uses the internal pkg/log wrapper.
+// - Routine progress messages -> Debugf (visible only when debug enabled globally or for the "rtve:<instance>" service)
+// - Warnings / recoverable issues -> Warnf
+//
 // This datasource allows fetching the latest episodes from RTVE shows by show ID,
 // with configurable limits on the number of episodes to retrieve.
 //
@@ -26,11 +30,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/rubiojr/ergs/pkg/log"
 
 	"github.com/rubiojr/ergs/pkg/core"
 	"github.com/rubiojr/rtve-go/api"
@@ -65,7 +70,7 @@ func parseVTTSubtitles(url string) (string, error) {
 	}
 	defer func() {
 		if closeErr := resp.Body.Close(); closeErr != nil {
-			log.Printf("RTVE: Warning: failed to close response body: %v", closeErr)
+			log.ForService("rtve").Warnf("failed to close response body: %v", closeErr)
 		}
 	}()
 
@@ -296,7 +301,8 @@ func (d *Datasource) GetConfig() interface{} {
 //   - ctx: Context for cancellation and timeouts
 //   - blockCh: Channel to send created blocks through
 func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block) error {
-	log.Printf("RTVE: Fetching latest %d episodes from show '%s'", d.config.MaxEpisodes, d.config.ShowID)
+	l := log.ForService("rtve:" + d.instanceName)
+	l.Debugf("Fetching latest %d episodes from show '%s'", d.config.MaxEpisodes, d.config.ShowID)
 
 	// Create a visitor function that processes each video result
 	// and sends it as a block through the channel
@@ -322,13 +328,13 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 				if sub.Lang == "es" && sub.Src != "" {
 					jsonCues, err := parseVTTSubtitles(sub.Src)
 					if err != nil {
-						log.Printf("RTVE: Warning: failed to fetch Spanish subtitles for video %s: %v", result.Metadata.ID, err)
+						l.Warnf("failed to fetch Spanish subtitles for video %s: %v", result.Metadata.ID, err)
 					} else {
 						subtitleText = jsonCues
 						// Count cues for logging
 						var cues []VTTCue
 						if json.Unmarshal([]byte(jsonCues), &cues) == nil {
-							log.Printf("RTVE: Downloaded Spanish subtitles for '%s' (%d cues)", result.Metadata.LongTitle, len(cues))
+							l.Debugf("Downloaded Spanish subtitles for '%s' (%d cues)", result.Metadata.LongTitle, len(cues))
 						}
 					}
 				}
@@ -353,7 +359,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		case <-ctx.Done():
 			return ctx.Err()
 		case blockCh <- block:
-			log.Printf("RTVE: Fetched episode '%s' (ID: %s)", result.Metadata.LongTitle, result.Metadata.ID)
+			l.Debugf("Fetched episode '%s' (ID: %s)", result.Metadata.LongTitle, result.Metadata.ID)
 			return nil
 		}
 	}
@@ -364,19 +370,19 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		return fmt.Errorf("error fetching RTVE show '%s': %w", d.config.ShowID, err)
 	}
 
-	log.Printf("RTVE: Successfully fetched %d episodes from show '%s' (%d errors)",
+	l.Debugf("Successfully fetched %d episodes from show '%s' (%d errors)",
 		stats.VideosProcessed, d.config.ShowID, stats.ErrorCount)
 
 	// Log any non-fatal errors that occurred during fetching
 	if stats.ErrorCount > 0 && len(stats.Errors) > 0 {
-		log.Printf("RTVE: Encountered %d non-fatal errors:", stats.ErrorCount)
+		l.Warnf("Encountered %d non-fatal errors:", stats.ErrorCount)
 		for i, err := range stats.Errors {
 			if i < 5 { // Limit to first 5 errors to avoid spam
-				log.Printf("  - %v", err)
+				l.Warnf("  - %v", err)
 			}
 		}
 		if len(stats.Errors) > 5 {
-			log.Printf("  ... and %d more errors", len(stats.Errors)-5)
+			l.Warnf("  ... and %d more errors", len(stats.Errors)-5)
 		}
 	}
 

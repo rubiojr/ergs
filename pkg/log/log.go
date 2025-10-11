@@ -67,10 +67,23 @@ var (
 
 	// outputWriter holds the destination for all loggers (wrapped in writerHolder).
 	outputWriter atomic.Value // writerHolder
+
+	// systemd indicates if we detected execution under systemd/journald.
+	systemd bool
 )
 
 func init() {
 	outputWriter.Store(writerHolder{w: os.Stderr})
+	systemd = detectSystemd()
+}
+
+// detectSystemd returns true if common journald environment markers are present.
+// We purposefully keep detection very lightweight.
+func detectSystemd() bool {
+	if os.Getenv("JOURNAL_STREAM") != "" || os.Getenv("INVOCATION_ID") != "" {
+		return true
+	}
+	return false
 }
 
 // ForService returns (and memoizes) a named logger for the given service or datasource.
@@ -83,7 +96,12 @@ func ForService(name string) *Logger {
 		return l.(*Logger)
 	}
 	current := outputWriter.Load().(writerHolder).w
-	std := log.New(current, "", log.LstdFlags|log.Lmicroseconds)
+	flags := 0
+	if !systemd {
+		// When not under systemd, include timestamps & microseconds (original behavior).
+		flags = log.LstdFlags | log.Lmicroseconds
+	}
+	std := log.New(current, "", flags)
 	logger := &Logger{name: name, std: std}
 	actual, _ := loggers.LoadOrStore(name, logger)
 	return actual.(*Logger)
