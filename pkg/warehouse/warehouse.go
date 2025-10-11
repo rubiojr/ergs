@@ -3,9 +3,10 @@ package warehouse
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 	"time"
+
+	"github.com/rubiojr/ergs/pkg/log"
 
 	"github.com/rubiojr/ergs/pkg/core"
 	"github.com/rubiojr/ergs/pkg/storage"
@@ -34,6 +35,8 @@ type Warehouse struct {
 	// Realtime event bridge (optional; nil if EventSocketPath is empty)
 	eventBridge *eventBridge
 }
+
+var whLogger = log.ForService("warehouse")
 
 func NewWarehouse(config Config, storageManager *storage.Manager) *Warehouse {
 	w := &Warehouse{
@@ -68,12 +71,12 @@ func (w *Warehouse) AddDatasourceWithInterval(name string, ds core.Datasource, i
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	log.Printf("Initializing storage for datasource %s", name)
+	whLogger.Debugf("Initializing storage for datasource %s", name)
 	err := w.storageManager.InitializeDatasourceStorage(name, ds.Schema())
 	if err != nil {
 		return fmt.Errorf("initializing storage for datasource %s: %w", name, err)
 	}
-	log.Printf("Storage initialization complete for datasource %s", name)
+	whLogger.Debugf("Storage initialization complete for datasource %s", name)
 
 	w.storageManager.RegisterBlockPrototype(name, ds.BlockPrototype())
 	w.datasources = append(w.datasources, ds)
@@ -87,9 +90,9 @@ func (w *Warehouse) AddDatasourceWithInterval(name string, ds core.Datasource, i
 		w.datasourceTickers[name] = ticker
 		w.wg.Add(1)
 		go w.runDatasource(w.ctx, name, ticker)
-		log.Printf("Started scheduler for new datasource %s with interval %v", name, interval)
+		whLogger.Debugf("Started scheduler for new datasource %s with interval %v", name, interval)
 	} else if interval == 0 {
-		log.Printf("Datasource %s configured with interval 0 (schema-only, no automatic fetching)", name)
+		whLogger.Debugf("Datasource %s configured with interval 0 (schema-only, no automatic fetching)", name)
 	}
 
 	return nil
@@ -104,7 +107,7 @@ func (w *Warehouse) RemoveDatasource(name string) error {
 	if ticker, exists := w.datasourceTickers[name]; exists {
 		ticker.Stop()
 		delete(w.datasourceTickers, name)
-		log.Printf("Stopped ticker for datasource: %s", name)
+		whLogger.Debugf("Stopped ticker for datasource: %s", name)
 	}
 
 	// Find and remove the datasource
@@ -130,14 +133,14 @@ func (w *Warehouse) RemoveDatasource(name string) error {
 
 		// Close the datasource
 		if err := targetDS.Close(); err != nil {
-			log.Printf("Warning: error closing datasource %s: %v", name, err)
+			whLogger.Warnf("error closing datasource %s: %v", name, err)
 		}
 	}
 
 	// Remove from intervals map
 	delete(w.datasourceIntervals, name)
 
-	log.Printf("Removed datasource: %s", name)
+	whLogger.Debugf("Removed datasource: %s", name)
 	return nil
 }
 
@@ -160,33 +163,33 @@ func (w *Warehouse) Start(ctx context.Context) error {
 	// Start event bridge if configured
 	if w.eventBridge != nil {
 		if err := w.eventBridge.start(); err != nil {
-			log.Printf("Warning: failed to start event bridge on %s: %v", w.config.EventSocketPath, err)
+			whLogger.Warnf("failed to start event bridge on %s: %v", w.config.EventSocketPath, err)
 		} else {
-			log.Printf("Event bridge started on %s", w.config.EventSocketPath)
+			whLogger.Debugf("Event bridge started on %s", w.config.EventSocketPath)
 		}
 	}
 
 	// Log all configured datasources and their intervals
-	log.Printf("Starting warehouse with %d datasources:", len(w.datasources))
+	whLogger.Debugf("Starting warehouse with %d datasources:", len(w.datasources))
 	for name, interval := range w.datasourceIntervals {
 		if interval == 0 {
-			log.Printf("  - %s: disabled (schema-only)", name)
+			whLogger.Debugf("  - %s: disabled (schema-only)", name)
 		} else {
-			log.Printf("  - %s: %v", name, interval)
+			whLogger.Debugf("  - %s: %v", name, interval)
 		}
 	}
 
 	// Start individual tickers for each datasource (skip if interval is 0)
 	for name, interval := range w.datasourceIntervals {
 		if interval == 0 {
-			log.Printf("Skipping scheduler for datasource %s (interval is 0)", name)
+			whLogger.Debugf("Skipping scheduler for datasource %s (interval is 0)", name)
 			continue
 		}
 		ticker := time.NewTicker(interval)
 		w.datasourceTickers[name] = ticker
 		w.wg.Add(1)
 		go w.runDatasource(w.ctx, name, ticker)
-		log.Printf("Started scheduler for datasource %s with interval %v", name, interval)
+		whLogger.Debugf("Started scheduler for datasource %s with interval %v", name, interval)
 	}
 
 	// Start optimization ticker if interval is configured
@@ -197,14 +200,14 @@ func (w *Warehouse) Start(ctx context.Context) error {
 	}
 
 	// Start initial fetch for all datasources (non-blocking)
-	log.Println("Starting initial fetch")
+	whLogger.Debugf("Starting initial fetch")
 	go func() {
 		if err := w.fetchAll(ctx); err != nil {
-			log.Printf("Initial fetch failed: %v", err)
+			whLogger.Warnf("Initial fetch failed: %v", err)
 		}
 	}()
 
-	log.Printf("Warehouse started with %d datasources, optimize interval: %v",
+	whLogger.Debugf("Warehouse started with %d datasources, optimize interval: %v",
 		len(w.datasources), w.config.OptimizeInterval)
 	return nil
 }
@@ -216,15 +219,15 @@ func (w *Warehouse) runDatasource(ctx context.Context, datasourceName string, ti
 	for {
 		select {
 		case <-ctx.Done():
-			log.Printf("Datasource %s context cancelled", datasourceName)
+			whLogger.Debugf("Datasource %s context cancelled", datasourceName)
 			return
 		case <-w.stopCh:
-			log.Printf("Datasource %s stop signal received", datasourceName)
+			whLogger.Debugf("Datasource %s stop signal received", datasourceName)
 			return
 		case <-ticker.C:
-			log.Printf("Running scheduled fetch for datasource: %s", datasourceName)
+			whLogger.Debugf("Running scheduled fetch for datasource: %s", datasourceName)
 			if err := w.fetchFromDatasourceByName(ctx, datasourceName); err != nil {
-				log.Printf("Scheduled fetch failed for datasource %s: %v", datasourceName, err)
+				whLogger.Warnf("Scheduled fetch failed for datasource %s: %v", datasourceName, err)
 			}
 		}
 	}
@@ -237,15 +240,15 @@ func (w *Warehouse) runOptimization(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("Optimization context cancelled")
+			whLogger.Debugf("Optimization context cancelled")
 			return
 		case <-w.stopCh:
-			log.Println("Optimization stop signal received")
+			whLogger.Debugf("Optimization stop signal received")
 			return
 		case <-w.optimizeTicker.C:
-			log.Println("Running database optimization")
+			whLogger.Debugf("Running database optimization")
 			if err := w.storageManager.OptimizeAll(); err != nil {
-				log.Printf("Database optimization failed: %v", err)
+				whLogger.Warnf("Database optimization failed: %v", err)
 			}
 		}
 	}
@@ -282,14 +285,14 @@ func (w *Warehouse) fetchAll(ctx context.Context) error {
 					return
 				}
 				if err := w.storeBlock(block); err != nil {
-					log.Printf("Error storing block %s: %v", block.ID(), err)
+					whLogger.Warnf("Error storing block %s: %v", block.ID(), err)
 				}
 			}
 		}
 	}()
 
 	if len(datasources) == 0 {
-		log.Printf("No datasources to fetch (all have interval 0)")
+		whLogger.Debugf("No datasources to fetch (all have interval 0)")
 		close(blockCh)
 		processorWg.Wait()
 		return nil
@@ -303,16 +306,16 @@ func (w *Warehouse) fetchAll(ctx context.Context) error {
 			name := w.datasourceNames[ds]
 			w.mu.RUnlock()
 
-			log.Printf("Starting to fetch blocks from datasource: %s", name)
+			whLogger.Debugf("Starting to fetch blocks from datasource: %s", name)
 			err := ds.FetchBlocks(ctx, blockCh)
 			if err != nil && err != context.Canceled {
-				log.Printf("Error fetching blocks from datasource %s: %v", name, err)
+				whLogger.Warnf("Error fetching blocks from datasource %s: %v", name, err)
 			}
-			log.Printf("Finished fetching blocks from datasource: %s", name)
+			whLogger.Debugf("Finished fetching blocks from datasource: %s", name)
 		}(ds)
 	}
 
-	log.Printf("Started fetching from %d datasources", len(datasources))
+	whLogger.Debugf("Started fetching from %d datasources", len(datasources))
 
 	// Wait for all datasources to complete, then close the channel
 	go func() {
@@ -359,7 +362,7 @@ func (w *Warehouse) fetchFromDatasourceByName(ctx context.Context, datasourceNam
 					return
 				}
 				if err := w.storeBlock(block); err != nil {
-					log.Printf("Error storing block %s: %v", block.ID(), err)
+					whLogger.Warnf("Error storing block %s: %v", block.ID(), err)
 				}
 			}
 		}
@@ -369,12 +372,12 @@ func (w *Warehouse) fetchFromDatasourceByName(ctx context.Context, datasourceNam
 	fetchWg.Add(1)
 	go func() {
 		defer fetchWg.Done()
-		log.Printf("Starting to fetch blocks from datasource: %s", datasourceName)
+		whLogger.Debugf("Starting to fetch blocks from datasource: %s", datasourceName)
 		err := targetDS.FetchBlocks(ctx, blockCh)
 		if err != nil && err != context.Canceled {
-			log.Printf("Error fetching blocks from datasource %s: %v", datasourceName, err)
+			whLogger.Warnf("Error fetching blocks from datasource %s: %v", datasourceName, err)
 		}
-		log.Printf("Finished fetching blocks from datasource: %s", datasourceName)
+		whLogger.Debugf("Finished fetching blocks from datasource: %s", datasourceName)
 	}()
 
 	// Wait for fetch to complete, then close the channel
@@ -392,7 +395,7 @@ func (w *Warehouse) fetchFromDatasourceByName(ctx context.Context, datasourceNam
 func (w *Warehouse) storeBlock(block core.Block) error {
 	// Fast check via helper to see if datasource was explicitly configured.
 	if !w.isDatasourceConfigured(block.Source()) {
-		log.Printf("Dropping block %s: unknown / disabled datasource %s", block.ID(), block.Source())
+		whLogger.Warnf("Dropping block %s: unknown / disabled datasource %s", block.ID(), block.Source())
 		return nil
 	}
 
@@ -451,13 +454,13 @@ func (w *Warehouse) Stop() {
 		return
 	}
 
-	log.Printf("Stopping warehouse...")
+	whLogger.Debugf("Stopping warehouse...")
 	if w.ctxCancel != nil {
 		w.ctxCancel()
 	}
 	close(w.stopCh)
 	for name, ticker := range w.datasourceTickers {
-		log.Printf("Stopping ticker for datasource: %s", name)
+		whLogger.Debugf("Stopping ticker for datasource: %s", name)
 		ticker.Stop()
 	}
 	if w.optimizeTicker != nil {
@@ -469,9 +472,9 @@ func (w *Warehouse) Stop() {
 	}
 	w.running = false
 
-	log.Printf("Waiting for warehouse goroutines to finish...")
+	whLogger.Debugf("Waiting for warehouse goroutines to finish...")
 	w.wg.Wait()
-	log.Printf("Warehouse stopped")
+	whLogger.Debugf("Warehouse stopped")
 }
 
 func (w *Warehouse) IsRunning() bool {
@@ -524,7 +527,7 @@ func (w *Warehouse) FetchOnce(ctx context.Context, options ...FetchOption) error
 				}
 				// Then store the block
 				if err := w.storeBlock(block); err != nil {
-					log.Printf("Error storing block %s: %v", block.ID(), err)
+					whLogger.Warnf("Error storing block %s: %v", block.ID(), err)
 				}
 			}
 		}
@@ -536,12 +539,12 @@ func (w *Warehouse) FetchOnce(ctx context.Context, options ...FetchOption) error
 		go func(ds core.Datasource) {
 			defer fetchWg.Done()
 			name := w.datasourceNames[ds]
-			log.Printf("Starting to fetch blocks from datasource: %s", name)
+			whLogger.Debugf("Starting to fetch blocks from datasource: %s", name)
 			err := ds.FetchBlocks(ctx, blockCh)
 			if err != nil && err != context.Canceled {
-				log.Printf("Error fetching blocks from datasource %s: %v", name, err)
+				whLogger.Warnf("Error fetching blocks from datasource %s: %v", name, err)
 			}
-			log.Printf("Finished fetching blocks from datasource: %s", name)
+			whLogger.Debugf("Finished fetching blocks from datasource: %s", name)
 		}(ds)
 	}
 
@@ -554,7 +557,7 @@ func (w *Warehouse) FetchOnce(ctx context.Context, options ...FetchOption) error
 	// Wait for the block processor to finish
 	processorWg.Wait()
 
-	log.Printf("One-time fetch completed from %d datasources", len(datasources))
+	whLogger.Debugf("One-time fetch completed from %d datasources", len(datasources))
 	return nil
 }
 
@@ -578,7 +581,7 @@ func (w *Warehouse) Close() error {
 
 	for _, ds := range w.datasources {
 		if err := ds.Close(); err != nil {
-			log.Printf("Error closing datasource %s: %v", ds.Name(), err)
+			whLogger.Warnf("Error closing datasource %s: %v", ds.Name(), err)
 		}
 	}
 

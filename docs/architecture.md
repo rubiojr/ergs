@@ -605,4 +605,59 @@ Customize data processing by:
 - Configurable timeouts prevent hanging connections
 - User-Agent headers identify the application
 
+## Logging Architecture
+
+Ergs uses a lightweight logging wrapper in `pkg/log` instead of directly depending on a third‑party logging framework. The goals are: (1) zero external dependencies, (2) trivial migration from the Go standard library `log` package, (3) per‑service / per‑datasource visibility control, and (4) predictable, grep‑friendly output.
+
+### Core Concepts
+
+- Per‑service logger acquisition: `log.ForService(name)`
+- Automatic prefix format: `[serviceName>] message`
+  - Example: `[github:main>] DEBUG Fetched 120 events`
+- Levels exposed as helper methods: `Infof`, `Warnf`, `Errorf`, `Debugf`
+  - Datasources emit routine progress at Debug level by convention; warnings / recoverable issues use Warn; fatal paths return errors instead of logging fatally.
+- Global debug enablement: `log.SetGlobalDebug(true)`
+- Per‑service debug enablement: `log.EnableDebugFor("github:main")`
+- Debug evaluation is cheap (atomic bool checks) to keep disabled paths fast.
+- Shared output writer (defaults to stderr) with dynamic replacement via `log.SetOutput(io.Writer)`; all existing loggers adopt the new writer.
+
+### Service Naming Conventions
+
+To keep filtering simple, services adopt structured names:
+
+- Core daemon / orchestration: `serve`, `warehouse`
+- Datasources: `<type>:<instanceName>` (e.g. `github:main`, `rss:techfeeds`)
+- Type‑wide (non‑instance specific) warnings may use just the type (e.g. `chromium` during config validation).
+
+This aligns with the prefix format so operators can selectively enable only the noisy components they are investigating.
+
+### CLI Integration
+
+The `serve` command exposes:
+- `--debug` to enable global debug output.
+- `--debug-services=comma,separated,list` to enable debug selectively without turning on everything (e.g. `--debug-services=warehouse,github:main,serve`).
+
+When both are supplied, global debug takes precedence (all services debug). Selective control matters most in production scenarios where high‑volume datasources would otherwise spam logs.
+
+### Migration Strategy
+
+1. Replace `import "log"` with `import "github.com/rubiojr/ergs/pkg/log"`.
+2. Introduce a local logger: `l := log.ForService("github:main")`.
+3. Convert `log.Printf` progress lines to `l.Debugf`.
+4. Convert warning patterns to `l.Warnf`; remove ad‑hoc `[WARN]` prefixes (level already encodes that).
+5. Avoid adding new direct uses of the stdlib `log` package.
+
+The wrapper intentionally avoids:
+- Structured fields / JSON output
+- Async batching
+- Sampling
+
+Those can be added later if requirements emerge; keeping the abstraction thin reduces maintenance burden.
+
+### Operational Notes
+
+- Prefix + level ordering supports simple grep filters: `grep '\\[github:main>\\]'` or `grep 'WARN \\[warehouse>'`.
+- Per‑service debug toggling lets you raise verbosity surgically (e.g. enable only `warehouse` schedulers).
+- Logger creation is cached; repeated `ForService` calls are inexpensive.
+
 This architecture provides a solid foundation for a generic, extensible data fetching and indexing system while maintaining simplicity and performance.

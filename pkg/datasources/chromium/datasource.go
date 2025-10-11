@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -13,7 +12,10 @@ import (
 	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/embed"
 	"github.com/rubiojr/ergs/pkg/core"
+	"github.com/rubiojr/ergs/pkg/log"
 )
+
+var baseLogger = log.ForService("chromium")
 
 func init() {
 	prototype := &Datasource{}
@@ -43,8 +45,8 @@ func (c *Config) Validate() error {
 	// Check if database exists, but only warn if it doesn't
 	// This allows the datasource to be configured even if Chromium isn't installed yet
 	if _, err := os.Stat(c.DatabasePath); os.IsNotExist(err) {
-		log.Printf("Warning: Chromium database does not exist: %s", c.DatabasePath)
-		log.Printf("The datasource will fail during fetch until the database is available")
+		baseLogger.Warnf("Chromium database does not exist: %s", c.DatabasePath)
+		baseLogger.Warnf("The datasource will fail during fetch until the database is available")
 	}
 
 	return nil
@@ -110,7 +112,8 @@ func (d *Datasource) GetConfig() interface{} {
 }
 
 func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block) error {
-	log.Printf("Fetching Chromium browsing history from %s", d.config.DatabasePath)
+	l := log.ForService("chromium:" + d.instanceName)
+	l.Debugf("Fetching Chromium browsing history from %s", d.config.DatabasePath)
 
 	// Check if database exists before attempting to fetch
 	if _, err := os.Stat(d.config.DatabasePath); os.IsNotExist(err) {
@@ -179,7 +182,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		var visitID int64
 
 		if err := rows.Scan(&url, &title, &visitTime, &visitID); err != nil {
-			log.Printf("Failed to scan row: %v", err)
+			l.Warnf("Failed to scan row: %v", err)
 			continue
 		}
 
@@ -208,7 +211,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		return fmt.Errorf("row iteration error: %w", err)
 	}
 
-	log.Printf("Fetched %d Chromium visits", visitCount)
+	l.Debugf("Fetched %d Chromium visits", visitCount)
 	return nil
 }
 

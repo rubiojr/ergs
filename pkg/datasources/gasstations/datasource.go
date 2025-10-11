@@ -3,12 +3,12 @@ package gasstations
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/rubiojr/ergs/pkg/core"
+	"github.com/rubiojr/ergs/pkg/log"
 	"github.com/rubiojr/gasdb/pkg/api"
 )
 
@@ -117,7 +117,8 @@ func (d *Datasource) GetConfig() interface{} {
 }
 
 func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block) error {
-	log.Printf("Fetching gas stations near lat: %.4f, lng: %.4f, radius: %.0fm",
+	l := log.ForService("gasstations:" + d.instanceName)
+	l.Debugf("Fetching gas stations near lat: %.4f, lng: %.4f, radius: %.0fm",
 		d.config.Latitude, d.config.Longitude, d.config.Radius)
 
 	stations, err := d.client.NearbyPrices(d.config.Latitude, d.config.Longitude, d.config.Radius)
@@ -125,7 +126,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		return fmt.Errorf("fetching nearby gas stations: %w", err)
 	}
 
-	log.Printf("Found %d gas stations within %.0fm radius", len(stations), d.config.Radius)
+	l.Debugf("Found %d gas stations within %.0fm radius", len(stations), d.config.Radius)
 
 	stationCount := 0
 	now := time.Now().UTC()
@@ -139,7 +140,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 
 		block, err := d.convertStationToBlock(*station, now)
 		if err != nil {
-			log.Printf("Failed to convert gas station: %v", err)
+			l.Warnf("Failed to convert gas station: %v", err)
 			continue
 		}
 
@@ -151,7 +152,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		}
 	}
 
-	log.Printf("Successfully processed %d gas stations", stationCount)
+	l.Debugf("Successfully processed %d gas stations", stationCount)
 	return nil
 }
 

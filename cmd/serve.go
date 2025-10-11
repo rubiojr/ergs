@@ -3,12 +3,14 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/rubiojr/ergs/pkg/log"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/rubiojr/ergs/pkg/config"
@@ -23,19 +25,40 @@ func ServeCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "serve",
 		Usage: "Start the scheduler daemon",
+		Flags: []cli.Flag{
+			&cli.BoolFlag{Name: "debug", Usage: "Enable global debug logging"},
+			&cli.StringFlag{Name: "debug-services", Usage: "Comma-separated list of services/datasources to enable debug for (e.g. github,warehouse,serve)"},
+		},
 		Action: func(ctx context.Context, c *cli.Command) error {
-			return serve(ctx, c.String("config"))
+			return serve(ctx, c.String("config"), c.Bool("debug"), c.String("debug-services"))
 		},
 	}
 }
 
 // serve starts the scheduler daemon to continuously fetch data
-func serve(ctx context.Context, configPath string) error {
+func serve(ctx context.Context, configPath string, debug bool, debugServices string) error {
 	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
 		return fmt.Errorf("loading config: %w", err)
 	}
 
+	if debug {
+		log.SetGlobalDebug(true)
+	}
+
+	// Enable per-service debug logging if provided.
+	if debugServices != "" {
+		for _, svc := range strings.Split(debugServices, ",") {
+			svc = strings.TrimSpace(svc)
+			if svc == "" {
+				continue
+			}
+			log.EnableDebugFor(svc)
+		}
+	}
+
+	srvLogger := log.ForService("serve")
+	srvLogger.Debugf("debug logging enabled=%v services=%s", debug, debugServices)
 	registry := core.GetGlobalRegistry()
 
 	if err := createDatasourcesFromConfig(registry, cfg); err != nil {
@@ -70,10 +93,10 @@ func serve(ctx context.Context, configPath string) error {
 	}()
 
 	datasources := registry.GetAllDatasources()
-	log.Printf("Configuring %d datasources:", len(datasources))
+	srvLogger.Debugf("Configuring %d datasources:", len(datasources))
 	for name, ds := range datasources {
 		interval := cfg.GetDatasourceInterval(name)
-		log.Printf("  - %s: %v", name, interval)
+		srvLogger.Debugf("  - %s: %v", name, interval)
 		if err := wh.AddDatasourceWithInterval(name, ds, interval); err != nil {
 			return fmt.Errorf("adding datasource to warehouse: %w", err)
 		}
@@ -103,19 +126,19 @@ func serve(ctx context.Context, configPath string) error {
 	// Set up filesystem watcher for config file
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		log.Printf("Warning: failed to create config file watcher: %v", err)
+		srvLogger.Warnf("failed to create config file watcher: %v", err)
 	} else {
 		defer func() {
 			if err := watcher.Close(); err != nil {
-				log.Printf("Warning: failed to close config file watcher: %v", err)
+				srvLogger.Warnf("failed to close config file watcher: %v", err)
 			}
 		}()
 
 		// Add config file to watcher
 		if err := watcher.Add(configPath); err != nil {
-			log.Printf("Warning: failed to watch config file %s: %v", configPath, err)
+			srvLogger.Warnf("failed to watch config file %s: %v", configPath, err)
 		} else {
-			log.Printf("Watching config file for changes: %s", configPath)
+			srvLogger.Debugf("Watching config file for changes: %s", configPath)
 		}
 	}
 
@@ -125,11 +148,11 @@ func serve(ctx context.Context, configPath string) error {
 		case sig := <-sigCh:
 			switch sig {
 			case syscall.SIGHUP:
-				log.Println("Received SIGHUP, reloading configuration...")
+				srvLogger.Debugf("Received SIGHUP, reloading configuration...")
 				if err := reloadConfiguration(configPath, registry, wh, &cfgMutex, &currentConfig); err != nil {
-					log.Printf("Failed to reload configuration: %v", err)
+					srvLogger.Warnf("Failed to reload configuration: %v", err)
 				} else {
-					log.Println("Configuration reloaded successfully")
+					srvLogger.Debugf("Configuration reloaded successfully")
 				}
 			case syscall.SIGINT, syscall.SIGTERM:
 				fmt.Println("\nShutting down...")
@@ -143,7 +166,7 @@ func serve(ctx context.Context, configPath string) error {
 			}
 			// React to write, create, rename, and remove events (editors often use atomic writes)
 			if event.Has(fsnotify.Write) || event.Has(fsnotify.Create) || event.Has(fsnotify.Rename) || event.Has(fsnotify.Remove) {
-				log.Printf("Config file changed: %s (event: %s), reloading configuration...", event.Name, event.Op.String())
+				srvLogger.Debugf("Config file changed: %s (event: %s), reloading configuration...", event.Name, event.Op.String())
 
 				// For rename/remove events, we need to re-add the file to the watcher since it was replaced
 				if event.Has(fsnotify.Rename) || event.Has(fsnotify.Remove) {
@@ -152,13 +175,13 @@ func serve(ctx context.Context, configPath string) error {
 
 					// Check if file was actually replaced (atomic write) or just removed
 					if _, err := os.Stat(configPath); os.IsNotExist(err) {
-						log.Printf("Config file was removed and not replaced, skipping reload")
+						srvLogger.Debugf("Config file was removed and not replaced, skipping reload")
 						continue
 					}
 
 					// Re-add the config file to watcher in case it was replaced
 					if err := watcher.Add(configPath); err != nil {
-						log.Printf("Warning: failed to re-add config file to watcher after rename/remove: %v", err)
+						srvLogger.Warnf("failed to re-add config file to watcher after rename/remove: %v", err)
 					}
 				} else {
 					// Add a small delay to ensure file write is complete
@@ -166,16 +189,16 @@ func serve(ctx context.Context, configPath string) error {
 				}
 
 				if err := reloadConfiguration(configPath, registry, wh, &cfgMutex, &currentConfig); err != nil {
-					log.Printf("Failed to reload configuration after file change: %v", err)
+					srvLogger.Warnf("Failed to reload configuration after file change: %v", err)
 				} else {
-					log.Println("Configuration reloaded successfully after file change")
+					srvLogger.Debugf("Configuration reloaded successfully after file change")
 				}
 			}
 		case err, ok := <-watcher.Errors:
 			if !ok {
 				continue
 			}
-			log.Printf("Config file watcher error: %v", err)
+			srvLogger.Warnf("Config file watcher error: %v", err)
 		}
 	}
 }
@@ -196,16 +219,16 @@ func reloadConfiguration(configPath string, registry *core.Registry, wh *warehou
 	// Remove all existing datasources
 	oldDatasources := oldCfg.ListDatasources()
 	for _, name := range oldDatasources {
-		log.Printf("Removing datasource: %s", name)
+		log.ForService("serve").Debugf("Removing datasource: %s", name)
 		if err := removeDatasourceFromWarehouse(wh, registry, name); err != nil {
-			log.Printf("Warning: failed to remove datasource %s: %v", name, err)
+			log.ForService("serve").Warnf("failed to remove datasource %s: %v", name, err)
 		}
 	}
 
 	// Add all datasources from new configuration
 	newDatasources := newCfg.ListDatasources()
 	for _, name := range newDatasources {
-		log.Printf("Adding datasource: %s", name)
+		log.ForService("serve").Debugf("Adding datasource: %s", name)
 		if err := addDatasourceToWarehouse(wh, registry, newCfg, name); err != nil {
 			return fmt.Errorf("adding datasource %s: %w", name, err)
 		}
@@ -214,7 +237,7 @@ func reloadConfiguration(configPath string, registry *core.Registry, wh *warehou
 	// Update current config
 	*currentConfig = newCfg
 
-	log.Printf("Configuration reload complete: removed %d datasources, added %d datasources",
+	log.ForService("serve").Debugf("Configuration reload complete: removed %d datasources, added %d datasources",
 		len(oldDatasources), len(newDatasources))
 
 	return nil

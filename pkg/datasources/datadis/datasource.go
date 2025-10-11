@@ -3,8 +3,9 @@ package datadis
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
+
+	"github.com/rubiojr/ergs/pkg/log"
 
 	"github.com/rubiojr/ergs/pkg/core"
 	"github.com/rubiojr/go-datadis"
@@ -138,7 +139,8 @@ func (d *Datasource) GetConfig() interface{} {
 
 // FetchBlocks fetches electricity consumption data for the current month
 func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block) error {
-	log.Printf("Fetching Datadis consumption data for the current month")
+	l := log.ForService("datadis:" + d.instanceName)
+	l.Debugf("Fetching Datadis consumption data for the current month")
 
 	// Initialize client and fetch supplies if not already done
 	if d.client == nil {
@@ -158,7 +160,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		}
 
 		d.supplies = supplies
-		log.Printf("Datadis datasource initialized with %d supplies", len(supplies))
+		l.Debugf("Datadis datasource initialized with %d supplies", len(supplies))
 	}
 
 	// Get current date and beginning of month
@@ -167,7 +169,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 
 	// Datadis API expects YYYY/MM format, and both dates should be in the same month
 	// The API will return all data from the beginning of the month until today
-	log.Printf("Fetching consumption data from %s to %s",
+	l.Debugf("Fetching consumption data from %s to %s",
 		startOfMonth.Format("2006/01/02"),
 		now.Format("2006/01/02"))
 
@@ -180,17 +182,17 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		default:
 		}
 
-		log.Printf("Fetching consumption data for supply %s (%s)", supply.Cups, supply.Address)
+		l.Debugf("Fetching consumption data for supply %s (%s)", supply.Cups, supply.Address)
 
 		// Fetch consumption data for this supply
 		// Using the same month for both from and to parameters
 		measurements, err := d.client.ConsumptionData(&supply, startOfMonth, now)
 		if err != nil {
-			log.Printf("Failed to fetch consumption data for supply %s: %v", supply.Cups, err)
+			l.Warnf("Failed to fetch consumption data for supply %s: %v", supply.Cups, err)
 			continue
 		}
 
-		log.Printf("Got %d measurements for supply %s", len(measurements), supply.Cups)
+		l.Debugf("Got %d measurements for supply %s", len(measurements), supply.Cups)
 
 		for _, measurement := range measurements {
 			select {
@@ -203,7 +205,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 			// Datadis returns date as "YYYY/MM/DD" and time as "HH"
 			measurementTime, err := d.parseMeasurementTime(measurement.Date, measurement.Time)
 			if err != nil {
-				log.Printf("Failed to parse measurement time: %v", err)
+				l.Warnf("Failed to parse measurement time: %v", err)
 				measurementTime = time.Now()
 			}
 
@@ -241,7 +243,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	log.Printf("Fetched %d consumption blocks from Datadis", blockCount)
+	l.Debugf("Fetched %d consumption blocks from Datadis", blockCount)
 	return nil
 }
 

@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
 	"github.com/google/go-github/v73/github"
 	"github.com/rubiojr/ergs/pkg/core"
+	"github.com/rubiojr/ergs/pkg/log"
 	"golang.org/x/oauth2"
 )
 
@@ -68,14 +68,12 @@ func NewDatasource(instanceName string, config interface{}) (core.Datasource, er
 
 	var client *github.Client
 	if ghConfig.Token != "" {
-
 		ts := oauth2.StaticTokenSource(
 			&oauth2.Token{AccessToken: ghConfig.Token},
 		)
 		tc := oauth2.NewClient(context.Background(), ts)
 		client = github.NewClient(tc)
 	} else {
-
 		client = github.NewClient(nil)
 	}
 
@@ -119,20 +117,17 @@ func (d *Datasource) ConfigType() interface{} {
 
 func (d *Datasource) SetConfig(config interface{}) error {
 	if cfg, ok := config.(*Config); ok {
-
 		d.config = cfg
 
 		// Recreate the GitHub client with the new config
 		var client *github.Client
 		if cfg.Token != "" {
-
 			ts := oauth2.StaticTokenSource(
 				&oauth2.Token{AccessToken: cfg.Token},
 			)
 			tc := oauth2.NewClient(context.Background(), ts)
 			client = github.NewClient(tc)
 		} else {
-
 			client = github.NewClient(nil)
 		}
 		d.client = client
@@ -147,7 +142,8 @@ func (d *Datasource) GetConfig() interface{} {
 }
 
 func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block) error {
-	log.Printf("Fetching GitHub events")
+	l := log.ForService("github:" + d.instanceName)
+	l.Debugf("Fetching GitHub events")
 
 	opts := &github.ListOptions{
 		Page:    1,
@@ -170,7 +166,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 			return fmt.Errorf("fetching events from GitHub: %w", err)
 		}
 
-		log.Printf("Processing GitHub events page %d with %d events", pageCount, len(events))
+		l.Debugf("Processing GitHub events page %d with %d events", pageCount, len(events))
 
 		for _, event := range events {
 			if event.CreatedAt == nil {
@@ -179,7 +175,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 
 			block, err := d.convertEventToBlock(ctx, event)
 			if err != nil {
-				log.Printf("Failed to convert event: %v", err)
+				l.Warnf("Failed to convert event: %v", err)
 				continue
 			}
 
@@ -204,11 +200,13 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	log.Printf("Fetched %d GitHub events across %d pages", eventCount, pageCount)
+	l.Debugf("Fetched %d GitHub events across %d pages", eventCount, pageCount)
 	return nil
 }
 
 func (d *Datasource) convertEventToBlock(ctx context.Context, event *github.Event) (core.Block, error) {
+	l := log.ForService("github:" + d.instanceName)
+
 	if event.Actor == nil {
 		return nil, fmt.Errorf("event missing actor")
 	}
@@ -252,7 +250,7 @@ func (d *Datasource) convertEventToBlock(ctx context.Context, event *github.Even
 	// For events with repo, try to get repository details
 	repo, err := d.getRepositoryDetails(ctx, repoName)
 	if err != nil {
-		log.Printf("Warning: could not get repository details for %s: %v", repoName, err)
+		l.Warnf("could not get repository details for %s: %v", repoName, err)
 		// Create block with basic repo info from event
 		block := NewEventBlock(
 			eventID,

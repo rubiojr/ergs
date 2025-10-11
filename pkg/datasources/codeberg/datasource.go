@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/rubiojr/ergs/pkg/core"
+	"github.com/rubiojr/ergs/pkg/log"
 )
 
 func init() {
@@ -139,7 +139,8 @@ func (d *Datasource) GetConfig() interface{} {
 }
 
 func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block) error {
-	log.Printf("Fetching Codeberg repositories")
+	l := log.ForService("codeberg:" + d.instanceName)
+	l.Debugf("Fetching Codeberg repositories")
 
 	page := 1
 	limit := 50
@@ -190,7 +191,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		}
 
 		repos := searchResp.Data
-		log.Printf("Processing Codeberg repositories page %d with %d repos", page, len(repos))
+		l.Debugf("Processing Codeberg repositories page %d with %d repos", page, len(repos))
 
 		if len(repos) == 0 {
 			break
@@ -213,14 +214,14 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 
 		page++
 		if page > maxPages {
-			log.Printf("Reached maximum page limit (%d), stopping fetch", maxPages)
+			l.Debugf("Reached maximum page limit (%d), stopping fetch", maxPages)
 			break
 		}
 
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	log.Printf("Fetched %d Codeberg repositories across %d pages", repoCount, page-1)
+	l.Debugf("Fetched %d Codeberg repositories across %d pages", repoCount, page-1)
 	return nil
 }
 

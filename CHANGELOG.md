@@ -2,6 +2,7 @@
 
 ## [NEXT] - TBD
 
+- Introduce unified logging system (pkg/log) with per-service debug and CLI flags (--debug, --debug-services)
 - Drop unknown/unconfigured datasource blocks to prevent implicit DB creation
 
 ## [3.6.0] - 2025-10-11

@@ -6,10 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/rubiojr/ergs/pkg/log"
 
 	"github.com/klauspost/compress/zstd"
 	_ "github.com/ncruces/go-sqlite3/driver"
@@ -172,7 +173,8 @@ func (d *Datasource) GetConfig() interface{} {
 }
 
 func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block) error {
-	log.Printf("Fetching Zed threads from %s", d.config.DatabasePath)
+	l := log.ForService("zedthreads:" + d.instanceName)
+	l.Debugf("Fetching Zed threads from %s", d.config.DatabasePath)
 
 	tempDir, err := os.MkdirTemp("", "zedthreads_import_*")
 	if err != nil {
@@ -232,13 +234,13 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		var data []byte
 
 		if err := rows.Scan(&id, &summary, &updatedAtStr, &dataType, &data); err != nil {
-			log.Printf("Failed to scan row: %v", err)
+			l.Warnf("Failed to scan row: %v", err)
 			continue
 		}
 
 		updatedAt, err := time.Parse(time.RFC3339, updatedAtStr)
 		if err != nil {
-			log.Printf("Failed to parse timestamp %s: %v", updatedAtStr, err)
+			l.Warnf("Failed to parse timestamp %s: %v", updatedAtStr, err)
 			updatedAt = time.Now().UTC()
 		} else {
 			updatedAt = updatedAt.UTC()
@@ -248,11 +250,11 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		if dataType == "zstd" {
 			threadData, err = d.decompressThreadData(data)
 			if err != nil {
-				log.Printf("Failed to decompress thread data for %s: %v", id, err)
+				l.Warnf("Failed to decompress thread data for %s: %v", id, err)
 				continue
 			}
 		} else {
-			log.Printf("Unsupported data type %s for thread %s", dataType, id)
+			l.Warnf("Unsupported data type %s for thread %s", dataType, id)
 			continue
 		}
 
@@ -270,7 +272,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		return fmt.Errorf("row iteration error: %w", err)
 	}
 
-	log.Printf("Fetched %d Zed threads", threadCount)
+	l.Debugf("Fetched %d Zed threads", threadCount)
 	return nil
 }
 

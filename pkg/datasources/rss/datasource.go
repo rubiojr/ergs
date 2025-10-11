@@ -5,12 +5,12 @@ import (
 	"encoding/xml"
 	"fmt"
 	"html"
-	"log"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/rubiojr/ergs/pkg/core"
+	"github.com/rubiojr/ergs/pkg/log"
 )
 
 func init() {
@@ -164,7 +164,8 @@ func (d *Datasource) GetConfig() interface{} {
 }
 
 func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block) error {
-	log.Printf("Fetching RSS feeds from %d URLs", len(d.config.URLs))
+	l := log.ForService("rss:" + d.instanceName)
+	l.Debugf("Fetching RSS feeds from %d URLs", len(d.config.URLs))
 
 	totalFetched := 0
 	itemsPerFeed := d.config.MaxItems / len(d.config.URLs)
@@ -179,15 +180,15 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		default:
 		}
 
-		log.Printf("Fetching RSS feed: %s", feedURL)
+		l.Debugf("Fetching RSS feed: %s", feedURL)
 
 		items, feedTitle, err := d.fetchFeed(ctx, feedURL)
 		if err != nil {
-			log.Printf("Failed to fetch feed %s: %v", feedURL, err)
+			l.Warnf("Failed to fetch feed %s: %v", feedURL, err)
 			continue
 		}
 
-		log.Printf("Fetched %d items from %s", len(items), feedURL)
+		l.Debugf("Fetched %d items from %s", len(items), feedURL)
 
 		// Limit items per feed
 		if len(items) > itemsPerFeed {
@@ -214,7 +215,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	log.Printf("Fetched %d RSS items total", totalFetched)
+	l.Debugf("Fetched %d RSS items total", totalFetched)
 	return nil
 }
 

@@ -60,7 +60,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net"
 	"net/url"
 	"strings"
@@ -68,6 +67,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/rubiojr/ergs/pkg/core"
+	"github.com/rubiojr/ergs/pkg/log"
 )
 
 func init() {
@@ -225,7 +225,8 @@ type haContext struct {
 
 // FetchBlocks connects to HA, authenticates, subscribes, and receives up to MaxEvents events.
 func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block) error {
-	log.Printf("homeassistant[%s]: connecting to %s", d.instanceName, d.config.URL)
+	l := log.ForService("homeassistant:" + d.instanceName)
+	l.Debugf("connecting to %s", d.config.URL)
 
 	u, err := url.Parse(d.config.URL)
 	if err != nil {
@@ -259,7 +260,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 
 	go func() {
 		if err := conn.SetReadDeadline(time.Now().Add(15 * time.Second)); err != nil {
-			log.Printf("homeassistant: set read deadline: %v", err)
+			l.Warnf("set read deadline: %v", err)
 		}
 		var m haInboundMessage
 		err := conn.ReadJSON(&m)
@@ -293,7 +294,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 
 	go func() {
 		if err := conn.SetReadDeadline(time.Now().Add(15 * time.Second)); err != nil {
-			log.Printf("homeassistant: set read deadline: %v", err)
+			l.Warnf("set read deadline: %v", err)
 		}
 		var m haInboundMessage
 		err := conn.ReadJSON(&m)
@@ -328,7 +329,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		if err := conn.WriteJSON(subAll); err != nil {
 			return fmt.Errorf("homeassistant: subscribe all events failed: %w", err)
 		}
-		log.Printf("homeassistant[%s]: subscribed to all events", d.instanceName)
+		l.Debugf("subscribed to all events")
 	} else {
 		for _, et := range d.config.EventTypes {
 			select {
@@ -347,7 +348,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 			subID++
 			time.Sleep(25 * time.Millisecond) // gentle pacing
 		}
-		log.Printf("homeassistant[%s]: subscribed to %d event types", d.instanceName, len(d.config.EventTypes))
+		l.Debugf("subscribed to %d event types", len(d.config.EventTypes))
 	}
 
 	// Step 5: Capture events
@@ -368,7 +369,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		for {
 			// Use shorter deadline to allow more frequent context checks
 			if err := conn.SetReadDeadline(time.Now().Add(5 * time.Second)); err != nil {
-				log.Printf("homeassistant: set read deadline: %v", err)
+				l.Warnf("set read deadline: %v", err)
 			}
 
 			var im haInboundMessage
@@ -390,7 +391,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 	for received < d.config.MaxEvents {
 		select {
 		case <-ctx.Done():
-			log.Printf("homeassistant[%s]: context cancelled, stopping", d.instanceName)
+			l.Debugf("context cancelled, stopping")
 			return ctx.Err()
 
 		case result := <-readCh:
@@ -403,8 +404,8 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 					// Idle timeout (C): On read timeout, check idle duration
 					if netErr, ok := result.err.(net.Error); ok && netErr.Timeout() {
 						if time.Since(lastEvent) >= idleTimeout {
-							log.Printf("homeassistant[%s]: idle timeout %v reached (captured %d events)", d.instanceName, idleTimeout, received)
-							log.Printf("homeassistant[%s]: captured %d events", d.instanceName, received)
+							l.Debugf("idle timeout %v reached (captured %d events)", idleTimeout, received)
+							l.Debugf("captured %d events", received)
 							return nil
 						}
 						continue
@@ -420,7 +421,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 
 			block, err := d.convertEventToBlock(result.msg.Event)
 			if err != nil {
-				log.Printf("homeassistant: convert event failed: %v", err)
+				l.Warnf("convert event failed: %v", err)
 				continue
 			}
 
@@ -443,7 +444,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		}
 	}
 
-	log.Printf("homeassistant[%s]: captured %d events", d.instanceName, received)
+	l.Debugf("captured %d events", received)
 	return nil
 }
 

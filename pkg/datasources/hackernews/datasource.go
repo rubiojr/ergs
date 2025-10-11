@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/rubiojr/ergs/pkg/core"
+	"github.com/rubiojr/ergs/pkg/log"
 )
 
 func init() {
@@ -142,7 +142,8 @@ func (d *Datasource) GetConfig() interface{} {
 }
 
 func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block) error {
-	log.Printf("Fetching HackerNews items")
+	l := log.ForService("hackernews:" + d.instanceName)
+	l.Debugf("Fetching HackerNews items")
 
 	var itemIDs []int
 	totalFetched := 0
@@ -190,7 +191,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 	// Remove duplicates and limit to max_items
 	itemIDs = d.deduplicateAndLimit(itemIDs)
 
-	log.Printf("Processing %d HackerNews items", len(itemIDs))
+	l.Debugf("Processing %d HackerNews items", len(itemIDs))
 
 	for _, itemID := range itemIDs {
 		select {
@@ -201,7 +202,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 
 		item, err := d.fetchItem(ctx, itemID)
 		if err != nil {
-			log.Printf("Failed to fetch item %d: %v", itemID, err)
+			l.Warnf("Failed to fetch item %d: %v", itemID, err)
 			continue
 		}
 
@@ -234,7 +235,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 
 				comment, err := d.fetchItem(ctx, item.Kids[i])
 				if err != nil {
-					log.Printf("Failed to fetch comment %d: %v", item.Kids[i], err)
+					l.Warnf("Failed to fetch comment %d: %v", item.Kids[i], err)
 					continue
 				}
 
@@ -256,7 +257,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		time.Sleep(50 * time.Millisecond)
 	}
 
-	log.Printf("Fetched %d HackerNews items", totalFetched)
+	l.Debugf("Fetched %d HackerNews items", totalFetched)
 	return nil
 }
 

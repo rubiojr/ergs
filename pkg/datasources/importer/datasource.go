@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/rubiojr/ergs/pkg/core"
+	"github.com/rubiojr/ergs/pkg/log"
 )
 
 // Config for importer datasource
@@ -59,7 +59,8 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		}
 	}
 
-	log.Printf("Importer datasource: fetching blocks from API at %s", d.config.APIURL)
+	l := log.ForService("importer:" + d.instanceName)
+	l.Debugf("Importer datasource: fetching blocks from API at %s", d.config.APIURL)
 
 	// Fetch blocks from the API
 	url := fmt.Sprintf("%s/api/blocks/export", d.config.APIURL)
@@ -79,7 +80,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			log.Printf("Warning: failed to close response body: %v", err)
+			l.Warnf("failed to close response body: %v", err)
 		}
 	}()
 
@@ -109,7 +110,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 	for _, blockData := range response.Blocks {
 		// Validate datasource field
 		if blockData.Datasource == "" {
-			log.Printf("Warning: block %s missing datasource field, skipping", blockData.ID)
+			l.Warnf("block %s missing datasource field, skipping", blockData.ID)
 			continue
 		}
 
@@ -133,9 +134,9 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 	}
 
 	if blockCount > 0 {
-		log.Printf("Importer datasource: fetched and processed %d blocks", blockCount)
+		l.Debugf("Importer datasource: fetched and processed %d blocks", blockCount)
 	} else {
-		log.Printf("Importer datasource: no blocks to process")
+		l.Debugf("Importer datasource: no blocks to process")
 	}
 
 	return nil
