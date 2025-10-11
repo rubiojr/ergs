@@ -2,9 +2,9 @@
 
 A flexible data fetching and indexing tool that collects information from various sources and makes it searchable. Perfect for digital packrats who want to hoard and search their data.
 
-> [!INFO]
-> Ergs is currently Beta quality, public facing APIs are quickly evolving
-> and currently in flux
+>[!INFO]
+>Ergs is currently Beta quality, public facing APIs are quickly evolving
+>and currently in flux.
 
 ## Quick Start
 

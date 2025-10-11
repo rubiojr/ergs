@@ -23,8 +23,8 @@ func TestPrefixInfo(t *testing.T) {
 	l.Infof("hello world")
 	out := buf.String()
 
-	if !strings.Contains(out, "["+name+">]") {
-		t.Fatalf("expected prefix [%s>] in output, got: %q", name, out)
+	if !strings.Contains(out, "["+name+"]") {
+		t.Fatalf("expected prefix [%s] in output, got: %q", name, out)
 	}
 	if !strings.Contains(out, "hello world") {
 		t.Fatalf("expected message in output, got: %q", out)
@@ -81,8 +81,8 @@ func TestWarnIncludesPrefix(t *testing.T) {
 	out := buf.String()
 
 	// Warn emits a one-time "warnings active" line first; we only ensure prefix & message appear
-	if !strings.Contains(out, "["+name+">]") {
-		t.Fatalf("expected prefix [%s>] in warn output, got: %q", name, out)
+	if !strings.Contains(out, "["+name+"]") {
+		t.Fatalf("expected prefix [%s] in warn output, got: %q", name, out)
 	}
 	if !strings.Contains(out, "attention needed") {
 		t.Fatalf("expected warn message in output, got: %q", out)
