@@ -2,6 +2,8 @@ package warehouse
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -342,5 +344,91 @@ func TestFetchOnceAPIVariations(t *testing.T) {
 	// Should have blocks from both runs (but deduplicated by ID)
 	if len(blocks) != 2 {
 		t.Errorf("Expected 2 total blocks, got %d", len(blocks))
+	}
+}
+
+// TestIsDatasourceConfiguredAndDropUnknown verifies that:
+//  1. isDatasourceConfigured returns true for added datasources and false otherwise
+//  2. Blocks from unknown/disabled datasources are dropped (no DB created)
+func TestIsDatasourceConfiguredAndDropUnknown(t *testing.T) {
+	tempDir := t.TempDir()
+	storageManager, err := storage.NewManager(tempDir)
+	if err != nil {
+		t.Fatalf("Failed to create storage manager: %v", err)
+	}
+	defer func() {
+		if err := storageManager.Close(); err != nil {
+			t.Logf("Warning: failed to close storage manager: %v", err)
+		}
+	}()
+
+	wh := NewWarehouse(Config{OptimizeInterval: 0}, storageManager)
+	defer func() {
+		if err := wh.Close(); err != nil {
+			t.Logf("Warning: failed to close warehouse: %v", err)
+		}
+	}()
+
+	// Add a known datasource
+	dsName := "known-ds"
+	mockDS := &mockDatasource{name: dsName}
+	if err := wh.AddDatasource(dsName, mockDS); err != nil {
+		t.Fatalf("Failed to add datasource: %v", err)
+	}
+
+	// Positive check
+	if !wh.isDatasourceConfigured(dsName) {
+		t.Fatalf("Expected datasource %s to be configured", dsName)
+	}
+
+	// Negative check
+	unknown := "unknown-ds"
+	if wh.isDatasourceConfigured(unknown) {
+		t.Fatalf("Did not expect datasource %s to be configured", unknown)
+	}
+
+	// Attempt to store a block from unknown datasource (should be dropped silently)
+	unknownBlock := &mockBlock{
+		id:        "u1",
+		text:      "Should be dropped",
+		createdAt: time.Now(),
+		source:    unknown,
+		metadata:  map[string]interface{}{},
+	}
+	if err := wh.storeBlock(unknownBlock); err != nil {
+		t.Fatalf("storeBlock for unknown datasource returned unexpected error: %v", err)
+	}
+
+	// Ensure DB for unknown datasource was NOT created
+	if _, statErr := os.Stat(filepath.Join(tempDir, unknown+".db")); statErr == nil {
+		t.Fatalf("Database file for unknown datasource %s was created unexpectedly", unknown)
+	}
+
+	// Store a block for the known datasource to ensure normal path still works
+	knownBlock := &mockBlock{
+		id:        "k1",
+		text:      "Should persist",
+		createdAt: time.Now(),
+		source:    dsName,
+		metadata:  map[string]interface{}{},
+	}
+	if err := wh.storeBlock(knownBlock); err != nil {
+		t.Fatalf("storeBlock for known datasource failed: %v", err)
+	}
+
+	// Verify the known block was stored
+	results, err := wh.SearchBlocks(dsName, "Should persist", 10)
+	if err != nil {
+		t.Fatalf("SearchBlocks failed: %v", err)
+	}
+	found := false
+	for _, b := range results {
+		if b.ID() == "k1" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("Expected to find stored block k1 for datasource %s", dsName)
 	}
 }

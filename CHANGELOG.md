@@ -1,5 +1,9 @@
 # Changelog
 
+## [NEXT] - TBD
+
+- Drop unknown/unconfigured datasource blocks to prevent implicit DB creation
+
 ## [3.6.0] - 2025-10-11
 
 > [!WARNING]

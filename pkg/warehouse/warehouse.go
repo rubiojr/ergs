@@ -68,10 +68,12 @@ func (w *Warehouse) AddDatasourceWithInterval(name string, ds core.Datasource, i
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
+	log.Printf("Initializing storage for datasource %s", name)
 	err := w.storageManager.InitializeDatasourceStorage(name, ds.Schema())
 	if err != nil {
 		return fmt.Errorf("initializing storage for datasource %s: %w", name, err)
 	}
+	log.Printf("Storage initialization complete for datasource %s", name)
 
 	w.storageManager.RegisterBlockPrototype(name, ds.BlockPrototype())
 	w.datasources = append(w.datasources, ds)
@@ -388,14 +390,18 @@ func (w *Warehouse) fetchFromDatasourceByName(ctx context.Context, datasourceNam
 }
 
 func (w *Warehouse) storeBlock(block core.Block) error {
-	// Use the block's source directly as the datasource name
-	// since blocks now use instance names as their source
-	storage, err := w.storageManager.EnsureStorageWithMigrations(block.Source())
+	// Fast check via helper to see if datasource was explicitly configured.
+	if !w.isDatasourceConfigured(block.Source()) {
+		log.Printf("Dropping block %s: unknown / disabled datasource %s", block.ID(), block.Source())
+		return nil
+	}
+
+	storage, err := w.storageManager.GetStorage(block.Source())
 	if err != nil {
 		return fmt.Errorf("getting storage for datasource %s: %w", block.Source(), err)
 	}
 
-	// Find the datasource to get its type
+	// Determine datasource type (fallback to "unknown" if not found).
 	var datasourceType string
 	w.mu.RLock()
 	for ds, name := range w.datasourceNames {
@@ -405,18 +411,15 @@ func (w *Warehouse) storeBlock(block core.Block) error {
 		}
 	}
 	w.mu.RUnlock()
-
-	// If we couldn't find the datasource type, use "unknown"
 	if datasourceType == "" {
 		datasourceType = "unknown"
 	}
 
-	err = storage.StoreBlock(block, datasourceType)
-	if err != nil {
+	if err := storage.StoreBlock(block, datasourceType); err != nil {
 		return fmt.Errorf("storing block %s: %w", block.ID(), err)
 	}
 
-	// Broadcast real-time event after successful persistence (if bridge enabled)
+	// Broadcast realtime event after successful persistence.
 	if w.eventBridge != nil {
 		w.eventBridge.publishBlock(
 			block.ID(),
@@ -427,8 +430,17 @@ func (w *Warehouse) storeBlock(block core.Block) error {
 			block.Metadata(),
 		)
 	}
-
 	return nil
+}
+
+// isDatasourceConfigured reports whether a datasource name was explicitly added
+// to the warehouse (regardless of interval value). This guards against implicit
+// creation of storage for unknown datasources.
+func (w *Warehouse) isDatasourceConfigured(name string) bool {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+	_, ok := w.datasourceIntervals[name]
+	return ok
 }
 
 func (w *Warehouse) Stop() {

@@ -1,6 +1,17 @@
 package integration_tests
 
 import (
+	"bufio"
+	"bytes"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"sync"
+	"syscall"
+	"testing"
+
 	"github.com/rubiojr/ergs/pkg/config"
 	"github.com/rubiojr/ergs/pkg/core"
 	"github.com/rubiojr/ergs/pkg/datasources/testrand"
@@ -206,4 +217,69 @@ func setTimestampConfig(ds core.Datasource, configMap map[string]interface{}) er
 	}
 
 	return ds.SetConfig(config)
+}
+
+// ==============================
+// Shared command/integration helpers (extracted from importer serve test)
+// ==============================
+
+// BuildErgsBinary compiles the ergs binary (with fts5 tag) into a temp path.
+func BuildErgsBinary(t *testing.T) string {
+	t.Helper()
+
+	root, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+
+	output := filepath.Join(t.TempDir(), "ergs-test-bin")
+	cmd := exec.Command("go", "build", "-tags", "fts5", "-o", output, ".")
+	cmd.Dir = root
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("build ergs failed: %v\nOutput:\n%s", err, string(out))
+	}
+	return output
+}
+
+// WasInterruptExit returns true if the process exit was caused by SIGINT (or equivalent).
+func WasInterruptExit(err error) bool {
+	if err == nil {
+		return false
+	}
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		return false
+	}
+	if runtime.GOOS == "windows" {
+		// On Windows we just accept any non-zero exit after an interrupt attempt.
+		return true
+	}
+	ws, ok := exitErr.Sys().(syscall.WaitStatus)
+	if !ok {
+		return false
+	}
+	return (ws.Signaled() && ws.Signal() == syscall.SIGINT) || ws.ExitStatus() == 130
+}
+
+// CollectLogs merges multiple stdout/stderr buffers into a single string.
+func CollectLogs(stdouts ...*bytes.Buffer) string {
+	var b strings.Builder
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	for _, buf := range stdouts {
+		wg.Add(1)
+		go func(buf *bytes.Buffer) {
+			defer wg.Done()
+			sc := bufio.NewScanner(bytes.NewReader(buf.Bytes()))
+			for sc.Scan() {
+				mu.Lock()
+				b.WriteString(sc.Text())
+				b.WriteByte('\n')
+				mu.Unlock()
+			}
+		}(buf)
+	}
+	wg.Wait()
+	return b.String()
 }
