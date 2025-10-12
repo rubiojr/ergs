@@ -386,7 +386,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		err error
 	}
 	readCh := make(chan readResult)
-	defer close(readCh)
+	// Don't close readCh here - let the goroutine signal completion instead
 
 	// Implement idle timeout tracking
 	idleTimer := time.NewTimer(d.config.IdleTimeout)
@@ -399,14 +399,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 	// the main loop blocked on readCh forever after the FIRST timeout, causing
 	// apparent multi‑hour "hangs" with no further scheduled runs.
 	go func() {
-		defer func() {
-			// Signal completion by sending a final error
-			select {
-			case readCh <- readResult{err: fmt.Errorf("reader goroutine exiting")}:
-			case <-done:
-			}
-		}()
-
+		// No need for defer func to send on potentially closed channel
 		for {
 			// Check if we should exit
 			select {
@@ -422,6 +415,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 				select {
 				case readCh <- readResult{err: fmt.Errorf("failed to set read deadline: %w", err)}:
 				case <-done:
+					return
 				}
 				return
 			}
@@ -453,13 +447,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 			l.Debugf("idle timeout reached after %v, captured %d events", d.config.IdleTimeout, received)
 			return nil
 
-		case result, ok := <-readCh:
-			if !ok {
-				// Channel closed, reader goroutine exited
-				l.Debugf("read channel closed, captured %d events", received)
-				return nil
-			}
-
+		case result := <-readCh:
 			if result.err != nil {
 				// Check if it's a timeout error - if so, continue waiting (reset idle timer)
 				if isTimeoutErr(result.err) {
