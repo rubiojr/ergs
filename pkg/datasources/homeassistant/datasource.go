@@ -59,15 +59,33 @@ package homeassistant
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/rubiojr/ergs/pkg/core"
 	"github.com/rubiojr/ergs/pkg/log"
+)
+
+const (
+	// Timeout constants
+	dialTimeout      = 20 * time.Second
+	handshakeTimeout = 15 * time.Second
+	authTimeout      = 15 * time.Second
+	readTimeout      = 5 * time.Second
+
+	// Default configuration values
+	defaultMaxEvents   = 100
+	maxEventsLimit     = 1000
+	defaultIdleTimeout = 5 * time.Minute
+
+	// Subscription pacing delay
+	subscriptionDelay = 25 * time.Millisecond
 )
 
 func init() {
@@ -94,13 +112,13 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("homeassistant: token is required (create a long-lived access token in your user profile)")
 	}
 	if c.MaxEvents <= 0 {
-		c.MaxEvents = 100
+		c.MaxEvents = defaultMaxEvents
 	}
-	if c.MaxEvents > 1000 {
-		c.MaxEvents = 1000
+	if c.MaxEvents > maxEventsLimit {
+		c.MaxEvents = maxEventsLimit
 	}
 	if c.IdleTimeout <= 0 {
-		c.IdleTimeout = 5 * time.Minute
+		c.IdleTimeout = defaultIdleTimeout
 	}
 	// Validate URL structure (A)
 	u, err := url.Parse(c.URL)
@@ -234,12 +252,12 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 	}
 
 	// Overall dial timeout (B)
-	dialCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	dialCtx, cancel := context.WithTimeout(ctx, dialTimeout)
 	defer cancel()
 
 	dialer := websocket.Dialer{
 		Proxy:            websocket.DefaultDialer.Proxy,
-		HandshakeTimeout: 15 * time.Second,
+		HandshakeTimeout: handshakeTimeout,
 	}
 
 	conn, _, err := dialer.DialContext(dialCtx, u.String(), nil)
@@ -247,6 +265,10 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		return fmt.Errorf("homeassistant: websocket dial failed: %w", err)
 	}
 	defer func() { _ = conn.Close() }()
+
+	// Create a done channel to signal goroutine termination
+	done := make(chan struct{})
+	defer close(done)
 
 	// Step 1: Expect auth_required
 	var msg haInboundMessage
@@ -259,8 +281,10 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 	authCh := make(chan authResult, 1)
 
 	go func() {
-		if err := conn.SetReadDeadline(time.Now().Add(15 * time.Second)); err != nil {
-			l.Warnf("set read deadline: %v", err)
+		if err := conn.SetReadDeadline(time.Now().Add(authTimeout)); err != nil {
+			l.Errorf("set read deadline: %v", err)
+			authCh <- authResult{err: fmt.Errorf("failed to set read deadline: %w", err)}
+			return
 		}
 		var m haInboundMessage
 		err := conn.ReadJSON(&m)
@@ -293,8 +317,10 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 	authRespCh := make(chan authResult, 1)
 
 	go func() {
-		if err := conn.SetReadDeadline(time.Now().Add(15 * time.Second)); err != nil {
-			l.Warnf("set read deadline: %v", err)
+		if err := conn.SetReadDeadline(time.Now().Add(authTimeout)); err != nil {
+			l.Errorf("set read deadline: %v", err)
+			authRespCh <- authResult{err: fmt.Errorf("failed to set read deadline: %w", err)}
+			return
 		}
 		var m haInboundMessage
 		err := conn.ReadJSON(&m)
@@ -346,16 +372,13 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 				return fmt.Errorf("homeassistant: subscribe event %q failed: %w", et, err)
 			}
 			subID++
-			time.Sleep(25 * time.Millisecond) // gentle pacing
+			time.Sleep(subscriptionDelay) // gentle pacing
 		}
 		l.Debugf("subscribed to %d event types", len(d.config.EventTypes))
 	}
 
 	// Step 5: Capture events
 	received := 0
-	start := time.Now()
-	lastEvent := start
-	idleTimeout := d.config.IdleTimeout
 
 	// Create channels for communication
 	type readResult struct {
@@ -363,25 +386,57 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		err error
 	}
 	readCh := make(chan readResult)
+	defer close(readCh)
+
+	// Implement idle timeout tracking
+	idleTimer := time.NewTimer(d.config.IdleTimeout)
+	defer idleTimer.Stop()
 
 	// Start goroutine for reading messages
+	// NOTE: Previous implementation returned the goroutine immediately on any
+	// read timeout (err != nil && netErr.Timeout()). Because the main loop
+	// treats timeouts as a "continue" (waiting for more messages) this left
+	// the main loop blocked on readCh forever after the FIRST timeout, causing
+	// apparent multi‑hour "hangs" with no further scheduled runs.
 	go func() {
+		defer func() {
+			// Signal completion by sending a final error
+			select {
+			case readCh <- readResult{err: fmt.Errorf("reader goroutine exiting")}:
+			case <-done:
+			}
+		}()
+
 		for {
-			// Use shorter deadline to allow more frequent context checks
-			if err := conn.SetReadDeadline(time.Now().Add(5 * time.Second)); err != nil {
-				l.Warnf("set read deadline: %v", err)
+			// Check if we should exit
+			select {
+			case <-done:
+				return
+			default:
+			}
+
+			// Frequent short deadline so idle detection works and context can cancel.
+			if err := conn.SetReadDeadline(time.Now().Add(readTimeout)); err != nil {
+				l.Errorf("set read deadline: %v", err)
+				// Critical error - can't set deadline, exit
+				select {
+				case readCh <- readResult{err: fmt.Errorf("failed to set read deadline: %w", err)}:
+				case <-done:
+				}
+				return
 			}
 
 			var im haInboundMessage
 			err := conn.ReadJSON(&im)
 
+			// Always attempt to deliver a result (including timeouts) so the main loop
+			// can advance idle accounting.
 			select {
 			case readCh <- readResult{msg: im, err: err}:
-			case <-ctx.Done():
+			case <-done:
 				return
 			}
 
-			// Check if we should stop reading
 			if err != nil {
 				return
 			}
@@ -394,25 +449,47 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 			l.Debugf("context cancelled, stopping")
 			return ctx.Err()
 
-		case result := <-readCh:
+		case <-idleTimer.C:
+			l.Debugf("idle timeout reached after %v, captured %d events", d.config.IdleTimeout, received)
+			return nil
+
+		case result, ok := <-readCh:
+			if !ok {
+				// Channel closed, reader goroutine exited
+				l.Debugf("read channel closed, captured %d events", received)
+				return nil
+			}
+
 			if result.err != nil {
-				// Check if error is due to context cancellation
-				select {
-				case <-ctx.Done():
-					return ctx.Err()
-				default:
-					// Idle timeout (C): On read timeout, check idle duration
-					if netErr, ok := result.err.(net.Error); ok && netErr.Timeout() {
-						if time.Since(lastEvent) >= idleTimeout {
-							l.Debugf("idle timeout %v reached (captured %d events)", idleTimeout, received)
-							l.Debugf("captured %d events", received)
-							return nil
+				// Check if it's a timeout error - if so, continue waiting (reset idle timer)
+				if isTimeoutErr(result.err) {
+					// Reset idle timer on timeout
+					if !idleTimer.Stop() {
+						select {
+						case <-idleTimer.C:
+						default:
 						}
-						continue
 					}
-					return fmt.Errorf("homeassistant: read message: %w", result.err)
+					idleTimer.Reset(d.config.IdleTimeout)
+					continue
+				}
+
+				// Other errors: exit immediately so the warehouse scheduler can start a fresh cycle
+				if ctx.Err() != nil {
+					return ctx.Err()
+				}
+				l.Debugf("terminating fetch after read error: %v (captured %d events)", result.err, received)
+				return nil
+			}
+
+			// Reset idle timer on successful message
+			if !idleTimer.Stop() {
+				select {
+				case <-idleTimer.C:
+				default:
 				}
 			}
+			idleTimer.Reset(d.config.IdleTimeout)
 
 			// Ignore non-event messages
 			if result.msg.Type != "event" || result.msg.Event == nil {
@@ -439,7 +516,6 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 				return ctx.Err()
 			case blockCh <- block:
 				received++
-				lastEvent = time.Now()
 			}
 		}
 	}
@@ -450,9 +526,20 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 
 // convertEventToBlock transforms an HA event envelope into a Block.
 func (d *Datasource) convertEventToBlock(ev *haEventEnvelope) (core.Block, error) {
+	// Validate event has required fields
+	if ev == nil {
+		return nil, fmt.Errorf("nil event envelope")
+	}
+	if ev.EventType == "" {
+		return nil, fmt.Errorf("event missing event_type")
+	}
+
 	eventType := ev.EventType
 	rawTime := ev.TimeFired
-	createdAt := parseHATime(rawTime)
+	createdAt, parseErr := parseHATime(rawTime)
+	if parseErr != nil {
+		log.ForService("homeassistant:"+d.instanceName).Warnf("failed to parse time_fired %q: %v, using current time", rawTime, parseErr)
+	}
 
 	// Extract commonly useful fields
 	var entityID, domain, service string
@@ -471,10 +558,14 @@ func (d *Datasource) convertEventToBlock(ev *haEventEnvelope) (core.Block, error
 		}
 	}
 
+	// Context is an embedded struct, not a pointer
 	contextID := ev.Context.ID
 	contextUserID := ""
-	if uid, ok := ev.Context.UserID.(string); ok {
-		contextUserID = uid
+	// Safely extract user ID with type assertion
+	if ev.Context.UserID != nil {
+		if uid, ok := ev.Context.UserID.(string); ok {
+			contextUserID = uid
+		}
 	}
 
 	// Raw data JSON
@@ -561,9 +652,9 @@ func (d *Datasource) entityAllowed(entityID string) bool {
 }
 
 // parseHATime attempts to parse Home Assistant's time_fired value.
-func parseHATime(ts string) time.Time {
+func parseHATime(ts string) (time.Time, error) {
 	if ts == "" {
-		return time.Now().UTC()
+		return time.Now().UTC(), nil
 	}
 	// Common formats include microseconds and timezone offset.
 	formats := []string{
@@ -574,10 +665,31 @@ func parseHATime(ts string) time.Time {
 	}
 	for _, f := range formats {
 		if t, err := time.Parse(f, ts); err == nil {
-			return t.UTC()
+			return t.UTC(), nil
 		}
 	}
-	return time.Now().UTC()
+	// Return current time with error to indicate parse failure
+	return time.Now().UTC(), fmt.Errorf("unable to parse time %q with any known format", ts)
+}
+
+// isTimeoutErr attempts to classify an error as a timeout without depending solely
+// on net.Error (gorilla/websocket sometimes wraps errors).
+func isTimeoutErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	if ne, ok := err.(net.Error); ok && ne.Timeout() {
+		return true
+	}
+	if errors.Is(err, os.ErrDeadlineExceeded) || errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	// Fallback string checks (avoid over-matching; keep specific)
+	msg := err.Error()
+	if strings.Contains(msg, "i/o timeout") || strings.Contains(msg, "timeout awaiting") {
+		return true
+	}
+	return false
 }
 
 /////////////////////////////////////////////////////
