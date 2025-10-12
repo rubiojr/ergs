@@ -79,7 +79,7 @@ api_key = ''
 # # Home Assistant - Capture events via WebSocket API
 # [datasources.home]
 # type = 'homeassistant'
-# # interval = '30s'  # Short interval approximates near-real-time (adjust as needed)
+# # interval = '15s'  # Short interval sampling approximates near-real-time (recommended)
 # [datasources.home.config]
 # url = 'ws://homeassistant.local:8123/api/websocket'  # Or wss://your.domain/api/websocket
 # token = ''                # Required: Long-lived access token (Profile -> Long-Lived Tokens)
