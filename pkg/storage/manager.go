@@ -43,6 +43,12 @@ type Manager struct {
 	blockPrototypes map[string]core.Block
 	searchService   *SearchService
 	mu              sync.RWMutex
+
+	// Stats cache
+	statsCache     map[string]interface{}
+	statsCacheTime time.Time
+	statsCacheTTL  time.Duration
+	statsCacheMu   sync.RWMutex
 }
 
 // NewManager creates a new storage manager with the specified storage directory.
@@ -53,6 +59,8 @@ func NewManager(storageDir string, datasources ...string) (*Manager, error) {
 		storageDir:      storageDir,
 		storages:        make(map[string]*GenericStorage),
 		blockPrototypes: make(map[string]core.Block),
+		statsCache:      make(map[string]interface{}),
+		statsCacheTTL:   5 * time.Minute,
 	}
 	manager.searchService = NewSearchService(manager)
 
@@ -80,6 +88,8 @@ func NewManagerWithoutMigrationCheck(storageDir string) *Manager {
 		storageDir:      storageDir,
 		storages:        make(map[string]*GenericStorage),
 		blockPrototypes: make(map[string]core.Block),
+		statsCache:      make(map[string]interface{}),
+		statsCacheTTL:   5 * time.Minute,
 	}
 	m.searchService = NewSearchService(m)
 	return m
@@ -365,6 +375,16 @@ func (m *Manager) SearchDatasourcesPagedWithDateRange(datasourceNames []string, 
 // and datasource-specific metrics. The returned map includes individual datasource
 // stats plus aggregate totals.
 func (m *Manager) GetStats() (map[string]interface{}, error) {
+	// Check cache first
+	m.statsCacheMu.RLock()
+	if m.statsCache != nil && time.Since(m.statsCacheTime) < m.statsCacheTTL {
+		cachedStats := m.statsCache
+		m.statsCacheMu.RUnlock()
+		return cachedStats, nil
+	}
+	m.statsCacheMu.RUnlock()
+
+	// Cache miss or expired, fetch fresh stats
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -386,7 +406,21 @@ func (m *Manager) GetStats() (map[string]interface{}, error) {
 	stats["total_blocks"] = totalBlocks
 	stats["total_datasources"] = len(m.storages)
 
+	// Update cache
+	m.statsCacheMu.Lock()
+	m.statsCache = stats
+	m.statsCacheTime = time.Now()
+	m.statsCacheMu.Unlock()
+
 	return stats, nil
+}
+
+// InvalidateStatsCache invalidates the stats cache, forcing a fresh fetch on the next GetStats call.
+// This should be called after operations that modify stats (e.g., storing blocks).
+func (m *Manager) InvalidateStatsCache() {
+	m.statsCacheMu.Lock()
+	m.statsCache = nil
+	m.statsCacheMu.Unlock()
 }
 
 // Close closes all storage instances and cleans up resources.

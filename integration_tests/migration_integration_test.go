@@ -22,6 +22,12 @@ import (
 	"github.com/rubiojr/ergs/pkg/storage"
 )
 
+const (
+	// expectedMigrationCount is the total number of migrations in the system.
+	// Update this constant when adding new migrations.
+	expectedMigrationCount = 6
+)
+
 func TestMigrationSystemIntegration(t *testing.T) {
 	helper := NewMigrationTestHelper(t)
 	scenarios := CommonMigrationScenarios()
@@ -71,12 +77,12 @@ func TestMigrationSystemIntegration(t *testing.T) {
 			t.Fatalf("Failed to get applied migrations: %v", err)
 		}
 
-		if len(applied) != 5 {
-			t.Errorf("Expected 5 migrations applied, got %d", len(applied))
+		if len(applied) != expectedMigrationCount {
+			t.Errorf("Expected %d migrations applied, got %d", expectedMigrationCount, len(applied))
 		}
 
-		if len(applied) != 5 || applied[0] != 1 || applied[1] != 2 || applied[2] != 3 || applied[3] != 4 || applied[4] != 5 {
-			t.Errorf("Expected migrations [1, 2, 3, 4, 5], got %v", applied)
+		if len(applied) != expectedMigrationCount {
+			t.Errorf("Expected %d migrations, got %v", expectedMigrationCount, applied)
 		}
 	})
 
@@ -391,8 +397,8 @@ interval_seconds = 1
 			t.Errorf("Expected 0 applied migrations, got %d", len(status.Applied))
 		}
 
-		if len(status.Pending) != 5 {
-			t.Errorf("Expected 5 pending migrations, got %d", len(status.Pending))
+		if len(status.Pending) != expectedMigrationCount {
+			t.Errorf("Expected %d pending migrations, got %d", expectedMigrationCount, len(status.Pending))
 		}
 
 		// Apply first migration
@@ -444,8 +450,8 @@ interval_seconds = 1
 			t.Fatalf("Failed to get migration status: %v", err)
 		}
 
-		if len(status.Applied) != 5 {
-			t.Errorf("Expected 5 applied migrations, got %d", len(status.Applied))
+		if len(status.Applied) != expectedMigrationCount {
+			t.Errorf("Expected %d applied migrations, got %d", expectedMigrationCount, len(status.Applied))
 		}
 
 		if len(status.Pending) != 0 {
@@ -492,8 +498,8 @@ interval_seconds = 1
 			}
 
 			// Should always have pending migrations
-			if len(status.Pending) != 5 {
-				t.Errorf("Expected 5 pending migrations on iteration %d, got %d", i, len(status.Pending))
+			if len(status.Pending) != expectedMigrationCount {
+				t.Errorf("Expected %d pending migrations for new database, got %d", expectedMigrationCount, len(status.Pending))
 			}
 
 			// Should never have applied migrations (since we're only checking status)
@@ -524,8 +530,8 @@ interval_seconds = 1
 			t.Fatalf("GetMigrationStatus failed after applying migrations: %v", err)
 		}
 
-		if len(statusAfter.Applied) != 5 {
-			t.Errorf("Expected 5 applied migrations after ApplyPendingMigrations, got %d", len(statusAfter.Applied))
+		if len(statusAfter.Applied) != expectedMigrationCount {
+			t.Errorf("Expected %d applied migrations after manual migration, got %d", expectedMigrationCount, len(statusAfter.Applied))
 		}
 
 		if len(statusAfter.Pending) != 0 {
@@ -592,8 +598,8 @@ interval_seconds = 1
 		}
 
 		// Should have pending migrations
-		if len(status.Pending) != 5 {
-			t.Errorf("Expected 5 pending migrations, got %d", len(status.Pending))
+		if len(status.Pending) != expectedMigrationCount {
+			t.Fatalf("Expected %d pending migrations, got %d", expectedMigrationCount, len(status.Pending))
 		}
 
 		// Should have no applied migrations

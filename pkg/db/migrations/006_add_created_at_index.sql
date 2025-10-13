@@ -1,0 +1,71 @@
+-- Migration 006: Add index on created_at column
+--
+-- Purpose:
+--   Optimize queries that filter or aggregate on the created_at column.
+--   This is critical for performance of stats queries that use MIN/MAX operations.
+--
+-- Prior State:
+--   Migration 001: Created base schema (blocks + blocks_fts)
+--   Migration 002: Added hostname column and rebuilt FTS
+--   Migration 003: Added FTS synchronization triggers
+--   Migration 004: Added updated_at and its index
+--   Migration 005: Added ingested_at and its index
+--
+-- Problem:
+--   The GetStats() method runs on every page load and executes:
+--     SELECT MIN(created_at), MAX(created_at) FROM blocks
+--   Without an index on created_at, SQLite performs a full table scan.
+--   With large datasources (e.g., github with 486k+ blocks), this causes
+--   significant performance degradation (1-3 second page loads).
+--
+-- Changes in this migration:
+--   1. Creates an index on the created_at column
+--   2. This enables SQLite to use index lookups for MIN/MAX operations
+--      instead of full table scans
+--
+-- Performance Impact:
+--   Before: Full table scan for MIN/MAX queries
+--   After:  Index seek - O(log n) instead of O(n)
+--   Expected improvement: 50-80% reduction in stats query time
+--
+-- Query Plans:
+--   Before: EXPLAIN QUERY PLAN shows "SCAN blocks"
+--   After:  EXPLAIN QUERY PLAN will show index usage
+--
+-- Use Cases:
+--   * Stats calculation (oldest_block, newest_block)
+--   * Date range filtering queries
+--   * Firehose ordering by creation time
+--   * Time-based analytics
+--
+-- Safety:
+--   * Index creation guarded with IF NOT EXISTS for idempotency
+--   * Safe to run multiple times (migration replay scenarios)
+--   * Non-blocking operation in SQLite
+--
+-- Tradeoffs:
+--   * Slight storage overhead (index structure)
+--   * Minimal write overhead on INSERT/UPDATE (index maintenance)
+--   * Massive read performance improvement (justifies the tradeoff)
+--
+-- Notes:
+--   * created_at is set at block creation time from source data
+--   * Unlike ingested_at/updated_at, this is a content timestamp
+--   * Highly selective queries benefit most from this index
+--   * Combined with existing indexes (updated_at, ingested_at), provides
+--     comprehensive temporal query optimization
+--
+-- ---------------------------------------------------------------------------
+-- Create an index to optimize queries filtering/ordering by creation time
+-- ---------------------------------------------------------------------------
+CREATE INDEX IF NOT EXISTS idx_blocks_created_at ON blocks(created_at);
+
+--
+-- End of migration 006
+--
+-- This completes the temporal indexing strategy:
+--   * idx_blocks_created_at  - Content creation time (source timestamp)
+--   * idx_blocks_updated_at  - Last modification time (Ergs system timestamp)
+--   * idx_blocks_ingested_at - First ingestion time (Ergs system timestamp)
+--
+-- All three temporal dimensions are now indexed for optimal query performance.

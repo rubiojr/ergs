@@ -517,6 +517,69 @@ func TestManagerGetStats(t *testing.T) {
 	}
 }
 
+func TestManagerStatsCaching(t *testing.T) {
+	manager := createTestManager(t)
+	defer manager.Close() //nolint:errcheck
+
+	now := time.Now()
+	testData := map[string][]core.Block{
+		"datasource1": {
+			&mockBlock{id: "block1", text: "test1", createdAt: now, source: "datasource1"},
+			&mockBlock{id: "block2", text: "test2", createdAt: now, source: "datasource1"},
+		},
+	}
+
+	setupTestData(t, manager, testData)
+
+	// First call should populate the cache
+	stats1, err := manager.GetStats()
+	if err != nil {
+		t.Fatalf("Failed to get stats: %v", err)
+	}
+
+	// Second call should return cached stats
+	stats2, err := manager.GetStats()
+	if err != nil {
+		t.Fatalf("Failed to get cached stats: %v", err)
+	}
+
+	// Verify both calls return the same data
+	if stats1["total_blocks"] != stats2["total_blocks"] {
+		t.Errorf("Cached stats differ: %v vs %v", stats1["total_blocks"], stats2["total_blocks"])
+	}
+
+	// Verify cache time was set
+	manager.statsCacheMu.RLock()
+	cacheTime := manager.statsCacheTime
+	manager.statsCacheMu.RUnlock()
+
+	if cacheTime.IsZero() {
+		t.Error("Cache time should be set after GetStats call")
+	}
+
+	// Invalidate cache
+	manager.InvalidateStatsCache()
+
+	// Verify cache was cleared
+	manager.statsCacheMu.RLock()
+	cacheIsNil := manager.statsCache == nil
+	manager.statsCacheMu.RUnlock()
+
+	if !cacheIsNil {
+		t.Error("Cache should be nil after invalidation")
+	}
+
+	// Next call should repopulate cache
+	stats3, err := manager.GetStats()
+	if err != nil {
+		t.Fatalf("Failed to get stats after invalidation: %v", err)
+	}
+
+	if stats3["total_blocks"] != 2 {
+		t.Errorf("Expected 2 blocks after cache invalidation, got %v", stats3["total_blocks"])
+	}
+}
+
 func TestManagerClose(t *testing.T) {
 	manager := createTestManager(t)
 
