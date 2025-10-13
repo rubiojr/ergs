@@ -76,6 +76,13 @@ api_key = ''
 # longitude = 2.3199   # Required: Your longitude
 # radius = 10000       # Required: Search radius in meters
 
+# # Open-Meteo Weather - Fetch current weather data for a location
+# [datasources.weather]
+# type = 'openmeteo'
+# # interval = '1h0m0s'  # Check weather every hour
+# [datasources.weather.config]
+# location = 'Madrid'  # Required: Location name (city, town, etc.) - will be geocoded automatically
+
 # # Home Assistant - Capture events via WebSocket API
 # [datasources.home]
 # type = 'homeassistant'

@@ -1,0 +1,374 @@
+<div class="block-openmeteo">
+    {{$location := index .Metadata "location"}} {{$country := index .Metadata
+    "country"}} {{$latitude := index .Metadata "latitude"}} {{$longitude :=
+    index .Metadata "longitude"}} {{$timezone := index .Metadata "timezone"}}
+    {{$population := index .Metadata "population"}} {{$temperature := index
+    .Metadata "temperature"}} {{$windSpeed := index .Metadata "wind_speed"}}
+    {{$windDirection := index .Metadata "wind_direction"}} {{$weatherCode :=
+    index .Metadata "weather_code"}} {{$weatherDescription := index .Metadata
+    "weather_description"}} {{$humidity := index .Metadata "humidity"}}
+    {{$apparentTemperature := index .Metadata "apparent_temperature"}}
+    {{$surfacePressure := index .Metadata "surface_pressure"}}
+    {{$sealevelPressure := index .Metadata "sealevel_pressure"}} {{$uvIndex :=
+    index .Metadata "uv_index"}}
+
+    <div class="weather-header">
+        <div class="weather-icon">
+            {{if eq $weatherCode 0}}☀️{{end}} {{if eq $weatherCode 1}}🌤️{{end}}
+            {{if eq $weatherCode 2}}⛅{{end}} {{if eq $weatherCode 3}}☁️{{end}}
+            {{if or (eq $weatherCode 45) (eq $weatherCode 48)}}🌫️{{end}} {{if or
+            (eq $weatherCode 51) (eq $weatherCode 53) (eq $weatherCode 55) (eq
+            $weatherCode 56) (eq $weatherCode 57)}}🌧️{{end}} {{if or (eq
+            $weatherCode 61) (eq $weatherCode 63) (eq $weatherCode 65) (eq
+            $weatherCode 66) (eq $weatherCode 67)}}🌧️{{end}} {{if or (eq
+            $weatherCode 71) (eq $weatherCode 73) (eq $weatherCode 75) (eq
+            $weatherCode 77)}}❄️{{end}} {{if or (eq $weatherCode 80) (eq
+            $weatherCode 81) (eq $weatherCode 82)}}🌦️{{end}} {{if or (eq
+            $weatherCode 85) (eq $weatherCode 86)}}🌨️{{end}} {{if or (eq
+            $weatherCode 95) (eq $weatherCode 96) (eq $weatherCode
+            99)}}⛈️{{end}}
+        </div>
+
+        <div class="weather-content">
+            <div class="weather-title">
+                <h3 class="weather-location">
+                    {{if $location}}{{$location}}{{else}}Unknown{{end}}{{if
+                    $country}}, {{$country}}{{end}}
+                </h3>
+            </div>
+
+            <div class="weather-meta">
+                <span class="weather-time"
+                    >{{formatTime .Block.CreatedAt}}</span
+                >
+                {{if $timezone}}
+                <span class="weather-separator">|</span>
+                <span class="weather-timezone">{{$timezone}}</span>
+                {{end}} {{if and $latitude $longitude}}
+                <span class="weather-separator">|</span>
+                <a
+                    href="https://www.openstreetmap.org/?mlat={{$latitude}}&mlon={{$longitude}}&zoom=12"
+                    target="_blank"
+                    class="weather-map"
+                    >view map</a
+                >
+                {{end}}
+            </div>
+        </div>
+    </div>
+
+    <div class="weather-main">
+        <div class="weather-left">
+            <div class="temp-icon">
+                {{$code := $weatherCode}} {{if eq $code 0}}☀️ {{else if eq $code
+                1}}🌤️ {{else if eq $code 2}}⛅ {{else if eq $code 3}}☁️ {{else
+                if or (eq $code 45) (eq $code 48)}}🌫️ {{else if or (eq $code 51)
+                (eq $code 53) (eq $code 55) (eq $code 56) (eq $code 57)}}🌧️
+                {{else if or (eq $code 61) (eq $code 63) (eq $code 65) (eq $code
+                66) (eq $code 67)}}🌧️ {{else if or (eq $code 71) (eq $code 73)
+                (eq $code 75) (eq $code 77)}}❄️ {{else if or (eq $code 80) (eq
+                $code 81) (eq $code 82)}}🌦️ {{else if or (eq $code 85) (eq $code
+                86)}}🌨️ {{else if or (eq $code 95) (eq $code 96) (eq $code
+                99)}}⛈️ {{else}}🌤️{{end}}
+            </div>
+            <div class="temp-info">
+                <span class="temp-value">{{printf "%.1f" $temperature}}°</span>
+                <span class="temp-condition">{{$weatherDescription}}</span>
+                {{if $apparentTemperature}}
+                <span class="temp-feels"
+                    >Feels like {{printf "%.1f" $apparentTemperature}}°C</span
+                >
+                {{end}}
+            </div>
+        </div>
+
+        <div class="weather-details">
+            {{if $windSpeed}}
+            <div class="weather-detail">
+                <span class="detail-icon">💨</span>
+                <span class="detail-label">Wind</span>
+                <span class="detail-value"
+                    >{{printf "%.1f" $windSpeed}} km/h</span
+                >
+            </div>
+            {{end}} {{if $humidity}}
+            <div class="weather-detail">
+                <span class="detail-icon">💧</span>
+                <span class="detail-label">Humidity</span>
+                <span class="detail-value">{{printf "%.1f" $humidity}}%</span>
+            </div>
+            {{end}} {{if $uvIndex}}
+            <div class="weather-detail">
+                <span class="detail-icon">☀️</span>
+                <span class="detail-label">UV Index</span>
+                <span class="detail-value">{{printf "%.0f" $uvIndex}}</span>
+            </div>
+            {{end}} {{if $surfacePressure}}
+            <div class="weather-detail">
+                <span class="detail-icon">📊</span>
+                <span class="detail-label">Pressure</span>
+                <span class="detail-value"
+                    >{{printf "%.1f" $surfacePressure}} hPa</span
+                >
+            </div>
+            {{end}}
+        </div>
+    </div>
+</div>
+
+<style>
+    .block-openmeteo {
+        margin-bottom: 1.5rem;
+        padding: 0;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: linear-gradient(
+            135deg,
+            var(--surface) 0%,
+            var(--surface-alt) 100%
+        );
+        font-size: 13px;
+        line-height: 1.3;
+        transition:
+            background 0.25s ease,
+            border-color 0.25s ease,
+            transform 0.2s ease;
+        overflow: hidden;
+    }
+
+    .block-openmeteo:hover {
+        border-color: var(--accent-border);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .weather-header {
+        display: flex;
+        gap: 12px;
+        padding: 10px 14px;
+        background: var(--surface-alt);
+        border-bottom: 1px solid var(--border);
+    }
+
+    .weather-icon {
+        font-size: 32px;
+        line-height: 1;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+
+    .weather-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .weather-title {
+        margin-bottom: 4px;
+        line-height: 1.2;
+    }
+
+    .weather-location {
+        margin: 0;
+        color: var(--text);
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .weather-meta {
+        color: var(--text-dim);
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .weather-time {
+        font-variant-numeric: tabular-nums;
+        color: var(--text-faint);
+    }
+
+    .weather-separator {
+        color: var(--border-alt);
+        margin: 0 2px;
+    }
+
+    .weather-timezone {
+        color: var(--text-dim);
+    }
+
+    .weather-map {
+        color: var(--text-dim);
+        text-decoration: none;
+        transition: color 0.2s ease;
+    }
+
+    .weather-map:hover {
+        text-decoration: underline;
+        color: var(--accent);
+    }
+
+    .weather-main {
+        display: flex;
+        gap: 14px;
+        padding: 12px 14px;
+    }
+
+    .weather-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 0 0 auto;
+    }
+
+    .temp-icon {
+        font-size: 48px;
+        line-height: 1;
+        flex-shrink: 0;
+    }
+
+    .temp-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .temp-value {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--text);
+        line-height: 1;
+    }
+
+    .temp-condition {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-dim);
+    }
+
+    .temp-feels {
+        font-size: 11px;
+        color: var(--text-faint);
+        font-style: italic;
+    }
+
+    .weather-details {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        flex: 1;
+        align-content: start;
+    }
+
+    .weather-detail {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        padding: 6px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        transition:
+            background 0.2s ease,
+            border-color 0.2s ease;
+    }
+
+    .weather-detail:hover {
+        background: var(--surface-alt);
+        border-color: var(--accent-border);
+    }
+
+    .detail-icon {
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .detail-label {
+        font-size: 9px;
+        color: var(--text-faint);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        text-align: center;
+    }
+
+    .detail-value {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text);
+        text-align: center;
+    }
+
+    @media (max-width: 600px) {
+        .weather-header {
+            padding: 10px 12px;
+            gap: 10px;
+        }
+
+        .weather-icon {
+            font-size: 28px;
+        }
+
+        .weather-location {
+            font-size: 14px;
+        }
+
+        .weather-meta {
+            font-size: 10px;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+        }
+
+        .weather-separator {
+            display: none;
+        }
+
+        .weather-main {
+            flex-direction: column;
+            padding: 10px 12px;
+        }
+
+        .weather-left {
+            gap: 10px;
+        }
+
+        .temp-icon {
+            font-size: 40px;
+        }
+
+        .temp-value {
+            font-size: 28px;
+        }
+
+        .temp-condition {
+            font-size: 12px;
+        }
+
+        .temp-feels {
+            font-size: 10px;
+        }
+
+        .weather-details {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+        }
+
+        .weather-detail {
+            padding: 5px;
+        }
+
+        .detail-icon {
+            font-size: 16px;
+        }
+
+        .detail-label {
+            font-size: 8px;
+        }
+
+        .detail-value {
+            font-size: 11px;
+        }
+    }
+</style>

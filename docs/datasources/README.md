@@ -18,6 +18,15 @@ This directory contains documentation for individual datasources available in Er
 ### Home & Utilities
 - **[Home Assistant](homeassistant.md)** - Capture Home Assistant events (state changes, service calls, automations) via the WebSocket API
 - **[Datadis](datadis.md)** - Fetch electricity consumption data from Datadis (Spanish electricity data platform)
+- **[Gas Stations](gasstations.md)** - Fetch current fuel prices from Spanish gas stations
+
+### Weather
+- **[Open-Meteo](openmeteo.md)** - Fetch current weather data for any location worldwide (free, no API key required)
+
+### News & Content
+- **[Hacker News](hackernews.md)** - Fetch stories, comments, and other items from Hacker News
+- **[RSS](rss.md)** - Fetch articles from RSS/Atom feeds
+- **[RTVE](rtve.md)** - Fetch episodes from RTVE (Spanish TV) shows
 
 
 ## General Usage
