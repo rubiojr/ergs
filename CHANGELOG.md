@@ -1,9 +1,12 @@
 # Changelog
 
-## [NEXT] - TBD
+## [3.6.1] - 2025-10-13
+
+### 🔧 Improvements
 
 - Introduce unified logging system (pkg/log) with per-service debug and CLI flags (--debug, --debug-services)
 - Drop unknown/unconfigured datasource blocks to prevent implicit DB creation
+- homeassistant: general reliability fixes and improvements
 
 ## [3.6.0] - 2025-10-11
 
