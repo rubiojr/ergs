@@ -75,7 +75,9 @@ func NewGasStationBlockWithSource(
 		"source":     source,
 	}
 
-	blockID := fmt.Sprintf("gasstation-%s-%d", stationID, createdAt.Unix())
+	// Use content-based ID so we only create new blocks when prices change
+	// This prevents storing duplicate data when prices remain the same
+	blockID := fmt.Sprintf("gasstation-%s-%s-%s-%s-%s", stationID, gasoline95, diesel, gasoline98, biodiesel)
 
 	return &GasStationBlock{
 		id:         blockID,
