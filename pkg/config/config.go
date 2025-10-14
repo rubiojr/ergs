@@ -18,6 +18,7 @@ type Config struct {
 	StorageDir      string                    `toml:"storage_dir"`
 	FetchInterval   Duration                  `toml:"fetch_interval"`
 	Importer        *ImporterConfig           `toml:"importer,omitempty"`
+	Home            *HomeConfig               `toml:"home,omitempty"`
 	Datasources     map[string]DatasourceInfo `toml:"datasources"`
 	EventSocketPath string                    `toml:"event_socket_path,omitempty"` // Optional Unix domain socket path for realtime warehouse->web events
 }
@@ -26,6 +27,10 @@ type ImporterConfig struct {
 	APIKey string `toml:"api_key"`
 	Host   string `toml:"host,omitempty"`
 	Port   string `toml:"port,omitempty"`
+}
+
+type HomeConfig struct {
+	Datasources string `toml:"datasources"` // Comma-separated list of datasource names
 }
 
 type Duration struct {

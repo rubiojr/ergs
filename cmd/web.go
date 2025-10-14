@@ -245,9 +245,45 @@ func (s *WebServer) handleHome(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Fetch latest blocks from configured datasources for home page
+	var homeBlocks []types.WebBlock
+	if s.config.Home != nil && s.config.Home.Datasources != "" {
+		// Parse comma-separated datasource names
+		dsNames := strings.Split(s.config.Home.Datasources, ",")
+		for _, dsName := range dsNames {
+			dsName = strings.TrimSpace(dsName)
+			if dsName == "" {
+				continue
+			}
+
+			// Get the latest block from this datasource (empty query, limit 1)
+			params := storage.SearchParams{
+				Query:             "",
+				DatasourceFilters: []string{dsName},
+				Page:              1,
+				Limit:             1,
+			}
+
+			results, err := s.storageManager.GetSearchService().Search(params)
+			if err != nil {
+				log.Printf("Error fetching latest block from %s: %v", dsName, err)
+				continue
+			}
+
+			// Convert blocks to WebBlocks using the appropriate renderer
+			if blocks, ok := results.Results[dsName]; ok && len(blocks) > 0 {
+				for _, block := range blocks {
+					webBlock := s.convertBlockToWebBlock(block)
+					homeBlocks = append(homeBlocks, webBlock)
+				}
+			}
+		}
+	}
+
 	data := types.PageData{
 		Title:             "Ergs - Data Explorer",
 		Datasources:       datasources,
+		HomeBlocks:        homeBlocks,
 		TotalBlocks:       totalBlocks,
 		ActiveDatasources: activeDatasources,
 		OldestBlock:       oldestBlock,

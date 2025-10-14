@@ -28,10 +28,23 @@ templ Index(data types.PageData) {
 					/>
 					<button type="submit" class="search-button">Search</button>
 				</form>
-				<div class="advanced-search-link">
-					<a href="/search">Advanced Search</a>
-				</div>
 			</div>
+			if len(data.HomeBlocks) > 0 {
+				<div class="home-blocks-section">
+					<h3>Latest Updates</h3>
+					<div class="home-blocks">
+						for _, block := range data.HomeBlocks {
+							<div class="home-block">
+								if block.FormattedText != "" {
+									@templ.Raw(block.FormattedText)
+								} else {
+									<p>{ block.Text }</p>
+								}
+							</div>
+						}
+					</div>
+				</div>
+			}
 			if len(data.Datasources) > 0 {
 				<div class="stats-section">
 					<h3>Quick Stats</h3>

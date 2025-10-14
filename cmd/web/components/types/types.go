@@ -10,6 +10,7 @@ type PageData struct {
 	SelectedDatasources []string // For search with multiple datasource selection
 	Results             map[string][]WebBlock
 	FirehoseBlocks      []WebBlock // Flat, globally time-ordered slice for firehose rendering
+	HomeBlocks          []WebBlock // Latest blocks from configured datasources for home page
 	Datasources         []DatasourceInfo
 	TotalCount          int
 	Error               string

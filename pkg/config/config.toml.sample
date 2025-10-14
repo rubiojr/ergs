@@ -14,6 +14,14 @@ storage_dir = '/home/user/.local/share/ergs'
 # If unspecified, real-time WebSocket firehose will not stream live updates.
 #event_socket_path = ''
 
+# Home page configuration (optional)
+# Configure which datasources to display on the home page
+# The latest block from each configured datasource will be shown
+[home]
+# Comma-separated list of datasource names to display on home page
+# Example: datasources = 'github, rss, hackernews'
+# If not set or empty, no blocks will be displayed on the home page
+datasources = ''
 
 # Importer API configuration
 # Used by both the importer API server (ergs importer) and importer datasource
