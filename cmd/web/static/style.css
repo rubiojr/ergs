@@ -948,7 +948,7 @@ nav select:focus {
 }
 
 .hero-section {
-    margin-bottom: 2rem;
+    text-align: center;
 }
 
 .hero-logo {
@@ -1041,6 +1041,7 @@ nav select:focus {
 
 .home-blocks-section {
     margin: 2rem 0;
+    text-align: left;
 }
 
 .home-blocks-section h3 {
