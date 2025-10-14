@@ -1,12 +1,14 @@
 # Open-Meteo Weather Datasource
 
-The Open-Meteo datasource fetches current weather data for any location worldwide using the free Open-Meteo API. It automatically geocodes location names and provides comprehensive weather information including temperature, wind, humidity, pressure, and UV index.
+The Open-Meteo datasource fetches current weather data and hourly forecasts for any location worldwide using the free Open-Meteo API. It automatically geocodes location names and provides comprehensive weather information including temperature, wind, humidity, pressure, UV index, and rain predictions.
 
 ## Features
 
 - 🌍 **Worldwide Coverage** - Fetch weather for any location globally
 - 📍 **Automatic Geocoding** - Simply provide a location name (city, town, etc.)
 - 🌡️ **Comprehensive Data** - Temperature, feels-like, wind, humidity, pressure, UV index
+- 🌧️ **Rain Predictions** - Alerts when rain is expected today with precipitation probability
+- 📊 **Hourly Forecast** - 24-hour forecast with detailed hourly weather conditions
 - 🎨 **Weather Icons** - Visual representation with emoji icons for each weather condition
 - 🆓 **Free API** - No API key required, uses the free Open-Meteo service
 - 🔄 **Real-time Updates** - Configurable fetch intervals for up-to-date weather
@@ -79,6 +81,21 @@ The datasource stores the following fields for each weather report:
 | `surface_pressure` | REAL | Surface pressure (hPa) |
 | `sealevel_pressure` | REAL | Sea level pressure (hPa) |
 | `uv_index` | REAL | Maximum UV index for the day |
+| `hourly_forecast` | TEXT | JSON array of hourly forecast data for today (24 hours) |
+
+### Hourly Forecast Data
+
+Each hourly forecast entry contains:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `time` | TEXT | ISO 8601 timestamp for the hour |
+| `temperature` | REAL | Hourly temperature (°C) |
+| `weather_code` | INTEGER | WMO weather code for the hour |
+| `weather_description` | TEXT | Human-readable condition |
+| `precipitation` | REAL | Precipitation amount (mm) |
+| `precipitation_probability` | INTEGER | Chance of precipitation (%) |
+| `humidity` | REAL | Relative humidity (%) |
 
 ## Weather Codes and Icons
 
@@ -166,10 +183,23 @@ When fetching or streaming data, you'll see output like this:
 This datasource uses the free [Open-Meteo API](https://open-meteo.com/):
 
 - **Geocoding**: `geocoding-api.open-meteo.com` - Converts location names to coordinates
-- **Weather Data**: `api.open-meteo.com` - Provides current weather and forecasts
+- **Weather Data**: `api.open-meteo.com` - Provides current weather and 24-hour forecasts
 - **Air Quality**: `air-quality-api.open-meteo.com` - UV index and air quality data
 - **No API Key Required**: Free for non-commercial use
 - **Attribution**: Data provided by Open-Meteo.com
+
+## Rain Prediction & Forecast Display
+
+The weather renderer includes:
+
+- **Rain Alert Badge** - Prominent alert when rain is expected today, showing maximum precipitation probability
+- **Collapsible Hourly Forecast** - Interactive table with 24-hour forecast including:
+  - Time and weather condition icons
+  - Hourly temperature
+  - Precipitation amount and probability
+  - Humidity levels
+  
+The rain detection automatically checks all hourly forecasts for rain codes (51-82) and displays an alert if rain is expected at any point during the day.
 
 ## Location Examples
 
@@ -200,8 +230,9 @@ location = 'København'
 - **API Rate Limits**: Open-Meteo is free but has reasonable rate limits
 - **Update Frequency**: Weather data typically updates every 15-60 minutes
 - **Recommended Interval**: 30 minutes to 1 hour is usually sufficient
-- **Storage**: Creates one block per fetch, deduplicates based on weather conditions
+- **Storage**: Creates one block per fetch with 24-hour forecast data, deduplicates based on weather conditions
 - **Network**: Requires 3 API calls per fetch (geocoding, weather, air quality)
+- **Forecast Data**: Stores up to 24 hours of hourly forecast data per block
 
 ## Troubleshooting
 

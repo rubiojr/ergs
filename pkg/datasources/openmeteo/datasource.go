@@ -64,6 +64,10 @@ type WeatherResult struct {
 		ApparentTemperature []float64 `json:"apparent_temperature"`
 		SurfacePressure     []float64 `json:"surface_pressure"`
 		PressureMSL         []float64 `json:"pressure_msl"`
+		Temperature         []float64 `json:"temperature_2m"`
+		WeatherCode         []int     `json:"weather_code"`
+		Precipitation       []float64 `json:"precipitation"`
+		PrecipitationProb   []int     `json:"precipitation_probability"`
 	} `json:"hourly"`
 }
 
@@ -125,6 +129,7 @@ func (d *Datasource) Schema() map[string]any {
 		"surface_pressure":     "REAL",
 		"sealevel_pressure":    "REAL",
 		"uv_index":             "REAL",
+		"hourly_forecast":      "TEXT",
 	}
 }
 
@@ -231,7 +236,8 @@ func (d *Datasource) fetchWeather(ctx context.Context, lat, lon float64) (*Weath
 	params.Add("latitude", fmt.Sprintf("%.4f", lat))
 	params.Add("longitude", fmt.Sprintf("%.4f", lon))
 	params.Add("current", "temperature_2m,wind_speed_10m,wind_direction_10m,weather_code")
-	params.Add("hourly", "relative_humidity_2m,apparent_temperature,surface_pressure,pressure_msl")
+	params.Add("hourly", "relative_humidity_2m,apparent_temperature,surface_pressure,pressure_msl,temperature_2m,weather_code,precipitation,precipitation_probability")
+	params.Add("forecast_days", "1")
 	params.Add("timezone", "auto")
 
 	reqURL := fmt.Sprintf("%s?%s", forecastURL, params.Encode())
@@ -338,6 +344,32 @@ func (d *Datasource) createWeatherBlock(
 		}
 	}
 
+	// Prepare hourly forecast data
+	hourlyForecast := make([]map[string]interface{}, 0)
+	maxHours := 24 // Only store today's forecast
+	for i := 0; i < maxHours && i < len(weather.Hourly.Time); i++ {
+		hourData := map[string]interface{}{
+			"time": weather.Hourly.Time[i],
+		}
+		if i < len(weather.Hourly.Temperature) {
+			hourData["temperature"] = weather.Hourly.Temperature[i]
+		}
+		if i < len(weather.Hourly.WeatherCode) {
+			hourData["weather_code"] = weather.Hourly.WeatherCode[i]
+			hourData["weather_description"] = translateWeatherCode(weather.Hourly.WeatherCode[i])
+		}
+		if i < len(weather.Hourly.Precipitation) {
+			hourData["precipitation"] = weather.Hourly.Precipitation[i]
+		}
+		if i < len(weather.Hourly.PrecipitationProb) {
+			hourData["precipitation_probability"] = weather.Hourly.PrecipitationProb[i]
+		}
+		if i < len(weather.Hourly.RelativeHumidity) {
+			hourData["humidity"] = weather.Hourly.RelativeHumidity[i]
+		}
+		hourlyForecast = append(hourlyForecast, hourData)
+	}
+
 	weatherDesc := translateWeatherCode(weather.Current.WeatherCode)
 
 	sourceName := d.instanceName
@@ -362,6 +394,7 @@ func (d *Datasource) createWeatherBlock(
 		surfacePressure,
 		sealevelPressure,
 		maxUVIndex,
+		hourlyForecast,
 		createdAt,
 		sourceName,
 	)

@@ -1,21 +1,20 @@
 package renderer
 
 import (
+	"bytes"
+	"context"
 	_ "embed"
 	"html/template"
-	"strings"
 
 	"github.com/rubiojr/ergs/pkg/core"
 	"github.com/rubiojr/ergs/pkg/render"
 )
 
-//go:embed template.html
-var weatherTemplate string
+//go:embed weather.css
+var weatherCSS string
 
-// WeatherRenderer renders weather data blocks
-type WeatherRenderer struct {
-	template *template.Template
-}
+// WeatherRenderer renders weather data blocks using templ
+type WeatherRenderer struct{}
 
 // init function automatically registers this renderer with the global registry
 func init() {
@@ -27,28 +26,23 @@ func init() {
 
 // NewWeatherRenderer creates a new weather renderer
 func NewWeatherRenderer() *WeatherRenderer {
-	tmpl, err := template.New("openmeteo").Funcs(render.GetTemplateFuncs()).Parse(weatherTemplate)
-	if err != nil {
-		return nil
-	}
-
-	return &WeatherRenderer{
-		template: tmpl,
-	}
+	return &WeatherRenderer{}
 }
 
-// Render creates an HTML representation of a weather block
+// Render creates an HTML representation of a weather block using templ
 func (r *WeatherRenderer) Render(block core.Block) template.HTML {
-	data := render.TemplateData{
-		Block:    block,
-		Metadata: block.Metadata(),
-		Links:    render.ExtractLinks(block.Text()),
-	}
+	var buf bytes.Buffer
 
-	var buf strings.Builder
-	err := r.template.Execute(&buf, data)
+	// Inject CSS styles (only once per page load, ideally)
+	buf.WriteString("<style>")
+	buf.WriteString(weatherCSS)
+	buf.WriteString("</style>")
+
+	// Use the templ component to render
+	component := WeatherBlock(block)
+	err := component.Render(context.Background(), &buf)
 	if err != nil {
-		return template.HTML("Error rendering weather template")
+		return template.HTML("Error rendering weather template: " + err.Error())
 	}
 
 	return template.HTML(buf.String())

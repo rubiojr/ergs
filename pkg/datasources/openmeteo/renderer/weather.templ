@@ -1,0 +1,294 @@
+package renderer
+
+import (
+	"github.com/rubiojr/ergs/pkg/core"
+	"time"
+	"fmt"
+)
+
+// Helper function to check if a weather code indicates rain
+func isRainCode(code int) bool {
+	return (code >= 51 && code <= 57) || (code >= 61 && code <= 67) || (code >= 80 && code <= 82)
+}
+
+// Helper function to get weather icon from code
+func getWeatherIcon(code int) string {
+	switch {
+	case code == 0:
+		return "☀️"
+	case code == 1:
+		return "🌤️"
+	case code == 2:
+		return "⛅"
+	case code == 3:
+		return "☁️"
+	case code == 45 || code == 48:
+		return "🌫️"
+	case code >= 51 && code <= 57:
+		return "🌧️"
+	case code >= 61 && code <= 67:
+		return "🌧️"
+	case code >= 71 && code <= 77:
+		return "❄️"
+	case code >= 80 && code <= 82:
+		return "🌦️"
+	case code >= 85 && code <= 86:
+		return "🌨️"
+	case code >= 95 && code <= 99:
+		return "⛈️"
+	default:
+		return "🌤️"
+	}
+}
+
+// Helper function to format time from ISO string
+func formatHourFromISO(timeStr string) string {
+	if len(timeStr) >= 16 {
+		return timeStr[11:16] // Extract HH:MM from ISO format
+	}
+	return timeStr
+}
+
+// Helper function to format relative time
+func formatRelativeTime(t time.Time) string {
+	now := time.Now()
+	diff := now.Sub(t)
+
+	switch {
+	case diff < time.Minute:
+		return "just now"
+	case diff < time.Hour:
+		m := int(diff.Minutes())
+		if m == 1 {
+			return "1 minute ago"
+		}
+		return fmt.Sprintf("%d minutes ago", m)
+	case diff < 24*time.Hour:
+		h := int(diff.Hours())
+		if h == 1 {
+			return "1 hour ago"
+		}
+		return fmt.Sprintf("%d hours ago", h)
+	case diff < 7*24*time.Hour:
+		d := int(diff.Hours() / 24)
+		if d == 1 {
+			return "1 day ago"
+		}
+		return fmt.Sprintf("%d days ago", d)
+	default:
+		return t.Format("Jan 2, 2006")
+	}
+}
+
+// WeatherBlock renders a complete weather block
+templ WeatherBlock(block core.Block) {
+	<div class="block-openmeteo">
+		@RainAlert(block.Metadata())
+		@WeatherCompact(block)
+		@HourlyForecast(block.Metadata())
+	</div>
+}
+
+// Helper function to check if rain is expected in forecast
+func hasRain(hourlyForecast []interface{}) bool {
+	for _, item := range hourlyForecast {
+		if hourData, ok := item.(map[string]interface{}); ok {
+			if codeVal, exists := hourData["weather_code"]; exists {
+				if code, ok := codeVal.(int); ok && isRainCode(code) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// Helper function to get max precipitation probability
+func getMaxPrecipProb(hourlyForecast []interface{}) int {
+	maxProb := 0
+	for _, item := range hourlyForecast {
+		if hourData, ok := item.(map[string]interface{}); ok {
+			if probVal, exists := hourData["precipitation_probability"]; exists {
+				if prob, ok := probVal.(int); ok && prob > maxProb {
+					maxProb = prob
+				}
+			}
+		}
+	}
+	return maxProb
+}
+
+// RainAlert shows a rain warning banner if rain is expected
+templ RainAlert(metadata map[string]interface{}) {
+	if hourlyForecast, ok := metadata["hourly_forecast"].([]interface{}); ok && len(hourlyForecast) > 0 {
+		if hasRain(hourlyForecast) {
+			<div class="rain-alert">
+				<span class="rain-icon">🌧️</span>
+				<span class="rain-text">Rain Expected Today</span>
+				if maxProb := getMaxPrecipProb(hourlyForecast); maxProb > 0 {
+					<span class="rain-probability">up to { fmt.Sprintf("%d", maxProb) }% chance</span>
+				}
+			</div>
+		}
+	}
+}
+
+// WeatherCompact displays location, temperature and conditions in one row
+templ WeatherCompact(block core.Block) {
+	<div class="weather-compact">
+		<div class="weather-icon">
+			if codeVal, exists := block.Metadata()["weather_code"]; exists {
+				if code, ok := codeVal.(int); ok {
+					@templ.Raw(getWeatherIcon(code))
+				} else if codeFloat, ok := codeVal.(float64); ok {
+					@templ.Raw(getWeatherIcon(int(codeFloat)))
+				}
+			}
+		</div>
+		<div class="weather-info">
+			<div class="weather-location">
+				if location, ok := block.Metadata()["location"].(string); ok {
+					{ location }
+				} else {
+					Unknown
+				}
+				if country, ok := block.Metadata()["country"].(string); ok {
+					, { country }
+				}
+			</div>
+			<div class="weather-meta">
+				<span class="weather-time">{ formatRelativeTime(block.CreatedAt()) }</span>
+				if timezone, ok := block.Metadata()["timezone"].(string); ok && timezone != "" {
+					<span class="weather-separator">|</span>
+					<span class="weather-timezone">{ timezone }</span>
+				}
+				if lat, latOk := block.Metadata()["latitude"].(float64); latOk {
+					if lon, lonOk := block.Metadata()["longitude"].(float64); lonOk {
+						<span class="weather-separator">|</span>
+						<a
+							href={ templ.URL(fmt.Sprintf("https://www.openstreetmap.org/?mlat=%.4f&mlon=%.4f&zoom=12", lat, lon)) }
+							target="_blank"
+							class="weather-map"
+						>
+							view map
+						</a>
+					}
+				}
+			</div>
+		</div>
+		<div class="weather-details">
+			<div class="weather-detail">
+				if temp, ok := block.Metadata()["temperature"].(float64); ok {
+					<span class="detail-label">🌡️ Temperature</span>
+					<span class="detail-value">{ fmt.Sprintf("%.1f", temp) }°</span>
+				}
+			</div>
+			if windSpeed, ok := block.Metadata()["wind_speed"].(float64); ok {
+				<div class="weather-detail">
+					<span class="detail-label">💨 Wind</span>
+					<span class="detail-value">{ fmt.Sprintf("%.1f", windSpeed) } km/h</span>
+				</div>
+			}
+			if humidity, ok := block.Metadata()["humidity"].(float64); ok {
+				<div class="weather-detail">
+					<span class="detail-label">💧 Humidity</span>
+					<span class="detail-value">{ fmt.Sprintf("%.1f", humidity) }%</span>
+				</div>
+			}
+			if uvIndex, ok := block.Metadata()["uv_index"].(float64); ok {
+				<div class="weather-detail">
+					<span class="detail-label">☀️ UV Index</span>
+					<span class="detail-value">{ fmt.Sprintf("%.0f", uvIndex) }</span>
+				</div>
+			}
+			if pressure, ok := block.Metadata()["surface_pressure"].(float64); ok {
+				<div class="weather-detail">
+					<span class="detail-label">📊 Pressure</span>
+					<span class="detail-value">{ fmt.Sprintf("%.1f", pressure) } hPa</span>
+				</div>
+			}
+		</div>
+	</div>
+}
+
+// HourlyForecast displays collapsible hourly forecast table
+templ HourlyForecast(metadata map[string]interface{}) {
+	if hourlyForecast, ok := metadata["hourly_forecast"].([]interface{}); ok && len(hourlyForecast) > 0 {
+		<div class="hourly-forecast-section">
+			<details class="forecast-collapsible">
+				<summary class="forecast-summary">
+					<span class="forecast-icon">📊</span>
+					<span class="forecast-title">Hourly Forecast</span>
+					<span class="forecast-chevron">▼</span>
+				</summary>
+				<div class="forecast-content">
+					<table class="forecast-table">
+						<thead>
+							<tr>
+								<th>Time</th>
+								<th>Condition</th>
+								<th>Temp</th>
+								<th>Rain</th>
+								<th>Chance</th>
+								<th>Humidity</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, item := range hourlyForecast {
+								if hourData, ok := item.(map[string]interface{}); ok {
+									<tr>
+										<td class="forecast-time">
+											if timeStr, ok := hourData["time"].(string); ok {
+												{ formatHourFromISO(timeStr) }
+											}
+										</td>
+										<td class="forecast-condition">
+											if codeVal, exists := hourData["weather_code"]; exists {
+												if code, ok := codeVal.(int); ok {
+													@templ.Raw(getWeatherIcon(code))
+													{ " " }
+												} else if codeFloat, ok := codeVal.(float64); ok {
+													@templ.Raw(getWeatherIcon(int(codeFloat)))
+													{ " " }
+												}
+											}
+											if desc, ok := hourData["weather_description"].(string); ok {
+												<span class="forecast-desc">{ desc }</span>
+											}
+										</td>
+										<td class="forecast-temp">
+											if temp, ok := hourData["temperature"].(float64); ok {
+												{ fmt.Sprintf("%.1f", temp) }°
+											}
+										</td>
+										<td class="forecast-precip">
+											if precip, ok := hourData["precipitation"].(float64); ok && precip > 0 {
+												{ fmt.Sprintf("%.1f", precip) }mm
+											} else {
+												-
+											}
+										</td>
+										<td class="forecast-prob">
+											if prob, ok := hourData["precipitation_probability"].(int); ok && prob > 0 {
+												{ fmt.Sprintf("%d", prob) }%
+											} else {
+												-
+											}
+										</td>
+										<td class="forecast-humidity">
+											if hum, ok := hourData["humidity"].(float64); ok {
+												{ fmt.Sprintf("%.0f", hum) }%
+											} else {
+												-
+											}
+										</td>
+									</tr>
+								}
+							}
+						</tbody>
+					</table>
+				</div>
+			</details>
+		</div>
+	}
+}

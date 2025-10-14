@@ -32,6 +32,7 @@ type WeatherBlock struct {
 	surfacePressure     float64
 	sealevelPressure    float64
 	uvIndex             float64
+	hourlyForecast      []map[string]interface{}
 }
 
 func NewWeatherBlock(
@@ -43,6 +44,7 @@ func NewWeatherBlock(
 	weatherCode int,
 	weatherDescription string,
 	humidity, apparentTemperature, surfacePressure, sealevelPressure, uvIndex float64,
+	hourlyForecast []map[string]interface{},
 	createdAt time.Time,
 	source string,
 ) *WeatherBlock {
@@ -68,6 +70,7 @@ func NewWeatherBlock(
 		"sealevel_pressure":    sealevelPressure,
 		"uv_index":             uvIndex,
 		"source":               source,
+		"hourly_forecast":      hourlyForecast,
 	}
 
 	// Use content-based ID so we only create new blocks when weather changes significantly
@@ -96,6 +99,7 @@ func NewWeatherBlock(
 		surfacePressure:     surfacePressure,
 		sealevelPressure:    sealevelPressure,
 		uvIndex:             uvIndex,
+		hourlyForecast:      hourlyForecast,
 	}
 }
 
@@ -133,22 +137,23 @@ func (b *WeatherBlock) Summary() string {
 }
 
 // Custom accessor methods
-func (b *WeatherBlock) Location() string             { return b.location }
-func (b *WeatherBlock) Country() string              { return b.country }
-func (b *WeatherBlock) Latitude() float64            { return b.latitude }
-func (b *WeatherBlock) Longitude() float64           { return b.longitude }
-func (b *WeatherBlock) Timezone() string             { return b.timezone }
-func (b *WeatherBlock) Population() int64            { return b.population }
-func (b *WeatherBlock) Temperature() float64         { return b.temperature }
-func (b *WeatherBlock) WindSpeed() float64           { return b.windSpeed }
-func (b *WeatherBlock) WindDirection() float64       { return b.windDirection }
-func (b *WeatherBlock) WeatherCode() int             { return b.weatherCode }
-func (b *WeatherBlock) WeatherDescription() string   { return b.weatherDescription }
-func (b *WeatherBlock) Humidity() float64            { return b.humidity }
-func (b *WeatherBlock) ApparentTemperature() float64 { return b.apparentTemperature }
-func (b *WeatherBlock) SurfacePressure() float64     { return b.surfacePressure }
-func (b *WeatherBlock) SealevelPressure() float64    { return b.sealevelPressure }
-func (b *WeatherBlock) UVIndex() float64             { return b.uvIndex }
+func (b *WeatherBlock) Location() string                         { return b.location }
+func (b *WeatherBlock) Country() string                          { return b.country }
+func (b *WeatherBlock) Latitude() float64                        { return b.latitude }
+func (b *WeatherBlock) Longitude() float64                       { return b.longitude }
+func (b *WeatherBlock) Timezone() string                         { return b.timezone }
+func (b *WeatherBlock) Population() int64                        { return b.population }
+func (b *WeatherBlock) Temperature() float64                     { return b.temperature }
+func (b *WeatherBlock) WindSpeed() float64                       { return b.windSpeed }
+func (b *WeatherBlock) WindDirection() float64                   { return b.windDirection }
+func (b *WeatherBlock) WeatherCode() int                         { return b.weatherCode }
+func (b *WeatherBlock) WeatherDescription() string               { return b.weatherDescription }
+func (b *WeatherBlock) Humidity() float64                        { return b.humidity }
+func (b *WeatherBlock) ApparentTemperature() float64             { return b.apparentTemperature }
+func (b *WeatherBlock) SurfacePressure() float64                 { return b.surfacePressure }
+func (b *WeatherBlock) SealevelPressure() float64                { return b.sealevelPressure }
+func (b *WeatherBlock) UVIndex() float64                         { return b.uvIndex }
+func (b *WeatherBlock) HourlyForecast() []map[string]interface{} { return b.hourlyForecast }
 
 func (b *WeatherBlock) Type() string { return "openmeteo" }
 
@@ -173,6 +178,7 @@ func (b *WeatherBlock) Factory(genericBlock *core.GenericBlock, source string) c
 	surfacePressure := getFloatFromMetadata(metadata, "surface_pressure", 0.0)
 	sealevelPressure := getFloatFromMetadata(metadata, "sealevel_pressure", 0.0)
 	uvIndex := getFloatFromMetadata(metadata, "uv_index", 0.0)
+	hourlyForecast := getSliceFromMetadata(metadata, "hourly_forecast")
 
 	return &WeatherBlock{
 		id:                  genericBlock.ID(),
@@ -196,6 +202,7 @@ func (b *WeatherBlock) Factory(genericBlock *core.GenericBlock, source string) c
 		surfacePressure:     surfacePressure,
 		sealevelPressure:    sealevelPressure,
 		uvIndex:             uvIndex,
+		hourlyForecast:      hourlyForecast,
 	}
 }
 
@@ -219,6 +226,7 @@ func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, s
 	surfacePressure := getFloatFromMetadata(metadata, "surface_pressure", 0.0)
 	sealevelPressure := getFloatFromMetadata(metadata, "sealevel_pressure", 0.0)
 	uvIndex := getFloatFromMetadata(metadata, "uv_index", 0.0)
+	hourlyForecast := getSliceFromMetadata(metadata, "hourly_forecast")
 
 	return &WeatherBlock{
 		id:                  id,
@@ -242,6 +250,7 @@ func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, s
 		surfacePressure:     surfacePressure,
 		sealevelPressure:    sealevelPressure,
 		uvIndex:             uvIndex,
+		hourlyForecast:      hourlyForecast,
 	}
 }
 
@@ -253,6 +262,24 @@ func getStringFromMetadata(metadata map[string]interface{}, key, defaultValue st
 		}
 	}
 	return defaultValue
+}
+
+func getSliceFromMetadata(metadata map[string]interface{}, key string) []map[string]interface{} {
+	if value, exists := metadata[key]; exists {
+		if slice, ok := value.([]interface{}); ok {
+			result := make([]map[string]interface{}, 0, len(slice))
+			for _, item := range slice {
+				if m, ok := item.(map[string]interface{}); ok {
+					result = append(result, m)
+				}
+			}
+			return result
+		}
+		if slice, ok := value.([]map[string]interface{}); ok {
+			return slice
+		}
+	}
+	return []map[string]interface{}{}
 }
 
 func getFloatFromMetadata(metadata map[string]interface{}, key string, defaultValue float64) float64 {
