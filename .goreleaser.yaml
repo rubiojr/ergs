@@ -68,6 +68,9 @@ dockers_v2:
     extra_files:
       - docker/entrypoint.sh
 
+release:
+  draft: true
+
 changelog:
   sort: asc
   filters:
