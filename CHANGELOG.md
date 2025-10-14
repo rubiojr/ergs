@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.7.0] - 2025-10-14
+
+> [!WARNING]
+> This version requires running the `migrate` command before starting Ergs services.
+
+### ✨ New Features
+
+- **OpenMeteo datasource**: New datasource includes 24-hour forecast data with rain alerts and precipitation probability
+
+### 🔧 Improvements
+
+- Web performance improvements
+
 ## [3.6.1] - 2025-10-13
 
 ### 🔧 Improvements
