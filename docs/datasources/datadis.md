@@ -18,12 +18,14 @@ interval = '24h0m0s'  # Fetch once per day (default: 24h)
 [datasources.datadis.config]
 username = 'your-datadis-username'  # Required
 password = 'your-datadis-password'  # Required
+cups = ''  # Optional: Comma-separated list of CUPS to filter
 ```
 
 ### Configuration Parameters
 
 - **username** (required): Your Datadis account username
 - **password** (required): Your Datadis account password
+- **cups** (optional): Comma-separated list of CUPS identifiers to filter which supplies to fetch. If not set or empty, fetches data for all supplies in the account. Example: `'ES0021000000000001AA,ES0021000000000002BB'`
 - **interval**: How often to fetch data (default: 24h). Since consumption data is typically updated daily, fetching more frequently is not recommended.
 
 ## Data Collection
@@ -31,8 +33,9 @@ password = 'your-datadis-password'  # Required
 The datasource:
 1. Authenticates with the Datadis API using your credentials
 2. Retrieves all electricity supplies associated with your account
-3. For each supply, fetches hourly consumption data for the current month
-4. Creates a block for each hourly measurement
+3. Filters supplies based on the `cups` configuration (if specified)
+4. For each supply, fetches hourly consumption data for the current month
+5. Creates a block for each hourly measurement
 
 ## Block Structure
 

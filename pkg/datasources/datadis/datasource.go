@@ -20,6 +20,7 @@ func init() {
 type Config struct {
 	Username string `toml:"username"`
 	Password string `toml:"password"`
+	CUPS     string `toml:"cups,omitempty"` // Optional: comma-separated list of CUPS to filter
 }
 
 // Validate checks if the configuration is valid
@@ -175,7 +176,14 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 
 	blockCount := 0
 
-	for _, supply := range d.supplies {
+	// Filter supplies if CUPS is configured
+	suppliesToFetch := d.supplies
+	if d.config.CUPS != "" {
+		suppliesToFetch = d.filterSuppliesByConfig()
+		l.Debugf("Filtering to %d supplies based on config", len(suppliesToFetch))
+	}
+
+	for _, supply := range suppliesToFetch {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -266,6 +274,74 @@ func (d *Datasource) parseMeasurementTime(date, hour string) (time.Time, error) 
 func (d *Datasource) Close() error {
 	// Nothing to close for HTTP client
 	return nil
+}
+
+// filterSuppliesByConfig filters supplies based on configured CUPS
+func (d *Datasource) filterSuppliesByConfig() []datadis.Supply {
+	if d.config.CUPS == "" {
+		return d.supplies
+	}
+
+	// Parse comma-separated CUPS list
+	configuredCUPS := make(map[string]bool)
+	for _, cups := range splitAndTrim(d.config.CUPS, ",") {
+		configuredCUPS[cups] = true
+	}
+
+	var filtered []datadis.Supply
+	for _, supply := range d.supplies {
+		if configuredCUPS[supply.Cups] {
+			filtered = append(filtered, supply)
+		}
+	}
+
+	return filtered
+}
+
+// splitAndTrim splits a string by delimiter and trims whitespace
+func splitAndTrim(s, delimiter string) []string {
+	var result []string
+	for _, item := range splitString(s, delimiter) {
+		trimmed := trimSpace(item)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
+}
+
+// splitString splits a string by delimiter
+func splitString(s, delimiter string) []string {
+	if s == "" {
+		return nil
+	}
+	var result []string
+	start := 0
+	for i := 0; i < len(s); i++ {
+		if i+len(delimiter) <= len(s) && s[i:i+len(delimiter)] == delimiter {
+			result = append(result, s[start:i])
+			start = i + len(delimiter)
+			i += len(delimiter) - 1
+		}
+	}
+	result = append(result, s[start:])
+	return result
+}
+
+// trimSpace removes leading and trailing whitespace
+func trimSpace(s string) string {
+	start := 0
+	end := len(s)
+
+	for start < end && (s[start] == ' ' || s[start] == '\t' || s[start] == '\n' || s[start] == '\r') {
+		start++
+	}
+
+	for end > start && (s[end-1] == ' ' || s[end-1] == '\t' || s[end-1] == '\n' || s[end-1] == '\r') {
+		end--
+	}
+
+	return s[start:end]
 }
 
 // Factory creates a new instance of the datasource
