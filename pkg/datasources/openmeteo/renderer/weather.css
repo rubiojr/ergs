@@ -92,11 +92,18 @@
     min-width: 0;
 }
 
-.weather-location {
+.weather-location-link {
     color: var(--text);
     font-size: 15px;
     font-weight: 600;
     line-height: 1.2;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.weather-location-link:hover {
+    color: var(--accent);
+    text-decoration: underline;
 }
 
 .weather-meta {
@@ -133,6 +140,51 @@
     color: var(--accent);
 }
 
+/* Weather Main */
+.weather-main {
+    display: flex;
+    gap: 14px;
+    padding: 12px 14px;
+}
+
+.weather-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 0 0 auto;
+}
+
+.temp-icon {
+    font-size: 48px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.temp-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.temp-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+}
+
+.temp-condition {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-dim);
+}
+
+.temp-feels {
+    font-size: 11px;
+    color: var(--text-faint);
+    font-style: italic;
+}
+
 .weather-details {
     display: flex;
     gap: 24px;
@@ -143,23 +195,21 @@
 .weather-detail {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     gap: 2px;
 }
 
 .detail-label {
-    font-size: 10px;
+    font-size: 16px;
     color: var(--text-dim);
-    font-weight: 500;
-    text-align: left;
-    white-space: nowrap;
+    text-align: center;
 }
 
 .detail-value {
     font-size: 13px;
     font-weight: 600;
     color: var(--text);
-    text-align: left;
+    text-align: center;
     white-space: nowrap;
 }
 
@@ -168,6 +218,15 @@
     color: var(--text-faint);
     font-style: italic;
     margin-top: 2px;
+}
+
+.rain-yes {
+    color: rgb(59, 130, 246);
+    font-weight: 700;
+}
+
+.rain-no {
+    color: var(--text-faint);
 }
 
 /* Hourly Forecast */
@@ -309,12 +368,7 @@
         font-size: 28px;
     }
 
-    .weather-info {
-        flex: 1;
-        min-width: 150px;
-    }
-
-    .weather-location {
+    .weather-location-link {
         font-size: 14px;
     }
 
@@ -341,7 +395,7 @@
     }
 
     .detail-label {
-        font-size: 9px;
+        font-size: 14px;
     }
 
     .detail-value {

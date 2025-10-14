@@ -146,70 +146,75 @@ templ WeatherCompact(block core.Block) {
 			}
 		</div>
 		<div class="weather-info">
-			<div class="weather-location">
-				if location, ok := block.Metadata()["location"].(string); ok {
-					{ location }
-				} else {
-					Unknown
+			if lat, latOk := block.Metadata()["latitude"].(float64); latOk {
+				if lon, lonOk := block.Metadata()["longitude"].(float64); lonOk {
+					<a
+						href={ templ.URL(fmt.Sprintf("https://www.openstreetmap.org/?mlat=%.4f&mlon=%.4f&zoom=12", lat, lon)) }
+						target="_blank"
+						class="weather-location-link"
+					>
+						if location, ok := block.Metadata()["location"].(string); ok {
+							{ location }
+						} else {
+							Unknown
+						}
+						if country, ok := block.Metadata()["country"].(string); ok {
+							, { country }
+						}
+					</a>
 				}
-				if country, ok := block.Metadata()["country"].(string); ok {
-					, { country }
-				}
-			</div>
+			}
 			<div class="weather-meta">
 				<span class="weather-time">{ formatRelativeTime(block.CreatedAt()) }</span>
-				if timezone, ok := block.Metadata()["timezone"].(string); ok && timezone != "" {
-					<span class="weather-separator">|</span>
-					<span class="weather-timezone">{ timezone }</span>
-				}
-				if lat, latOk := block.Metadata()["latitude"].(float64); latOk {
-					if lon, lonOk := block.Metadata()["longitude"].(float64); lonOk {
-						<span class="weather-separator">|</span>
-						<a
-							href={ templ.URL(fmt.Sprintf("https://www.openstreetmap.org/?mlat=%.4f&mlon=%.4f&zoom=12", lat, lon)) }
-							target="_blank"
-							class="weather-map"
-						>
-							view map
-						</a>
-					}
-				}
 			</div>
 		</div>
 		<div class="weather-details">
 			<div class="weather-detail">
 				if temp, ok := block.Metadata()["temperature"].(float64); ok {
-					<span class="detail-label">🌡️ Temperature</span>
+					<span class="detail-label">🌡️</span>
 					<span class="detail-value">{ fmt.Sprintf("%.1f", temp) }°</span>
 				}
 			</div>
 			if windSpeed, ok := block.Metadata()["wind_speed"].(float64); ok {
 				<div class="weather-detail">
-					<span class="detail-label">💨 Wind</span>
+					<span class="detail-label">💨</span>
 					<span class="detail-value">{ fmt.Sprintf("%.1f", windSpeed) } km/h</span>
 				</div>
 			}
 			if humidity, ok := block.Metadata()["humidity"].(float64); ok {
 				<div class="weather-detail">
-					<span class="detail-label">💧 Humidity</span>
+					<span class="detail-label">💧</span>
 					<span class="detail-value">{ fmt.Sprintf("%.1f", humidity) }%</span>
 				</div>
 			}
 			if uvIndex, ok := block.Metadata()["uv_index"].(float64); ok {
 				<div class="weather-detail">
-					<span class="detail-label">☀️ UV Index</span>
+					<span class="detail-label">☀️</span>
 					<span class="detail-value">{ fmt.Sprintf("%.0f", uvIndex) }</span>
 				</div>
 			}
 			if pressure, ok := block.Metadata()["surface_pressure"].(float64); ok {
 				<div class="weather-detail">
-					<span class="detail-label">📊 Pressure</span>
+					<span class="detail-label">📊</span>
 					<span class="detail-value">{ fmt.Sprintf("%.1f", pressure) } hPa</span>
+				</div>
+			}
+			if hourlyForecast, ok := block.Metadata()["hourly_forecast"].([]interface{}); ok && len(hourlyForecast) > 0 {
+				<div class="weather-detail">
+					if hasRain(hourlyForecast) {
+						<span class="detail-label">🌧️</span>
+						<span class="detail-value rain-yes">Yes</span>
+					} else {
+						<span class="detail-label">🌧️</span>
+						<span class="detail-value rain-no">No</span>
+					}
 				</div>
 			}
 		</div>
 	</div>
 }
+
+
 
 // HourlyForecast displays collapsible hourly forecast table
 templ HourlyForecast(metadata map[string]interface{}) {
