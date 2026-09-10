@@ -7,10 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v73/github"
+	"github.com/google/go-github/v91/github"
 	"github.com/rubiojr/ergs/pkg/core"
 	"github.com/rubiojr/ergs/pkg/log"
-	"golang.org/x/oauth2"
 )
 
 func init() {
@@ -54,6 +53,14 @@ type Datasource struct {
 	instanceName string
 }
 
+func newGitHubClient(token string) (*github.Client, error) {
+	if token == "" {
+		return github.NewClient()
+	}
+
+	return github.NewClient(github.WithAuthToken(token))
+}
+
 func NewDatasource(instanceName string, config any) (core.Datasource, error) {
 	var ghConfig *Config
 	if config == nil {
@@ -66,15 +73,9 @@ func NewDatasource(instanceName string, config any) (core.Datasource, error) {
 		}
 	}
 
-	var client *github.Client
-	if ghConfig.Token != "" {
-		ts := oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: ghConfig.Token},
-		)
-		tc := oauth2.NewClient(context.Background(), ts)
-		client = github.NewClient(tc)
-	} else {
-		client = github.NewClient(nil)
+	client, err := newGitHubClient(ghConfig.Token)
+	if err != nil {
+		return nil, fmt.Errorf("creating GitHub client: %w", err)
 	}
 
 	return &Datasource{
@@ -119,16 +120,9 @@ func (d *Datasource) SetConfig(config any) error {
 	if cfg, ok := config.(*Config); ok {
 		d.config = cfg
 
-		// Recreate the GitHub client with the new config
-		var client *github.Client
-		if cfg.Token != "" {
-			ts := oauth2.StaticTokenSource(
-				&oauth2.Token{AccessToken: cfg.Token},
-			)
-			tc := oauth2.NewClient(context.Background(), ts)
-			client = github.NewClient(tc)
-		} else {
-			client = github.NewClient(nil)
+		client, err := newGitHubClient(cfg.Token)
+		if err != nil {
+			return fmt.Errorf("creating GitHub client: %w", err)
 		}
 		d.client = client
 

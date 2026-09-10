@@ -3,20 +3,19 @@ module github.com/rubiojr/ergs
 go 1.27.1
 
 require (
-	github.com/a-h/templ v0.3.943
+	github.com/a-h/templ v0.3.1020
 	github.com/charmbracelet/lipgloss v1.1.0
-	github.com/fsnotify/fsnotify v1.9.0
-	github.com/google/go-github/v73 v73.0.0
+	github.com/fsnotify/fsnotify v1.10.1
+	github.com/google/go-github/v91 v91.0.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/klauspost/compress v1.20.0
 	github.com/ncruces/go-sqlite3 v0.35.4
-	github.com/pelletier/go-toml/v2 v2.2.4
+	github.com/pelletier/go-toml/v2 v2.4.3
 	github.com/rubiojr/gasdb v1.2.3
 	github.com/rubiojr/go-datadis v0.1.1
 	github.com/rubiojr/rtve-go v0.2.2
-	github.com/urfave/cli/v3 v3.4.1
-	golang.org/x/oauth2 v0.37.0
+	github.com/urfave/cli/v3 v3.11.0
 	golang.org/x/text v0.42.0
 )
 
@@ -26,7 +25,7 @@ require (
 	github.com/charmbracelet/x/ansi v0.8.0 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.13-0.20250311204145-2c3ea96c31dd // indirect
 	github.com/charmbracelet/x/term v0.2.1 // indirect
-	github.com/google/go-querystring v1.1.0 // indirect
+	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
