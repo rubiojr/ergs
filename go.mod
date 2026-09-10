@@ -2,8 +2,6 @@ module github.com/rubiojr/ergs
 
 go 1.24.2
 
-godebug tlsrsakex=1
-
 toolchain go1.24.4
 
 require (
@@ -16,7 +14,7 @@ require (
 	github.com/klauspost/compress v1.18.0
 	github.com/ncruces/go-sqlite3 v0.29.1
 	github.com/pelletier/go-toml/v2 v2.2.4
-	github.com/rubiojr/gasdb v1.1.3
+	github.com/rubiojr/gasdb v1.2.3
 	github.com/rubiojr/go-datadis v0.1.1
 	github.com/rubiojr/rtve-go v0.2.2
 	github.com/urfave/cli/v3 v3.4.1
