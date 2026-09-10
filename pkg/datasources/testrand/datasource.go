@@ -23,6 +23,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/rubiojr/ergs/pkg/core"
@@ -63,7 +64,7 @@ type Datasource struct {
 }
 
 // NewDatasource creates a new random test datasource instance.
-func NewDatasource(instanceName string, config interface{}) (core.Datasource, error) {
+func NewDatasource(instanceName string, config any) (core.Datasource, error) {
 	var randConfig *Config
 
 	if config == nil {
@@ -124,12 +125,12 @@ func (d *Datasource) BlockPrototype() core.Block {
 }
 
 // ConfigType returns a pointer to an empty config struct.
-func (d *Datasource) ConfigType() interface{} {
+func (d *Datasource) ConfigType() any {
 	return &Config{}
 }
 
 // SetConfig updates the datasource configuration.
-func (d *Datasource) SetConfig(config interface{}) error {
+func (d *Datasource) SetConfig(config any) error {
 	if cfg, ok := config.(*Config); ok {
 		if err := cfg.Validate(); err != nil {
 			return err
@@ -141,7 +142,7 @@ func (d *Datasource) SetConfig(config interface{}) error {
 }
 
 // GetConfig returns the current configuration.
-func (d *Datasource) GetConfig() interface{} {
+func (d *Datasource) GetConfig() any {
 	return d.config
 }
 
@@ -193,7 +194,7 @@ func (d *Datasource) generateRandomText() string {
 	wordCount := 3 + d.rng.Intn(6)
 	var result []string
 
-	for i := 0; i < wordCount; i++ {
+	for range wordCount {
 		word := words[d.rng.Intn(len(words))]
 		result = append(result, word)
 	}
@@ -207,12 +208,13 @@ func joinWords(words []string) string {
 		return ""
 	}
 
-	result := words[0]
+	var result strings.Builder
+	result.WriteString(words[0])
 	for i := 1; i < len(words); i++ {
-		result += " " + words[i]
+		result.WriteString(" " + words[i])
 	}
 
-	return result
+	return result.String()
 }
 
 // Close performs cleanup when the datasource is no longer needed.
@@ -221,6 +223,6 @@ func (d *Datasource) Close() error {
 }
 
 // Factory creates a new instance of this datasource.
-func (d *Datasource) Factory(instanceName string, config interface{}) (core.Datasource, error) {
+func (d *Datasource) Factory(instanceName string, config any) (core.Datasource, error) {
 	return NewDatasource(instanceName, config)
 }

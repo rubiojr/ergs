@@ -6,6 +6,7 @@ BUILD_DIR=bin
 VERSION?=$(shell grep 'const Version' pkg/version/version.go | cut -d'"' -f2)
 LDFLAGS=-ldflags "-X main.version=$(VERSION)"
 BUILD_TAGS=fts5
+TEMPL_VERSION=$(shell go list -m -f '{{.Version}}' github.com/a-h/templ)
 
 # CGO Configuration
 # Set to 0 for CGO-free builds (default) using ncruces/go-sqlite3
@@ -18,7 +19,7 @@ all: build
 # Generate templ templates
 templ:
 	@echo "Generating templ templates..."
-	go install github.com/a-h/templ/cmd/templ@latest
+	go install github.com/a-h/templ/cmd/templ@$(TEMPL_VERSION)
 	templ generate
 
 # Build the binary
@@ -87,8 +88,8 @@ clean:
 dev-setup: deps
 	@echo "Installing development tools..."
 	go install golang.org/x/tools/cmd/goimports@latest
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-	go install github.com/a-h/templ/cmd/templ@latest
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2
+	go install github.com/a-h/templ/cmd/templ@$(TEMPL_VERSION)
 
 # Lint code
 lint:

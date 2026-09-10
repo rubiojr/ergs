@@ -122,7 +122,7 @@ func TestTimeBasedOrderingIntegration(t *testing.T) {
 				text:      blockData.text,
 				createdAt: blockData.createdAt,
 				source:    blockData.source,
-				metadata:  make(map[string]interface{}),
+				metadata:  make(map[string]any),
 			}
 
 			err = storage.StoreBlock(block, "mock")
@@ -161,12 +161,12 @@ func TestTimeBasedOrderingIntegration(t *testing.T) {
 			t.Errorf("API request failed with status %d", w.Code)
 		}
 
-		var response map[string]interface{}
+		var response map[string]any
 		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
 			t.Fatalf("Failed to parse API response: %v", err)
 		}
 
-		results, ok := response["results"].(map[string]interface{})
+		results, ok := response["results"].(map[string]any)
 		if !ok {
 			t.Fatal("API results field is not a map")
 		}
@@ -181,18 +181,18 @@ func TestTimeBasedOrderingIntegration(t *testing.T) {
 
 		// Verify that within each datasource, blocks are ordered by time (newest first)
 		for dsName, dsData := range results {
-			dsResponse, ok := dsData.(map[string]interface{})
+			dsResponse, ok := dsData.(map[string]any)
 			if !ok {
 				continue
 			}
-			blocks, ok := dsResponse["blocks"].([]interface{})
+			blocks, ok := dsResponse["blocks"].([]any)
 			if !ok {
 				continue
 			}
 
 			var blockTimes []time.Time
 			for _, blockData := range blocks {
-				block, ok := blockData.(map[string]interface{})
+				block, ok := blockData.(map[string]any)
 				if !ok {
 					continue
 				}
@@ -232,12 +232,12 @@ func TestTimeBasedOrderingIntegration(t *testing.T) {
 			t.Errorf("API request failed with status %d", w.Code)
 		}
 
-		var response map[string]interface{}
+		var response map[string]any
 		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
 			t.Fatalf("Failed to parse API response: %v", err)
 		}
 
-		results, ok := response["results"].(map[string]interface{})
+		results, ok := response["results"].(map[string]any)
 		if !ok {
 			t.Fatal("API results field is not a map")
 		}
@@ -249,11 +249,11 @@ func TestTimeBasedOrderingIntegration(t *testing.T) {
 
 		// Verify that within each filtered datasource, blocks are ordered by time
 		for dsName, dsData := range results {
-			dsResponse, ok := dsData.(map[string]interface{})
+			dsResponse, ok := dsData.(map[string]any)
 			if !ok {
 				continue
 			}
-			blocks, ok := dsResponse["blocks"].([]interface{})
+			blocks, ok := dsResponse["blocks"].([]any)
 			if !ok {
 				continue
 			}
@@ -261,7 +261,7 @@ func TestTimeBasedOrderingIntegration(t *testing.T) {
 			var blockTimes []time.Time
 			var blockIDs []string
 			for _, blockData := range blocks {
-				block, ok := blockData.(map[string]interface{})
+				block, ok := blockData.(map[string]any)
 				if !ok {
 					continue
 				}
@@ -320,7 +320,7 @@ func TestTimeBasedOrderingIntegration(t *testing.T) {
 		w1 := httptest.NewRecorder()
 		server.apiServer.HandleSearch(w1, req1)
 
-		var response1 map[string]interface{}
+		var response1 map[string]any
 		if err := json.Unmarshal(w1.Body.Bytes(), &response1); err != nil {
 			t.Fatalf("Failed to parse page 1 response: %v", err)
 		}
@@ -330,30 +330,30 @@ func TestTimeBasedOrderingIntegration(t *testing.T) {
 		w2 := httptest.NewRecorder()
 		server.apiServer.HandleSearch(w2, req2)
 
-		var response2 map[string]interface{}
+		var response2 map[string]any
 		if err := json.Unmarshal(w2.Body.Bytes(), &response2); err != nil {
 			t.Fatalf("Failed to parse page 2 response: %v", err)
 		}
 
 		// Extract block times from both pages
-		extractBlockTimes := func(response map[string]interface{}) []time.Time {
+		extractBlockTimes := func(response map[string]any) []time.Time {
 			var times []time.Time
-			results, ok := response["results"].(map[string]interface{})
+			results, ok := response["results"].(map[string]any)
 			if !ok {
 				return times
 			}
 
 			for _, datasourceData := range results {
-				dsResponse, ok := datasourceData.(map[string]interface{})
+				dsResponse, ok := datasourceData.(map[string]any)
 				if !ok {
 					continue
 				}
-				blocks, ok := dsResponse["blocks"].([]interface{})
+				blocks, ok := dsResponse["blocks"].([]any)
 				if !ok {
 					continue
 				}
 				for _, blockData := range blocks {
-					block, ok := blockData.(map[string]interface{})
+					block, ok := blockData.(map[string]any)
 					if !ok {
 						continue
 					}
@@ -486,11 +486,11 @@ func TestTimeOrderingPerformance(t *testing.T) {
 	blocksPerDatasource := 100
 
 	testData := make(map[string][]core.Block)
-	for i := 0; i < numDatasources; i++ {
+	for i := range numDatasources {
 		datasourceName := fmt.Sprintf("perf_datasource_%d", i)
 		blocks := make([]core.Block, blocksPerDatasource)
 
-		for j := 0; j < blocksPerDatasource; j++ {
+		for j := range blocksPerDatasource {
 			blocks[j] = &mockBlock{
 				id:        fmt.Sprintf("perf_%d_%d", i, j),
 				text:      fmt.Sprintf("performance test content %d", j),

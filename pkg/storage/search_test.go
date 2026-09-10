@@ -194,7 +194,7 @@ func TestSearchServiceSearch(t *testing.T) {
 				text:      blockData.text,
 				createdAt: blockData.createdAt,
 				source:    dsName,
-				metadata:  map[string]interface{}{},
+				metadata:  map[string]any{},
 			}
 			err = storage.StoreBlock(block, dsName)
 			if err != nil {
@@ -366,7 +366,7 @@ func TestSearchServiceSearchWithDateFiltering(t *testing.T) {
 				text:      blockData.text,
 				createdAt: blockData.createdAt,
 				source:    dsName,
-				metadata:  map[string]interface{}{},
+				metadata:  map[string]any{},
 			}
 			err = storage.StoreBlock(block, dsName)
 			if err != nil {
@@ -683,7 +683,7 @@ func TestGlobalFirehoseOrdering(t *testing.T) {
 				text:      b.text,
 				createdAt: b.when,
 				source:    ds,
-				metadata:  map[string]interface{}{},
+				metadata:  map[string]any{},
 			}
 			if err := st.StoreBlock(blk, ds); err != nil {
 				t.Fatalf("store block %s/%s: %v", ds, b.id, err)

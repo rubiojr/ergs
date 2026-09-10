@@ -12,7 +12,7 @@ type EventBlock struct {
 	text       string
 	createdAt  time.Time
 	source     string
-	metadata   map[string]interface{}
+	metadata   map[string]any
 	eventType  string
 	actorLogin string
 	repoName   string
@@ -40,7 +40,7 @@ func NewEventBlock(
 		eventType, actorLogin, repoName, repoDesc, language, repoURL, stars, forks, public,
 	)
 
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"event_type":  eventType,
 		"actor_login": actorLogin,
 		"repo_name":   repoName,
@@ -88,7 +88,7 @@ func (e *EventBlock) Source() string {
 	return e.source
 }
 
-func (e *EventBlock) Metadata() map[string]interface{} {
+func (e *EventBlock) Metadata() map[string]any {
 	return e.metadata
 }
 
@@ -209,7 +209,7 @@ func (e *EventBlock) Factory(genericBlock *core.GenericBlock, source string) cor
 }
 
 // Helper functions for safe metadata extraction
-func getStringFromMetadata(metadata map[string]interface{}, key, defaultValue string) string {
+func getStringFromMetadata(metadata map[string]any, key, defaultValue string) string {
 	if value, exists := metadata[key]; exists {
 		if str, ok := value.(string); ok {
 			return str
@@ -218,7 +218,7 @@ func getStringFromMetadata(metadata map[string]interface{}, key, defaultValue st
 	return defaultValue
 }
 
-func getIntFromMetadata(metadata map[string]interface{}, key string, defaultValue int) int {
+func getIntFromMetadata(metadata map[string]any, key string, defaultValue int) int {
 	if value, exists := metadata[key]; exists {
 		switch v := value.(type) {
 		case int:
@@ -232,7 +232,7 @@ func getIntFromMetadata(metadata map[string]interface{}, key string, defaultValu
 	return defaultValue
 }
 
-func getBoolFromMetadata(metadata map[string]interface{}, key string, defaultValue bool) bool {
+func getBoolFromMetadata(metadata map[string]any, key string, defaultValue bool) bool {
 	if value, exists := metadata[key]; exists {
 		if b, ok := value.(bool); ok {
 			return b

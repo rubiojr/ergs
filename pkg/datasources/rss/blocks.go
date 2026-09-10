@@ -13,7 +13,7 @@ type ItemBlock struct {
 	text        string
 	createdAt   time.Time
 	source      string
-	metadata    map[string]interface{}
+	metadata    map[string]any
 	feedTitle   string
 	feedURL     string
 	title       string
@@ -25,7 +25,7 @@ type ItemBlock struct {
 	published   string
 }
 
-func NewItemBlock(id, text string, createdAt time.Time, source string, metadata map[string]interface{},
+func NewItemBlock(id, text string, createdAt time.Time, source string, metadata map[string]any,
 	feedTitle, feedURL, title, link, description, author, category, guid, published string) *ItemBlock {
 	return &ItemBlock{
 		id:          id,
@@ -61,7 +61,7 @@ func (i *ItemBlock) Source() string {
 	return i.source
 }
 
-func (i *ItemBlock) Metadata() map[string]interface{} {
+func (i *ItemBlock) Metadata() map[string]any {
 	return i.metadata
 }
 
@@ -212,7 +212,7 @@ func (i *ItemBlock) Factory(genericBlock *core.GenericBlock, source string) core
 }
 
 // Helper functions for safe metadata extraction
-func getStringFromMetadata(metadata map[string]interface{}, key, defaultValue string) string {
+func getStringFromMetadata(metadata map[string]any, key, defaultValue string) string {
 	if value, exists := metadata[key]; exists {
 		if str, ok := value.(string); ok {
 			return str

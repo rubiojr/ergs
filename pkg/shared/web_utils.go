@@ -26,7 +26,7 @@ func GetDatasourceList(registry *core.Registry, storageManager *storage.Manager)
 
 		if stats != nil {
 			if dsStats, exists := stats[name]; exists {
-				info.Stats = dsStats.(map[string]interface{})
+				info.Stats = dsStats.(map[string]any)
 			}
 		}
 

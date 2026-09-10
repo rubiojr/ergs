@@ -83,13 +83,13 @@ func (s *Server) HandleFirehoseWS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type wsBlock struct {
-		ID            string                 `json:"id"`
-		Text          string                 `json:"text"`
-		Source        string                 `json:"source"`
-		DSType        string                 `json:"ds_type,omitempty"`
-		CreatedAt     time.Time              `json:"created_at"`
-		Metadata      map[string]interface{} `json:"metadata,omitempty"`
-		FormattedHTML string                 `json:"formatted_html,omitempty"`
+		ID            string         `json:"id"`
+		Text          string         `json:"text"`
+		Source        string         `json:"source"`
+		DSType        string         `json:"ds_type,omitempty"`
+		CreatedAt     time.Time      `json:"created_at"`
+		Metadata      map[string]any `json:"metadata,omitempty"`
+		FormattedHTML string         `json:"formatted_html,omitempty"`
 	}
 
 	var (
@@ -100,7 +100,7 @@ func (s *Server) HandleFirehoseWS(w http.ResponseWriter, r *http.Request) {
 		for _, b := range blocks {
 			md := b.Metadata()
 			if md == nil {
-				md = map[string]interface{}{}
+				md = map[string]any{}
 			}
 			if _, ok := md["datasource"]; !ok {
 				md["datasource"] = dsName
@@ -282,7 +282,7 @@ func (s *Server) HandleFirehoseWS(w http.ResponseWriter, r *http.Request) {
 					}
 					md := b.Metadata()
 					if md == nil {
-						md = map[string]interface{}{}
+						md = map[string]any{}
 					}
 					if _, ok := md["datasource"]; !ok {
 						md["datasource"] = dsName

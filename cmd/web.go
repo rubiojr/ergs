@@ -249,8 +249,8 @@ func (s *WebServer) handleHome(w http.ResponseWriter, r *http.Request) {
 	var homeBlocks []types.WebBlock
 	if s.config.Home != nil && s.config.Home.Datasources != "" {
 		// Parse comma-separated datasource names
-		dsNames := strings.Split(s.config.Home.Datasources, ",")
-		for _, dsName := range dsNames {
+		dsNames := strings.SplitSeq(s.config.Home.Datasources, ",")
+		for dsName := range dsNames {
 			dsName = strings.TrimSpace(dsName)
 			if dsName == "" {
 				continue
@@ -481,7 +481,7 @@ func (s *WebServer) handleFirehose(w http.ResponseWriter, r *http.Request) {
 			wb := s.convertBlockToWebBlock(b)
 			// Ensure datasource metadata is present
 			if wb.Metadata == nil {
-				wb.Metadata = map[string]interface{}{}
+				wb.Metadata = map[string]any{}
 			}
 			if _, ok := wb.Metadata["datasource"]; !ok {
 				wb.Metadata["datasource"] = b.Source()
@@ -594,9 +594,9 @@ func (s *WebServer) convertBlockToWebBlock(block core.Block) types.WebBlock {
 // extractLinks extracts HTTP/HTTPS URLs from text
 func extractLinks(text string) []string {
 	var links []string
-	words := strings.Fields(text)
+	words := strings.FieldsSeq(text)
 
-	for _, word := range words {
+	for word := range words {
 		if strings.HasPrefix(word, "http://") || strings.HasPrefix(word, "https://") {
 			// Clean up punctuation at the end
 			cleaned := strings.TrimRight(word, ".,!?;:")

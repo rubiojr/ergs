@@ -418,7 +418,7 @@ func (s *Server) HandleFirehose(w http.ResponseWriter, r *http.Request) {
 			}
 			// Add datasource name to metadata if not already present
 			if blockResp.Metadata == nil {
-				blockResp.Metadata = make(map[string]interface{})
+				blockResp.Metadata = make(map[string]any)
 			}
 			if _, exists := blockResp.Metadata["datasource"]; !exists {
 				blockResp.Metadata["datasource"] = datasourceName

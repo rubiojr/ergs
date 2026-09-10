@@ -33,7 +33,7 @@ Helper functions and utilities for tests:
 
 ### Prerequisites
 
-Make sure you have Go 1.24+ installed and the required build tags:
+Make sure you have Go 1.27.1+ installed and the required build tags:
 
 ```bash
 # Install dependencies

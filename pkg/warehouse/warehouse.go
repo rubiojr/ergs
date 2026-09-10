@@ -273,9 +273,7 @@ func (w *Warehouse) fetchAll(ctx context.Context) error {
 	var processorWg sync.WaitGroup
 
 	// Start block processor
-	processorWg.Add(1)
-	go func() {
-		defer processorWg.Done()
+	processorWg.Go(func() {
 		for {
 			select {
 			case <-ctx.Done():
@@ -289,7 +287,7 @@ func (w *Warehouse) fetchAll(ctx context.Context) error {
 				}
 			}
 		}
-	}()
+	})
 
 	if len(datasources) == 0 {
 		whLogger.Debugf("No datasources to fetch (all have interval 0)")
@@ -350,9 +348,7 @@ func (w *Warehouse) fetchFromDatasourceByName(ctx context.Context, datasourceNam
 	var processorWg sync.WaitGroup
 
 	// Start block processor
-	processorWg.Add(1)
-	go func() {
-		defer processorWg.Done()
+	processorWg.Go(func() {
 		for {
 			select {
 			case <-ctx.Done():
@@ -366,19 +362,17 @@ func (w *Warehouse) fetchFromDatasourceByName(ctx context.Context, datasourceNam
 				}
 			}
 		}
-	}()
+	})
 
 	// Start fetching from the specific datasource
-	fetchWg.Add(1)
-	go func() {
-		defer fetchWg.Done()
+	fetchWg.Go(func() {
 		whLogger.Debugf("Starting to fetch blocks from datasource: %s", datasourceName)
 		err := targetDS.FetchBlocks(ctx, blockCh)
 		if err != nil && err != context.Canceled {
 			whLogger.Warnf("Error fetching blocks from datasource %s: %v", datasourceName, err)
 		}
 		whLogger.Debugf("Finished fetching blocks from datasource: %s", datasourceName)
-	}()
+	})
 
 	// Wait for fetch to complete, then close the channel
 	go func() {
@@ -510,9 +504,7 @@ func (w *Warehouse) FetchOnce(ctx context.Context, options ...FetchOption) error
 	var processorWg sync.WaitGroup
 
 	// Start block processor with streaming callback
-	processorWg.Add(1)
-	go func() {
-		defer processorWg.Done()
+	processorWg.Go(func() {
 		for {
 			select {
 			case <-ctx.Done():
@@ -531,7 +523,7 @@ func (w *Warehouse) FetchOnce(ctx context.Context, options ...FetchOption) error
 				}
 			}
 		}
-	}()
+	})
 
 	// Start fetching from all datasources
 	for _, ds := range datasources {

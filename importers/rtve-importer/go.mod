@@ -1,6 +1,6 @@
 module rtve-importer
 
-go 1.24.2
+go 1.27.1
 
 replace github.com/rubiojr/ergs => ../..
 

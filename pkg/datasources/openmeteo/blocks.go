@@ -13,7 +13,7 @@ type WeatherBlock struct {
 	text      string
 	createdAt time.Time
 	source    string
-	metadata  map[string]interface{}
+	metadata  map[string]any
 
 	// Weather specific fields
 	location            string
@@ -32,7 +32,7 @@ type WeatherBlock struct {
 	surfacePressure     float64
 	sealevelPressure    float64
 	uvIndex             float64
-	hourlyForecast      []map[string]interface{}
+	hourlyForecast      []map[string]any
 }
 
 func NewWeatherBlock(
@@ -44,7 +44,7 @@ func NewWeatherBlock(
 	weatherCode int,
 	weatherDescription string,
 	humidity, apparentTemperature, surfacePressure, sealevelPressure, uvIndex float64,
-	hourlyForecast []map[string]interface{},
+	hourlyForecast []map[string]any,
 	createdAt time.Time,
 	source string,
 ) *WeatherBlock {
@@ -52,7 +52,7 @@ func NewWeatherBlock(
 	text := fmt.Sprintf("%s %s weather %s temperature %.1f°C wind %.1f km/h humidity %.1f%%",
 		location, country, weatherDescription, temperature, windSpeed, humidity)
 
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"location":             location,
 		"country":              country,
 		"latitude":             latitude,
@@ -104,11 +104,11 @@ func NewWeatherBlock(
 }
 
 // Implement core.Block interface
-func (b *WeatherBlock) ID() string                       { return b.id }
-func (b *WeatherBlock) Text() string                     { return b.text }
-func (b *WeatherBlock) CreatedAt() time.Time             { return b.createdAt }
-func (b *WeatherBlock) Source() string                   { return b.source }
-func (b *WeatherBlock) Metadata() map[string]interface{} { return b.metadata }
+func (b *WeatherBlock) ID() string               { return b.id }
+func (b *WeatherBlock) Text() string             { return b.text }
+func (b *WeatherBlock) CreatedAt() time.Time     { return b.createdAt }
+func (b *WeatherBlock) Source() string           { return b.source }
+func (b *WeatherBlock) Metadata() map[string]any { return b.metadata }
 
 func (b *WeatherBlock) PrettyText() string {
 	metadataInfo := core.FormatMetadata(b.metadata)
@@ -137,23 +137,23 @@ func (b *WeatherBlock) Summary() string {
 }
 
 // Custom accessor methods
-func (b *WeatherBlock) Location() string                         { return b.location }
-func (b *WeatherBlock) Country() string                          { return b.country }
-func (b *WeatherBlock) Latitude() float64                        { return b.latitude }
-func (b *WeatherBlock) Longitude() float64                       { return b.longitude }
-func (b *WeatherBlock) Timezone() string                         { return b.timezone }
-func (b *WeatherBlock) Population() int64                        { return b.population }
-func (b *WeatherBlock) Temperature() float64                     { return b.temperature }
-func (b *WeatherBlock) WindSpeed() float64                       { return b.windSpeed }
-func (b *WeatherBlock) WindDirection() float64                   { return b.windDirection }
-func (b *WeatherBlock) WeatherCode() int                         { return b.weatherCode }
-func (b *WeatherBlock) WeatherDescription() string               { return b.weatherDescription }
-func (b *WeatherBlock) Humidity() float64                        { return b.humidity }
-func (b *WeatherBlock) ApparentTemperature() float64             { return b.apparentTemperature }
-func (b *WeatherBlock) SurfacePressure() float64                 { return b.surfacePressure }
-func (b *WeatherBlock) SealevelPressure() float64                { return b.sealevelPressure }
-func (b *WeatherBlock) UVIndex() float64                         { return b.uvIndex }
-func (b *WeatherBlock) HourlyForecast() []map[string]interface{} { return b.hourlyForecast }
+func (b *WeatherBlock) Location() string                 { return b.location }
+func (b *WeatherBlock) Country() string                  { return b.country }
+func (b *WeatherBlock) Latitude() float64                { return b.latitude }
+func (b *WeatherBlock) Longitude() float64               { return b.longitude }
+func (b *WeatherBlock) Timezone() string                 { return b.timezone }
+func (b *WeatherBlock) Population() int64                { return b.population }
+func (b *WeatherBlock) Temperature() float64             { return b.temperature }
+func (b *WeatherBlock) WindSpeed() float64               { return b.windSpeed }
+func (b *WeatherBlock) WindDirection() float64           { return b.windDirection }
+func (b *WeatherBlock) WeatherCode() int                 { return b.weatherCode }
+func (b *WeatherBlock) WeatherDescription() string       { return b.weatherDescription }
+func (b *WeatherBlock) Humidity() float64                { return b.humidity }
+func (b *WeatherBlock) ApparentTemperature() float64     { return b.apparentTemperature }
+func (b *WeatherBlock) SurfacePressure() float64         { return b.surfacePressure }
+func (b *WeatherBlock) SealevelPressure() float64        { return b.sealevelPressure }
+func (b *WeatherBlock) UVIndex() float64                 { return b.uvIndex }
+func (b *WeatherBlock) HourlyForecast() []map[string]any { return b.hourlyForecast }
 
 func (b *WeatherBlock) Type() string { return "openmeteo" }
 
@@ -209,7 +209,7 @@ func (b *WeatherBlock) Factory(genericBlock *core.GenericBlock, source string) c
 // BlockFactory implements the BlockFactory interface for Weather
 type BlockFactory struct{}
 
-func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, source string, metadata map[string]interface{}) core.Block {
+func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, source string, metadata map[string]any) core.Block {
 	location := getStringFromMetadata(metadata, "location", "Unknown")
 	country := getStringFromMetadata(metadata, "country", "Unknown")
 	latitude := getFloatFromMetadata(metadata, "latitude", 0.0)
@@ -255,7 +255,7 @@ func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, s
 }
 
 // Helper functions for safe metadata extraction
-func getStringFromMetadata(metadata map[string]interface{}, key, defaultValue string) string {
+func getStringFromMetadata(metadata map[string]any, key, defaultValue string) string {
 	if value, exists := metadata[key]; exists {
 		if str, ok := value.(string); ok {
 			return str
@@ -264,25 +264,25 @@ func getStringFromMetadata(metadata map[string]interface{}, key, defaultValue st
 	return defaultValue
 }
 
-func getSliceFromMetadata(metadata map[string]interface{}, key string) []map[string]interface{} {
+func getSliceFromMetadata(metadata map[string]any, key string) []map[string]any {
 	if value, exists := metadata[key]; exists {
-		if slice, ok := value.([]interface{}); ok {
-			result := make([]map[string]interface{}, 0, len(slice))
+		if slice, ok := value.([]any); ok {
+			result := make([]map[string]any, 0, len(slice))
 			for _, item := range slice {
-				if m, ok := item.(map[string]interface{}); ok {
+				if m, ok := item.(map[string]any); ok {
 					result = append(result, m)
 				}
 			}
 			return result
 		}
-		if slice, ok := value.([]map[string]interface{}); ok {
+		if slice, ok := value.([]map[string]any); ok {
 			return slice
 		}
 	}
-	return []map[string]interface{}{}
+	return []map[string]any{}
 }
 
-func getFloatFromMetadata(metadata map[string]interface{}, key string, defaultValue float64) float64 {
+func getFloatFromMetadata(metadata map[string]any, key string, defaultValue float64) float64 {
 	if value, exists := metadata[key]; exists {
 		switch v := value.(type) {
 		case float64:
@@ -298,7 +298,7 @@ func getFloatFromMetadata(metadata map[string]interface{}, key string, defaultVa
 	return defaultValue
 }
 
-func getIntFromMetadata(metadata map[string]interface{}, key string, defaultValue int) int {
+func getIntFromMetadata(metadata map[string]any, key string, defaultValue int) int {
 	if value, exists := metadata[key]; exists {
 		switch v := value.(type) {
 		case int:

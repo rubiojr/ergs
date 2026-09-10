@@ -104,7 +104,7 @@ func (h *FirehoseHub) Unregister(id uint64) {
 //   - BlockEvent (will be wrapped as InternalEvent{Type:"block"})
 //
 // Any other type is ignored silently.
-func (h *FirehoseHub) Broadcast(event interface{}) {
+func (h *FirehoseHub) Broadcast(event any) {
 	var ie InternalEvent
 	switch v := event.(type) {
 	case InternalEvent:

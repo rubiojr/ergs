@@ -48,7 +48,7 @@ func serve(ctx context.Context, configPath string, debug bool, debugServices str
 
 	// Enable per-service debug logging if provided.
 	if debugServices != "" {
-		for _, svc := range strings.Split(debugServices, ",") {
+		for svc := range strings.SplitSeq(debugServices, ",") {
 			svc = strings.TrimSpace(svc)
 			if svc == "" {
 				continue

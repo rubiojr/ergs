@@ -20,7 +20,7 @@ func init() {
 // BlockFactory implements the BlockFactory interface for Codeberg
 type BlockFactory struct{}
 
-func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, source string, metadata map[string]interface{}) core.Block {
+func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, source string, metadata map[string]any) core.Block {
 	eventType := getStringFromMetadata(metadata, "event_type", "RepositoryEvent")
 	actorLogin := getStringFromMetadata(metadata, "actor_login", "unknown")
 	repoName := getStringFromMetadata(metadata, "repo_name", "")
@@ -74,7 +74,7 @@ type Datasource struct {
 	instanceName string
 }
 
-func NewDatasource(instanceName string, config interface{}) (core.Datasource, error) {
+func NewDatasource(instanceName string, config any) (core.Datasource, error) {
 	var cbConfig *Config
 	if config == nil {
 		cbConfig = &Config{}
@@ -121,11 +121,11 @@ func (d *Datasource) BlockPrototype() core.Block {
 	return &EventBlock{}
 }
 
-func (d *Datasource) ConfigType() interface{} {
+func (d *Datasource) ConfigType() any {
 	return &Config{}
 }
 
-func (d *Datasource) SetConfig(config interface{}) error {
+func (d *Datasource) SetConfig(config any) error {
 	if cfg, ok := config.(*Config); ok {
 
 		d.config = cfg
@@ -134,7 +134,7 @@ func (d *Datasource) SetConfig(config interface{}) error {
 	return fmt.Errorf("invalid config type for Codeberg datasource")
 }
 
-func (d *Datasource) GetConfig() interface{} {
+func (d *Datasource) GetConfig() any {
 	return d.config
 }
 
@@ -252,6 +252,6 @@ func (d *Datasource) Close() error {
 	return nil
 }
 
-func (d *Datasource) Factory(instanceName string, config interface{}) (core.Datasource, error) {
+func (d *Datasource) Factory(instanceName string, config any) (core.Datasource, error) {
 	return NewDatasource(instanceName, config)
 }

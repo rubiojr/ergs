@@ -68,7 +68,7 @@ type Datasource struct {
 //   - config: Configuration object (can be nil for defaults)
 //
 // Returns the configured datasource or an error if configuration is invalid.
-func NewDatasource(instanceName string, config interface{}) (core.Datasource, error) {
+func NewDatasource(instanceName string, config any) (core.Datasource, error) {
 	var timestampConfig *Config
 
 	// Handle nil config by providing sensible defaults
@@ -122,13 +122,13 @@ func (d *Datasource) BlockPrototype() core.Block {
 
 // ConfigType returns a pointer to an empty config struct.
 // This is used by the configuration system to create and validate configs.
-func (d *Datasource) ConfigType() interface{} {
+func (d *Datasource) ConfigType() any {
 	return &Config{}
 }
 
 // SetConfig updates the datasource configuration.
 // This includes validation to ensure the config is valid.
-func (d *Datasource) SetConfig(config interface{}) error {
+func (d *Datasource) SetConfig(config any) error {
 	if cfg, ok := config.(*Config); ok {
 		d.config = cfg
 		return cfg.Validate()
@@ -138,7 +138,7 @@ func (d *Datasource) SetConfig(config interface{}) error {
 
 // GetConfig returns the current configuration.
 // Used by the system to inspect or serialize current settings.
-func (d *Datasource) GetConfig() interface{} {
+func (d *Datasource) GetConfig() any {
 	return d.config
 }
 
@@ -186,6 +186,6 @@ func (d *Datasource) Close() error {
 // Factory creates a new instance of this datasource.
 // This method is part of the core.Datasource interface and is called
 // by the core system when creating datasource instances.
-func (d *Datasource) Factory(instanceName string, config interface{}) (core.Datasource, error) {
+func (d *Datasource) Factory(instanceName string, config any) (core.Datasource, error) {
 	return NewDatasource(instanceName, config)
 }

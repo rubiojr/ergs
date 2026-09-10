@@ -92,12 +92,12 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 	// Parse response
 	var response struct {
 		Blocks []struct {
-			ID         string                 `json:"id"`
-			Text       string                 `json:"text"`
-			CreatedAt  time.Time              `json:"created_at"`
-			Type       string                 `json:"type"`
-			Datasource string                 `json:"datasource"`
-			Metadata   map[string]interface{} `json:"metadata"`
+			ID         string         `json:"id"`
+			Text       string         `json:"text"`
+			CreatedAt  time.Time      `json:"created_at"`
+			Type       string         `json:"type"`
+			Datasource string         `json:"datasource"`
+			Metadata   map[string]any `json:"metadata"`
 		} `json:"blocks"`
 		Count int `json:"count"`
 	}
@@ -152,11 +152,11 @@ func (d *Datasource) BlockPrototype() core.Block {
 	return &core.GenericBlock{}
 }
 
-func (d *Datasource) ConfigType() interface{} {
+func (d *Datasource) ConfigType() any {
 	return &Config{}
 }
 
-func (d *Datasource) SetConfig(config interface{}) error {
+func (d *Datasource) SetConfig(config any) error {
 	cfg, ok := config.(*Config)
 	if !ok {
 		return fmt.Errorf("invalid config type: expected *importer.Config")
@@ -170,7 +170,7 @@ func (d *Datasource) SetConfig(config interface{}) error {
 	return nil
 }
 
-func (d *Datasource) GetConfig() interface{} {
+func (d *Datasource) GetConfig() any {
 	return &d.config
 }
 
@@ -181,7 +181,7 @@ func (d *Datasource) Close() error {
 	return nil
 }
 
-func (d *Datasource) Factory(instanceName string, config interface{}) (core.Datasource, error) {
+func (d *Datasource) Factory(instanceName string, config any) (core.Datasource, error) {
 	ds := &Datasource{
 		instanceName: instanceName,
 		httpClient: &http.Client{

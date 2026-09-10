@@ -45,7 +45,7 @@ type Manager struct {
 	mu              sync.RWMutex
 
 	// Stats cache
-	statsCache     map[string]interface{}
+	statsCache     map[string]any
 	statsCacheTime time.Time
 	statsCacheTTL  time.Duration
 	statsCacheMu   sync.RWMutex
@@ -59,7 +59,7 @@ func NewManager(storageDir string, datasources ...string) (*Manager, error) {
 		storageDir:      storageDir,
 		storages:        make(map[string]*GenericStorage),
 		blockPrototypes: make(map[string]core.Block),
-		statsCache:      make(map[string]interface{}),
+		statsCache:      make(map[string]any),
 		statsCacheTTL:   5 * time.Minute,
 	}
 	manager.searchService = NewSearchService(manager)
@@ -88,7 +88,7 @@ func NewManagerWithoutMigrationCheck(storageDir string) *Manager {
 		storageDir:      storageDir,
 		storages:        make(map[string]*GenericStorage),
 		blockPrototypes: make(map[string]core.Block),
-		statsCache:      make(map[string]interface{}),
+		statsCache:      make(map[string]any),
 		statsCacheTTL:   5 * time.Minute,
 	}
 	m.searchService = NewSearchService(m)
@@ -374,7 +374,7 @@ func (m *Manager) SearchDatasourcesPagedWithDateRange(datasourceNames []string, 
 // GetStats returns storage statistics for all datasources including total blocks
 // and datasource-specific metrics. The returned map includes individual datasource
 // stats plus aggregate totals.
-func (m *Manager) GetStats() (map[string]interface{}, error) {
+func (m *Manager) GetStats() (map[string]any, error) {
 	// Check cache first
 	m.statsCacheMu.RLock()
 	if m.statsCache != nil && time.Since(m.statsCacheTime) < m.statsCacheTTL {
@@ -388,7 +388,7 @@ func (m *Manager) GetStats() (map[string]interface{}, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	stats := make(map[string]interface{})
+	stats := make(map[string]any)
 	totalBlocks := 0
 
 	for datasourceName, storage := range m.storages {

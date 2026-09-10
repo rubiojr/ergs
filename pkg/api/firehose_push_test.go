@@ -34,14 +34,14 @@ type wsTestBlock struct {
 	metadata map[string]any
 }
 
-func (b *wsTestBlock) ID() string                       { return b.id }
-func (b *wsTestBlock) Text() string                     { return b.text }
-func (b *wsTestBlock) PrettyText() string               { return b.text }
-func (b *wsTestBlock) Summary() string                  { return b.text }
-func (b *wsTestBlock) CreatedAt() time.Time             { return b.created }
-func (b *wsTestBlock) Source() string                   { return b.source }
-func (b *wsTestBlock) Type() string                     { return b.dsType }
-func (b *wsTestBlock) Metadata() map[string]interface{} { return b.metadata }
+func (b *wsTestBlock) ID() string               { return b.id }
+func (b *wsTestBlock) Text() string             { return b.text }
+func (b *wsTestBlock) PrettyText() string       { return b.text }
+func (b *wsTestBlock) Summary() string          { return b.text }
+func (b *wsTestBlock) CreatedAt() time.Time     { return b.created }
+func (b *wsTestBlock) Source() string           { return b.source }
+func (b *wsTestBlock) Type() string             { return b.dsType }
+func (b *wsTestBlock) Metadata() map[string]any { return b.metadata }
 func (b *wsTestBlock) Factory(g *core.GenericBlock, source string) core.Block {
 	return &wsTestBlock{
 		id:       g.ID(),

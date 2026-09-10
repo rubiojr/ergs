@@ -11,7 +11,6 @@ import (
 
 	"github.com/klauspost/compress/zstd"
 	_ "github.com/ncruces/go-sqlite3/driver"
-	_ "github.com/ncruces/go-sqlite3/embed"
 	"github.com/rubiojr/ergs/pkg/core"
 )
 
@@ -152,7 +151,7 @@ func TestZedThreadsDataFetching(t *testing.T) {
 func TestBlockFactory(t *testing.T) {
 	factory := &BlockFactory{}
 
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"summary":            "Test Thread",
 		"model":              "gpt-4",
 		"version":            "0.2.0",
@@ -212,7 +211,7 @@ func TestThreadBlockMethods(t *testing.T) {
 		Summary:  "Test Conversation",
 		Model:    &Model{Provider: "openai", Model: "gpt-4"},
 		Messages: messages,
-		TokenUsage: map[string]interface{}{
+		TokenUsage: map[string]any{
 			"total":  100,
 			"input":  60,
 			"output": 40,
@@ -362,7 +361,7 @@ func createTestDatabase(dbPath string) error {
 			UpdatedAt: thread.updatedAt,
 			Messages:  thread.messages,
 			Model:     &Model{Provider: "openai", Model: "gpt-4"},
-			TokenUsage: map[string]interface{}{
+			TokenUsage: map[string]any{
 				"total":  len(thread.messages) * 50,
 				"input":  len(thread.messages) * 30,
 				"output": len(thread.messages) * 20,

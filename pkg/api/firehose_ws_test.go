@@ -25,17 +25,17 @@ type testBlock struct {
 	created  time.Time
 	source   string
 	dsType   string
-	metadata map[string]interface{}
+	metadata map[string]any
 }
 
-func (b *testBlock) ID() string                       { return b.id }
-func (b *testBlock) Text() string                     { return b.text }
-func (b *testBlock) CreatedAt() time.Time             { return b.created }
-func (b *testBlock) Source() string                   { return b.source }
-func (b *testBlock) Type() string                     { return b.dsType }
-func (b *testBlock) Metadata() map[string]interface{} { return b.metadata }
-func (b *testBlock) PrettyText() string               { return b.text }
-func (b *testBlock) Summary() string                  { return b.text }
+func (b *testBlock) ID() string               { return b.id }
+func (b *testBlock) Text() string             { return b.text }
+func (b *testBlock) CreatedAt() time.Time     { return b.created }
+func (b *testBlock) Source() string           { return b.source }
+func (b *testBlock) Type() string             { return b.dsType }
+func (b *testBlock) Metadata() map[string]any { return b.metadata }
+func (b *testBlock) PrettyText() string       { return b.text }
+func (b *testBlock) Summary() string          { return b.text }
 func (b *testBlock) Factory(g *core.GenericBlock, s string) core.Block {
 	return &testBlock{
 		id:       g.ID(),
@@ -115,13 +115,13 @@ func wsDial(t *testing.T, ts *httptest.Server, rawQuery string) (*websocket.Conn
 
 func extractBlockIDs(t *testing.T, initMsg map[string]any) []string {
 	t.Helper()
-	rawBlocks, ok := initMsg["blocks"].([]interface{})
+	rawBlocks, ok := initMsg["blocks"].([]any)
 	if !ok {
 		return nil
 	}
 	var ids []string
 	for _, rb := range rawBlocks {
-		if m, ok := rb.(map[string]interface{}); ok {
+		if m, ok := rb.(map[string]any); ok {
 			if id, ok := m["id"].(string); ok {
 				ids = append(ids, id)
 			}
@@ -141,7 +141,7 @@ func TestWebSocketFirehoseSinceParameter(t *testing.T) {
 		created:  now.Add(-3 * time.Minute),
 		source:   dsName,
 		dsType:   dsType,
-		metadata: map[string]interface{}{"k": "v1"},
+		metadata: map[string]any{"k": "v1"},
 	}
 	blk2 := &testBlock{
 		id:       "b2",
@@ -149,7 +149,7 @@ func TestWebSocketFirehoseSinceParameter(t *testing.T) {
 		created:  now.Add(-1 * time.Minute),
 		source:   dsName,
 		dsType:   dsType,
-		metadata: map[string]interface{}{"k": "v2"},
+		metadata: map[string]any{"k": "v2"},
 	}
 
 	server, mgr := newServerWithData(t, dsName, []*testBlock{blk1, blk2})
@@ -226,7 +226,7 @@ func TestWebSocketFirehoseSinceParameter(t *testing.T) {
 			created:  time.Now().UTC().Add(2 * time.Second),
 			source:   dsName,
 			dsType:   dsType,
-			metadata: map[string]interface{}{"k": "v3"},
+			metadata: map[string]any{"k": "v3"},
 		}
 		storeTestBlock(t, mgr, dsName, dsType, newBlock)
 
@@ -262,10 +262,10 @@ func TestWebSocketFirehoseSinceParameter(t *testing.T) {
 		if got["type"] != "block_batch" {
 			t.Fatalf("expected block_batch, got %v", got["type"])
 		}
-		rawBlocks, _ := got["blocks"].([]interface{})
+		rawBlocks, _ := got["blocks"].([]any)
 		found := false
 		for _, rb := range rawBlocks {
-			if m, ok := rb.(map[string]interface{}); ok {
+			if m, ok := rb.(map[string]any); ok {
 				if m["id"] == "b3" {
 					found = true
 				}
@@ -338,15 +338,15 @@ type dummyDatasource struct{}
 
 var _ core.Datasource = (*dummyDatasource)(nil)
 
-func (d *dummyDatasource) Type() string                    { return "dummy" }
-func (d *dummyDatasource) Name() string                    { return "dummy" }
-func (d *dummyDatasource) Schema() map[string]any          { return map[string]any{"text": "TEXT"} }
-func (d *dummyDatasource) BlockPrototype() core.Block      { return &testBlock{} }
-func (d *dummyDatasource) ConfigType() interface{}         { return nil }
-func (d *dummyDatasource) SetConfig(cfg interface{}) error { return nil }
-func (d *dummyDatasource) GetConfig() interface{}          { return nil }
-func (d *dummyDatasource) Close() error                    { return nil }
-func (d *dummyDatasource) Factory(instanceName string, c interface{}) (core.Datasource, error) {
+func (d *dummyDatasource) Type() string               { return "dummy" }
+func (d *dummyDatasource) Name() string               { return "dummy" }
+func (d *dummyDatasource) Schema() map[string]any     { return map[string]any{"text": "TEXT"} }
+func (d *dummyDatasource) BlockPrototype() core.Block { return &testBlock{} }
+func (d *dummyDatasource) ConfigType() any            { return nil }
+func (d *dummyDatasource) SetConfig(cfg any) error    { return nil }
+func (d *dummyDatasource) GetConfig() any             { return nil }
+func (d *dummyDatasource) Close() error               { return nil }
+func (d *dummyDatasource) Factory(instanceName string, c any) (core.Datasource, error) {
 	return &dummyDatasource{}, nil
 }
 func (d *dummyDatasource) FetchBlocks(ctx context.Context, ch chan<- core.Block) error {
@@ -373,8 +373,7 @@ func TestWarehouseEventSocketCreatesSocket(t *testing.T) {
 		t.Fatalf("add datasource: %v", err)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	if err := wh.Start(ctx); err != nil {
 		t.Fatalf("start warehouse: %v", err)

@@ -24,7 +24,7 @@ type BlockRenderer interface {
 
 type TemplateData struct {
 	Block    core.Block
-	Metadata map[string]interface{}
+	Metadata map[string]any
 	Links    []string
 }
 
@@ -45,8 +45,8 @@ func GetRegisteredRenderers() []BlockRenderer {
 
 func ExtractLinks(text string) []string {
 	var links []string
-	words := strings.Fields(text)
-	for _, w := range words {
+	words := strings.FieldsSeq(text)
+	for w := range words {
 		if strings.HasPrefix(w, "http://") || strings.HasPrefix(w, "https://") {
 			clean := strings.TrimRight(w, ".,!?;:)]}")
 			links = append(links, clean)
@@ -105,17 +105,17 @@ func GetTemplateFuncs() template.FuncMap {
 		},
 
 		// JSON
-		"parseJSON": func(s string) interface{} {
-			var result interface{}
+		"parseJSON": func(s string) any {
+			var result any
 			if err := json.Unmarshal([]byte(s), &result); err != nil {
 				return nil
 			}
 			return result
 		},
-		"list": func() []interface{} { return []interface{}{} },
+		"list": func() []any { return []any{} },
 
 		// Logic helpers
-		"default": func(def, val interface{}) interface{} {
+		"default": func(def, val any) any {
 			if val == nil {
 				return def
 			}
@@ -124,17 +124,17 @@ func GetTemplateFuncs() template.FuncMap {
 			}
 			return val
 		},
-		"index": func(m map[string]interface{}, key string) interface{} {
+		"index": func(m map[string]any, key string) any {
 			if m == nil {
 				return nil
 			}
 			return m[key]
 		},
 		"printf": fmt.Sprintf,
-		"ne":     func(a, b interface{}) bool { return a != b },
-		"eq":     func(a, b interface{}) bool { return a == b },
+		"ne":     func(a, b any) bool { return a != b },
+		"eq":     func(a, b any) bool { return a == b },
 
-		"and": func(args ...interface{}) bool {
+		"and": func(args ...any) bool {
 			for _, a := range args {
 				if a == nil {
 					return false
@@ -152,7 +152,7 @@ func GetTemplateFuncs() template.FuncMap {
 			}
 			return len(args) > 0
 		},
-		"or": func(args ...interface{}) bool {
+		"or": func(args ...any) bool {
 			for _, a := range args {
 				if a == nil {
 					continue
@@ -172,8 +172,8 @@ func GetTemplateFuncs() template.FuncMap {
 			}
 			return false
 		},
-		"gt": func(a, b interface{}) bool { return compareNumbers(a, b) > 0 },
-		"lt": func(a, b interface{}) bool { return compareNumbers(a, b) < 0 },
+		"gt": func(a, b any) bool { return compareNumbers(a, b) > 0 },
+		"lt": func(a, b any) bool { return compareNumbers(a, b) < 0 },
 
 		// String helpers
 		"upper":     strings.ToUpper,
@@ -189,15 +189,15 @@ func GetTemplateFuncs() template.FuncMap {
 		"slice":     func(args ...string) []string { return args },
 
 		// Metadata filter
-		"filterMetadata": func(metadata map[string]interface{}, excludeFields []string) map[string]interface{} {
+		"filterMetadata": func(metadata map[string]any, excludeFields []string) map[string]any {
 			if len(metadata) == 0 {
-				return map[string]interface{}{}
+				return map[string]any{}
 			}
 			ex := make(map[string]struct{}, len(excludeFields))
 			for _, f := range excludeFields {
 				ex[f] = struct{}{}
 			}
-			out := make(map[string]interface{})
+			out := make(map[string]any)
 			for k, v := range metadata {
 				if _, skip := ex[k]; skip {
 					continue
@@ -217,8 +217,8 @@ func GetTemplateFuncs() template.FuncMap {
 		},
 
 		// Pretty JSON / structural helpers
-		"prettyJSON": func(v interface{}) string {
-			var data interface{}
+		"prettyJSON": func(v any) string {
+			var data any
 			switch t := v.(type) {
 			case string:
 				if err := json.Unmarshal([]byte(t), &data); err != nil {
@@ -233,33 +233,33 @@ func GetTemplateFuncs() template.FuncMap {
 			}
 			return string(b)
 		},
-		"isMap": func(v interface{}) bool {
+		"isMap": func(v any) bool {
 			if v == nil {
 				return false
 			}
-			_, ok := v.(map[string]interface{})
+			_, ok := v.(map[string]any)
 			return ok
 		},
-		"isSlice": func(v interface{}) bool {
+		"isSlice": func(v any) bool {
 			if v == nil {
 				return false
 			}
-			_, ok := v.([]interface{})
+			_, ok := v.([]any)
 			return ok
 		},
-		"asMap": func(v interface{}) map[string]interface{} {
-			if m, ok := v.(map[string]interface{}); ok {
+		"asMap": func(v any) map[string]any {
+			if m, ok := v.(map[string]any); ok {
 				return m
 			}
-			return map[string]interface{}{}
+			return map[string]any{}
 		},
-		"asSlice": func(v interface{}) []interface{} {
-			if s, ok := v.([]interface{}); ok {
+		"asSlice": func(v any) []any {
+			if s, ok := v.([]any); ok {
 				return s
 			}
-			return []interface{}{}
+			return []any{}
 		},
-		"sortedKeys": func(m map[string]interface{}) []string {
+		"sortedKeys": func(m map[string]any) []string {
 			keys := make([]string, 0, len(m))
 			for k := range m {
 				keys = append(keys, k)
@@ -269,7 +269,7 @@ func GetTemplateFuncs() template.FuncMap {
 		},
 
 		// ---- State / numeric diff helpers for Home Assistant renderer ----
-		"isNumber": func(v interface{}) bool {
+		"isNumber": func(v any) bool {
 			switch v.(type) {
 			case int, int8, int16, int32, int64,
 				uint, uint8, uint16, uint32, uint64,
@@ -284,11 +284,11 @@ func GetTemplateFuncs() template.FuncMap {
 				return false
 			}
 		},
-		"toFloat": func(v interface{}) float64 {
+		"toFloat": func(v any) float64 {
 			f, _ := parseFloatLoose(v)
 			return f
 		},
-		"stateDiff": func(oldV, newV interface{}) string {
+		"stateDiff": func(oldV, newV any) string {
 			oldS := fmt.Sprintf("%v", oldV)
 			newS := fmt.Sprintf("%v", newV)
 			if oldS == "" {
@@ -299,7 +299,7 @@ func GetTemplateFuncs() template.FuncMap {
 			}
 			return fmt.Sprintf("%s → %s", oldS, newS)
 		},
-		"stateChangeClass": func(oldV, newV interface{}) string {
+		"stateChangeClass": func(oldV, newV any) string {
 			fOld, errOld := parseFloatLoose(oldV)
 			fNew, errNew := parseFloatLoose(newV)
 			if errOld != nil || errNew != nil {
@@ -360,7 +360,7 @@ func GetTemplateFuncs() template.FuncMap {
 }
 
 // compareNumbers compares two numeric-ish values returning -1 / 0 / 1.
-func compareNumbers(a, b interface{}) int {
+func compareNumbers(a, b any) int {
 	av := getNumericValue(a)
 	bv := getNumericValue(b)
 	switch {
@@ -373,7 +373,7 @@ func compareNumbers(a, b interface{}) int {
 	}
 }
 
-func getNumericValue(v interface{}) float64 {
+func getNumericValue(v any) float64 {
 	switch t := v.(type) {
 	case int:
 		return float64(t)
@@ -408,7 +408,7 @@ func getNumericValue(v interface{}) float64 {
 }
 
 // parseFloatLoose tries to parse numerics from interface or string (including strings with units stripped).
-func parseFloatLoose(v interface{}) (float64, error) {
+func parseFloatLoose(v any) (float64, error) {
 	switch val := v.(type) {
 	case float64:
 		return val, nil

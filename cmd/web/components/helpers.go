@@ -39,7 +39,7 @@ func ExtractDatasource(block types.WebBlock) string {
 // metadata values. We intentionally avoid fmt.Sprintf("%v", ...) for very large
 // or complex structures to reduce unexpected allocations or leaking internal
 // representations. Extend minimally as needed.
-func toStringApprox(v interface{}) string {
+func toStringApprox(v any) string {
 	switch t := v.(type) {
 	case string:
 		return t
@@ -59,7 +59,7 @@ func EnsureDatasourcePresent(block *types.WebBlock, datasource string) bool {
 		return false
 	}
 	if block.Metadata == nil {
-		block.Metadata = make(map[string]interface{}, 1)
+		block.Metadata = make(map[string]any, 1)
 	}
 	if _, exists := block.Metadata["datasource"]; !exists && datasource != "" {
 		block.Metadata["datasource"] = datasource

@@ -64,7 +64,7 @@ type HNItem struct {
 	Dead        bool   `json:"dead"`
 }
 
-func NewDatasource(instanceName string, config interface{}) (core.Datasource, error) {
+func NewDatasource(instanceName string, config any) (core.Datasource, error) {
 	var hnConfig *Config
 	if config == nil {
 		hnConfig = &Config{
@@ -122,11 +122,11 @@ func (d *Datasource) BlockPrototype() core.Block {
 	return &ItemBlock{}
 }
 
-func (d *Datasource) ConfigType() interface{} {
+func (d *Datasource) ConfigType() any {
 	return &Config{}
 }
 
-func (d *Datasource) SetConfig(config interface{}) error {
+func (d *Datasource) SetConfig(config any) error {
 	if cfg, ok := config.(*Config); ok {
 		if err := cfg.Validate(); err != nil {
 			return err
@@ -137,7 +137,7 @@ func (d *Datasource) SetConfig(config interface{}) error {
 	return fmt.Errorf("invalid config type for HackerNews datasource")
 }
 
-func (d *Datasource) GetConfig() interface{} {
+func (d *Datasource) GetConfig() any {
 	return d.config
 }
 
@@ -221,10 +221,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 		// If fetch_comments is enabled and this item has comments
 		if d.config.FetchComments && len(item.Kids) > 0 {
 			// Fetch top-level comments (limit to first 5 to avoid too much data)
-			commentLimit := 5
-			if len(item.Kids) < commentLimit {
-				commentLimit = len(item.Kids)
-			}
+			commentLimit := min(len(item.Kids), 5)
 
 			for i := 0; i < commentLimit; i++ {
 				select {
@@ -341,7 +338,7 @@ func (d *Datasource) convertItemToBlock(item *HNItem) core.Block {
 	}
 	text += fmt.Sprintf("type=%s score=%d descendants=%d", item.Type, item.Score, item.Descendants)
 
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"item_type":   item.Type,
 		"title":       item.Title,
 		"url":         item.URL,
@@ -392,6 +389,6 @@ func (d *Datasource) Close() error {
 	return nil
 }
 
-func (d *Datasource) Factory(instanceName string, config interface{}) (core.Datasource, error) {
+func (d *Datasource) Factory(instanceName string, config any) (core.Datasource, error) {
 	return NewDatasource(instanceName, config)
 }

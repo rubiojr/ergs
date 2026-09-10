@@ -194,10 +194,10 @@ func TestFirehosePaginationUniqueness(t *testing.T) {
 	blocksPerDatasource := 15
 	testData := make(map[string][]core.Block)
 
-	for d := 0; d < dsCount; d++ {
+	for d := range dsCount {
 		dsName := fmt.Sprintf("ds_%d", d)
 		testData[dsName] = make([]core.Block, blocksPerDatasource)
-		for i := 0; i < blocksPerDatasource; i++ {
+		for i := range blocksPerDatasource {
 			// Newest earlier: subtract minutes
 			testData[dsName][i] = &mockBlock{
 				id:        fmt.Sprintf("%s_b_%02d", dsName, i),

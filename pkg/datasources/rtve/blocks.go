@@ -27,11 +27,11 @@ type VTTCue struct {
 // title, publication date, URLs, and subtitle availability.
 type RTVEBlock struct {
 	// Core Block interface fields - required for all blocks
-	id        string                 // Unique identifier for this block
-	text      string                 // Searchable text content
-	createdAt time.Time              // When this block was created
-	source    string                 // Source datasource instance name
-	metadata  map[string]interface{} // Structured data for database storage
+	id        string         // Unique identifier for this block
+	text      string         // Searchable text content
+	createdAt time.Time      // When this block was created
+	source    string         // Source datasource instance name
+	metadata  map[string]any // Structured data for database storage
 
 	// Domain-specific fields for RTVE videos
 	videoID         string    // RTVE video ID
@@ -103,7 +103,7 @@ func NewRTVEBlockWithSource(videoID, longTitle, publicationDate, htmlURL, uri st
 	text := strings.Join(textParts, " ")
 
 	// Metadata contains all structured data needed for database storage
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"video_id":         videoID,
 		"long_title":       longTitle,
 		"publication_date": publicationDate,
@@ -152,7 +152,7 @@ func (b *RTVEBlock) CreatedAt() time.Time { return b.createdAt }
 func (b *RTVEBlock) Source() string { return b.source }
 
 // Metadata returns structured data for database storage and reconstruction
-func (b *RTVEBlock) Metadata() map[string]interface{} { return b.metadata }
+func (b *RTVEBlock) Metadata() map[string]any { return b.metadata }
 
 // Type returns the block type identifier
 func (b *RTVEBlock) Type() string {
@@ -279,7 +279,7 @@ type BlockFactory struct{}
 
 // CreateFromGeneric reconstructs an RTVEBlock from database data.
 // This method is called when loading blocks from storage.
-func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, source string, metadata map[string]interface{}) core.Block {
+func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, source string, metadata map[string]any) core.Block {
 	// Extract domain-specific data from metadata using safe helper functions
 	videoID := getStringFromMetadata(metadata, "video_id", "")
 	longTitle := getStringFromMetadata(metadata, "long_title", "")
@@ -340,7 +340,7 @@ func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, s
 
 // getStringFromMetadata safely extracts a string value from metadata.
 // Returns defaultValue if the key doesn't exist or isn't a string.
-func getStringFromMetadata(metadata map[string]interface{}, key, defaultValue string) string {
+func getStringFromMetadata(metadata map[string]any, key, defaultValue string) string {
 	if value, exists := metadata[key]; exists {
 		if str, ok := value.(string); ok {
 			return str
@@ -351,7 +351,7 @@ func getStringFromMetadata(metadata map[string]interface{}, key, defaultValue st
 
 // getBoolFromMetadata safely extracts a boolean value from metadata.
 // Returns defaultValue if the key doesn't exist or isn't a boolean.
-func getBoolFromMetadata(metadata map[string]interface{}, key string, defaultValue bool) bool {
+func getBoolFromMetadata(metadata map[string]any, key string, defaultValue bool) bool {
 	if value, exists := metadata[key]; exists {
 		if b, ok := value.(bool); ok {
 			return b

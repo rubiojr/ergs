@@ -15,7 +15,7 @@ type ItemBlock struct {
 	text        string
 	createdAt   time.Time
 	source      string
-	metadata    map[string]interface{}
+	metadata    map[string]any
 	itemType    string
 	title       string
 	itemText    string
@@ -29,7 +29,7 @@ type ItemBlock struct {
 	dead        bool
 }
 
-func NewItemBlock(id, text string, createdAt time.Time, source string, metadata map[string]interface{},
+func NewItemBlock(id, text string, createdAt time.Time, source string, metadata map[string]any,
 	itemType, title, itemText, url, author string, score, descendants, parentID, pollID int, deleted, dead bool) *ItemBlock {
 	return &ItemBlock{
 		id:          id,
@@ -67,7 +67,7 @@ func (i *ItemBlock) Source() string {
 	return i.source
 }
 
-func (i *ItemBlock) Metadata() map[string]interface{} {
+func (i *ItemBlock) Metadata() map[string]any {
 	return i.metadata
 }
 
@@ -196,8 +196,8 @@ func (i *ItemBlock) PrettyText() string {
 			lines = append(lines, "") // Add spacing
 
 			// Split into paragraphs and indent
-			paragraphs := strings.Split(decodedText, "\n\n")
-			for _, para := range paragraphs {
+			paragraphs := strings.SplitSeq(decodedText, "\n\n")
+			for para := range paragraphs {
 				para = strings.TrimSpace(para)
 				if para != "" {
 					// Wrap long lines
@@ -348,7 +348,7 @@ func (i *ItemBlock) Factory(genericBlock *core.GenericBlock, source string) core
 }
 
 // Helper functions for safe metadata extraction
-func getStringFromMetadata(metadata map[string]interface{}, key, defaultValue string) string {
+func getStringFromMetadata(metadata map[string]any, key, defaultValue string) string {
 	if value, exists := metadata[key]; exists {
 		if str, ok := value.(string); ok {
 			return str
@@ -367,7 +367,7 @@ func title(s string) string {
 	return string(r)
 }
 
-func getIntFromMetadata(metadata map[string]interface{}, key string, defaultValue int) int {
+func getIntFromMetadata(metadata map[string]any, key string, defaultValue int) int {
 	if value, exists := metadata[key]; exists {
 		switch v := value.(type) {
 		case int:
@@ -381,7 +381,7 @@ func getIntFromMetadata(metadata map[string]interface{}, key string, defaultValu
 	return defaultValue
 }
 
-func getBoolFromMetadata(metadata map[string]interface{}, key string, defaultValue bool) bool {
+func getBoolFromMetadata(metadata map[string]any, key string, defaultValue bool) bool {
 	if value, exists := metadata[key]; exists {
 		if b, ok := value.(bool); ok {
 			return b

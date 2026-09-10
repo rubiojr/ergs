@@ -1,7 +1,6 @@
 package integration_tests
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -33,7 +32,7 @@ func TestSIGHUPReload(t *testing.T) {
 		Datasources: map[string]config.DatasourceInfo{
 			"test-timestamp": {
 				Type: "timestamp",
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"interval_seconds": 60,
 				},
 			},
@@ -84,8 +83,7 @@ func TestSIGHUPReload(t *testing.T) {
 	}
 
 	// Start warehouse in background
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	if err := wh.Start(ctx); err != nil {
 		t.Fatalf("Failed to start warehouse: %v", err)
@@ -112,13 +110,13 @@ func TestSIGHUPReload(t *testing.T) {
 		Datasources: map[string]config.DatasourceInfo{
 			"test-timestamp-new": {
 				Type: "timestamp",
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"interval_seconds": 120, // Different interval
 				},
 			},
 			"test-timestamp-2": {
 				Type: "timestamp",
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"interval_seconds": 30,
 				},
 			},
@@ -193,7 +191,7 @@ func TestReloadWithInvalidConfig(t *testing.T) {
 		Datasources: map[string]config.DatasourceInfo{
 			"test-timestamp": {
 				Type: "timestamp",
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"interval_seconds": 60,
 				},
 			},
@@ -270,13 +268,13 @@ func TestReloadEmptyConfig(t *testing.T) {
 		Datasources: map[string]config.DatasourceInfo{
 			"test-timestamp-1": {
 				Type: "timestamp",
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"interval_seconds": 60,
 				},
 			},
 			"test-timestamp-2": {
 				Type: "timestamp",
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"interval_seconds": 120,
 				},
 			},
@@ -389,7 +387,7 @@ func createDatasourcesFromConfig(registry *core.Registry, cfg *config.Config) er
 	return nil
 }
 
-func convertRawConfigToType(ds core.Datasource, rawConfig interface{}) (interface{}, error) {
+func convertRawConfigToType(ds core.Datasource, rawConfig any) (any, error) {
 	configType := ds.ConfigType()
 
 	if rawConfig == nil {
@@ -464,7 +462,7 @@ func TestConfigFileWatching(t *testing.T) {
 		Datasources: map[string]config.DatasourceInfo{
 			"test-timestamp": {
 				Type: "timestamp",
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"interval_seconds": 60,
 				},
 			},
@@ -584,7 +582,7 @@ func TestConfigFileWatching(t *testing.T) {
 		Datasources: map[string]config.DatasourceInfo{
 			"test-timestamp-modified": {
 				Type: "timestamp",
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"interval_seconds": 120,
 				},
 			},
@@ -653,7 +651,7 @@ func TestConfigFileWatchingWithInvalidFile(t *testing.T) {
 		Datasources: map[string]config.DatasourceInfo{
 			"test-timestamp": {
 				Type: "timestamp",
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"interval_seconds": 60,
 				},
 			},
@@ -785,7 +783,7 @@ func TestConfigFileWatchingWithAtomicWrites(t *testing.T) {
 		Datasources: map[string]config.DatasourceInfo{
 			"test-timestamp": {
 				Type: "timestamp",
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"interval_seconds": 60,
 				},
 			},
@@ -901,7 +899,7 @@ func TestConfigFileWatchingWithAtomicWrites(t *testing.T) {
 		Datasources: map[string]config.DatasourceInfo{
 			"test-timestamp-atomic": {
 				Type: "timestamp",
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"interval_seconds": 90,
 				},
 			},
@@ -967,7 +965,7 @@ func TestConfigFileRemovalWithoutReplacement(t *testing.T) {
 		Datasources: map[string]config.DatasourceInfo{
 			"test-timestamp": {
 				Type: "timestamp",
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"interval_seconds": 60,
 				},
 			},

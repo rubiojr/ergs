@@ -43,7 +43,7 @@ type Datasource struct {
 }
 
 // NewDatasource creates a new Datadis datasource instance
-func NewDatasource(instanceName string, config interface{}) (core.Datasource, error) {
+func NewDatasource(instanceName string, config any) (core.Datasource, error) {
 	var cfg *Config
 	if config == nil {
 		// Registry creates datasource with nil config first; defer validation until SetConfig
@@ -100,12 +100,12 @@ func (d *Datasource) BlockPrototype() core.Block {
 }
 
 // ConfigType returns the configuration type for this datasource
-func (d *Datasource) ConfigType() interface{} {
+func (d *Datasource) ConfigType() any {
 	return &Config{}
 }
 
 // SetConfig updates the datasource configuration
-func (d *Datasource) SetConfig(config interface{}) error {
+func (d *Datasource) SetConfig(config any) error {
 	if cfg, ok := config.(*Config); ok {
 		if err := cfg.Validate(); err != nil {
 			return err
@@ -134,7 +134,7 @@ func (d *Datasource) SetConfig(config interface{}) error {
 }
 
 // GetConfig returns the current configuration
-func (d *Datasource) GetConfig() interface{} {
+func (d *Datasource) GetConfig() any {
 	return d.config
 }
 
@@ -345,6 +345,6 @@ func trimSpace(s string) string {
 }
 
 // Factory creates a new instance of the datasource
-func (d *Datasource) Factory(instanceName string, config interface{}) (core.Datasource, error) {
+func (d *Datasource) Factory(instanceName string, config any) (core.Datasource, error) {
 	return NewDatasource(instanceName, config)
 }

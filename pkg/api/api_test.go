@@ -21,17 +21,17 @@ type mockBlock struct {
 	text      string
 	createdAt time.Time
 	source    string
-	metadata  map[string]interface{}
+	metadata  map[string]any
 }
 
-func (b *mockBlock) ID() string                       { return b.id }
-func (b *mockBlock) Text() string                     { return b.text }
-func (b *mockBlock) CreatedAt() time.Time             { return b.createdAt }
-func (b *mockBlock) Source() string                   { return b.source }
-func (b *mockBlock) Type() string                     { return "test" }
-func (b *mockBlock) Metadata() map[string]interface{} { return b.metadata }
-func (b *mockBlock) PrettyText() string               { return b.text }
-func (b *mockBlock) Summary() string                  { return b.text }
+func (b *mockBlock) ID() string               { return b.id }
+func (b *mockBlock) Text() string             { return b.text }
+func (b *mockBlock) CreatedAt() time.Time     { return b.createdAt }
+func (b *mockBlock) Source() string           { return b.source }
+func (b *mockBlock) Type() string             { return "test" }
+func (b *mockBlock) Metadata() map[string]any { return b.metadata }
+func (b *mockBlock) PrettyText() string       { return b.text }
+func (b *mockBlock) Summary() string          { return b.text }
 func (b *mockBlock) Factory(genericBlock *core.GenericBlock, source string) core.Block {
 	return &mockBlock{
 		id:        genericBlock.ID(),
@@ -59,11 +59,11 @@ func (d *mockDatasource) Schema() map[string]any {
 		"metadata":   "TEXT",
 	}
 }
-func (d *mockDatasource) BlockPrototype() core.Block         { return &mockBlock{} }
-func (d *mockDatasource) ConfigType() interface{}            { return nil }
-func (d *mockDatasource) SetConfig(config interface{}) error { return nil }
-func (d *mockDatasource) GetConfig() interface{}             { return nil }
-func (d *mockDatasource) Factory(instanceName string, config interface{}) (core.Datasource, error) {
+func (d *mockDatasource) BlockPrototype() core.Block { return &mockBlock{} }
+func (d *mockDatasource) ConfigType() any            { return nil }
+func (d *mockDatasource) SetConfig(config any) error { return nil }
+func (d *mockDatasource) GetConfig() any             { return nil }
+func (d *mockDatasource) Factory(instanceName string, config any) (core.Datasource, error) {
 	return &mockDatasource{name: instanceName}, nil
 }
 
@@ -80,14 +80,14 @@ func setupTestAPIServer(t *testing.T) (*http.ServeMux, func()) {
 				text:      "Block 1 from datasource1",
 				createdAt: time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC),
 				source:    "test1",
-				metadata:  map[string]interface{}{"test": "value1"},
+				metadata:  map[string]any{"test": "value1"},
 			},
 			&mockBlock{
 				id:        "2",
 				text:      "Block 2 from datasource1",
 				createdAt: time.Date(2023, 1, 2, 12, 0, 0, 0, time.UTC),
 				source:    "test2",
-				metadata:  map[string]interface{}{"test": "value2"},
+				metadata:  map[string]any{"test": "value2"},
 			},
 		},
 		"datasource2": {
@@ -96,7 +96,7 @@ func setupTestAPIServer(t *testing.T) (*http.ServeMux, func()) {
 				text:      "Block 3 from datasource2",
 				createdAt: time.Date(2023, 1, 3, 12, 0, 0, 0, time.UTC),
 				source:    "test3",
-				metadata:  map[string]interface{}{"test": "value3"},
+				metadata:  map[string]any{"test": "value3"},
 			},
 		},
 	}
@@ -371,7 +371,7 @@ func TestAPISearchErrorHandling(t *testing.T) {
 			}
 
 			// Parse response
-			var response map[string]interface{}
+			var response map[string]any
 			err = json.Unmarshal(rr.Body.Bytes(), &response)
 			if err != nil {
 				t.Fatalf("Failed to parse response: %v", err)

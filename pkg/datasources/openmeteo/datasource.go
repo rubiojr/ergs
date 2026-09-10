@@ -79,7 +79,7 @@ type AirQualityResult struct {
 	} `json:"hourly"`
 }
 
-func NewDatasource(instanceName string, config interface{}) (core.Datasource, error) {
+func NewDatasource(instanceName string, config any) (core.Datasource, error) {
 	var weatherConfig *Config
 	if config == nil {
 		// Registry creates datasource with nil config first; defer validation until SetConfig
@@ -137,11 +137,11 @@ func (d *Datasource) BlockPrototype() core.Block {
 	return &WeatherBlock{}
 }
 
-func (d *Datasource) ConfigType() interface{} {
+func (d *Datasource) ConfigType() any {
 	return &Config{}
 }
 
-func (d *Datasource) SetConfig(config interface{}) error {
+func (d *Datasource) SetConfig(config any) error {
 	if cfg, ok := config.(*Config); ok {
 		d.config = cfg
 		return cfg.Validate()
@@ -149,7 +149,7 @@ func (d *Datasource) SetConfig(config interface{}) error {
 	return fmt.Errorf("invalid config type for openmeteo datasource")
 }
 
-func (d *Datasource) GetConfig() interface{} {
+func (d *Datasource) GetConfig() any {
 	return d.config
 }
 
@@ -345,10 +345,10 @@ func (d *Datasource) createWeatherBlock(
 	}
 
 	// Prepare hourly forecast data
-	hourlyForecast := make([]map[string]interface{}, 0)
+	hourlyForecast := make([]map[string]any, 0)
 	maxHours := 24 // Only store today's forecast
 	for i := 0; i < maxHours && i < len(weather.Hourly.Time); i++ {
-		hourData := map[string]interface{}{
+		hourData := map[string]any{
 			"time": weather.Hourly.Time[i],
 		}
 		if i < len(weather.Hourly.Temperature) {
@@ -404,7 +404,7 @@ func (d *Datasource) Close() error {
 	return nil
 }
 
-func (d *Datasource) Factory(instanceName string, config interface{}) (core.Datasource, error) {
+func (d *Datasource) Factory(instanceName string, config any) (core.Datasource, error) {
 	return NewDatasource(instanceName, config)
 }
 

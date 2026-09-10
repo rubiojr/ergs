@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/rubiojr/ergs/pkg/config"
 	"github.com/rubiojr/ergs/pkg/core"
@@ -631,10 +632,8 @@ func getDatasourcesToProcess(storageManager *storage.Manager, datasourceName str
 	}
 
 	// Check if the specified datasource exists
-	for _, name := range allDatasources {
-		if name == datasourceName {
-			return []string{datasourceName}
-		}
+	if slices.Contains(allDatasources, datasourceName) {
+		return []string{datasourceName}
 	}
 
 	// Datasource not found

@@ -15,7 +15,6 @@ import (
 	"testing"
 
 	_ "github.com/ncruces/go-sqlite3/driver"
-	_ "github.com/ncruces/go-sqlite3/embed"
 	"github.com/rubiojr/ergs/pkg/config"
 	"github.com/rubiojr/ergs/pkg/core"
 	"github.com/rubiojr/ergs/pkg/datasources/timestamp"
@@ -208,8 +207,7 @@ func TestMigrationSystemIntegration(t *testing.T) {
 		}
 
 		// Check if it's the right type of error
-		var pendingErr *storage.PendingMigrationsError
-		if !errors.As(err, &pendingErr) {
+		if _, ok := errors.AsType[*storage.PendingMigrationsError](err); !ok {
 			t.Errorf("Expected PendingMigrationsError, got: %v", err)
 		}
 
@@ -491,7 +489,7 @@ interval_seconds = 1
 		}
 
 		// Call GetMigrationStatus multiple times - this should NOT apply migrations
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			status, err := migrationManager.GetMigrationStatus()
 			if err != nil {
 				t.Fatalf("GetMigrationStatus failed on iteration %d: %v", i, err)
@@ -785,7 +783,7 @@ interval_seconds = 1
 		}
 
 		// Insert a larger test dataset (before hostname column exists)
-		for i := 0; i < 50; i++ {
+		for i := range 50 {
 			query := `INSERT INTO blocks (id, text, created_at, source, datasource, metadata)
 					  VALUES (?, ?, datetime('now'), ?, ?, ?)`
 			_, err := db.Exec(query,

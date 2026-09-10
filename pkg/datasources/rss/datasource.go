@@ -89,7 +89,7 @@ type AtomAuthor struct {
 	Name string `xml:"name"`
 }
 
-func NewDatasource(instanceName string, config interface{}) (core.Datasource, error) {
+func NewDatasource(instanceName string, config any) (core.Datasource, error) {
 	var rssConfig *Config
 	if config == nil {
 		rssConfig = &Config{
@@ -144,11 +144,11 @@ func (d *Datasource) BlockPrototype() core.Block {
 	return &ItemBlock{}
 }
 
-func (d *Datasource) ConfigType() interface{} {
+func (d *Datasource) ConfigType() any {
 	return &Config{}
 }
 
-func (d *Datasource) SetConfig(config interface{}) error {
+func (d *Datasource) SetConfig(config any) error {
 	if cfg, ok := config.(*Config); ok {
 		if err := cfg.Validate(); err != nil {
 			return err
@@ -159,7 +159,7 @@ func (d *Datasource) SetConfig(config interface{}) error {
 	return fmt.Errorf("invalid config type for RSS datasource")
 }
 
-func (d *Datasource) GetConfig() interface{} {
+func (d *Datasource) GetConfig() any {
 	return d.config
 }
 
@@ -382,7 +382,7 @@ func (d *Datasource) convertItemToBlock(item FeedItem, feedTitle, feedURL string
 	text := fmt.Sprintf("title=%s description=%s author=%s category=%s feed=%s url=%s",
 		item.Title, description, item.Author, item.Category, feedTitle, item.Link)
 
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"feed_title":  feedTitle,
 		"feed_url":    feedURL,
 		"title":       item.Title,
@@ -416,6 +416,6 @@ func (d *Datasource) Close() error {
 	return nil
 }
 
-func (d *Datasource) Factory(instanceName string, config interface{}) (core.Datasource, error) {
+func (d *Datasource) Factory(instanceName string, config any) (core.Datasource, error) {
 	return NewDatasource(instanceName, config)
 }

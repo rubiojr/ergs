@@ -16,17 +16,17 @@ type mockBlock struct {
 	text      string
 	createdAt time.Time
 	source    string
-	metadata  map[string]interface{}
+	metadata  map[string]any
 }
 
-func (b *mockBlock) ID() string                       { return b.id }
-func (b *mockBlock) Text() string                     { return b.text }
-func (b *mockBlock) CreatedAt() time.Time             { return b.createdAt }
-func (b *mockBlock) Source() string                   { return b.source }
-func (b *mockBlock) Type() string                     { return "mock" }
-func (b *mockBlock) Metadata() map[string]interface{} { return b.metadata }
-func (b *mockBlock) PrettyText() string               { return b.text }
-func (b *mockBlock) Summary() string                  { return b.text }
+func (b *mockBlock) ID() string               { return b.id }
+func (b *mockBlock) Text() string             { return b.text }
+func (b *mockBlock) CreatedAt() time.Time     { return b.createdAt }
+func (b *mockBlock) Source() string           { return b.source }
+func (b *mockBlock) Type() string             { return "mock" }
+func (b *mockBlock) Metadata() map[string]any { return b.metadata }
+func (b *mockBlock) PrettyText() string       { return b.text }
+func (b *mockBlock) Summary() string          { return b.text }
 func (b *mockBlock) Factory(genericBlock *core.GenericBlock, source string) core.Block {
 	return &mockBlock{
 		id:        genericBlock.ID(),
@@ -114,7 +114,7 @@ func TestManagerConcurrentGetStorage(t *testing.T) {
 	errors := make([]error, numGoroutines)
 
 	var wg sync.WaitGroup
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		wg.Add(1)
 		go func(index int) {
 			defer wg.Done()
@@ -156,14 +156,14 @@ func TestManagerSearchBlocks(t *testing.T) {
 				text:      "golang programming language",
 				createdAt: now,
 				source:    "datasource1",
-				metadata:  map[string]interface{}{"type": "test"},
+				metadata:  map[string]any{"type": "test"},
 			},
 			&mockBlock{
 				id:        "block2",
 				text:      "python programming tutorial",
 				createdAt: now.Add(time.Minute),
 				source:    "datasource1",
-				metadata:  map[string]interface{}{"type": "test"},
+				metadata:  map[string]any{"type": "test"},
 			},
 		},
 	}
@@ -287,11 +287,11 @@ func TestManagerSearchAllDatasourcesParallelization(t *testing.T) {
 	now := time.Now()
 
 	testData := make(map[string][]core.Block)
-	for i := 0; i < numDatasources; i++ {
+	for i := range numDatasources {
 		datasourceName := fmt.Sprintf("datasource%d", i)
 		blocks := make([]core.Block, blocksPerDatasource)
 
-		for j := 0; j < blocksPerDatasource; j++ {
+		for j := range blocksPerDatasource {
 			blocks[j] = &mockBlock{
 				id:        fmt.Sprintf("block%d_%d", i, j),
 				text:      fmt.Sprintf("test content %d programming tutorial", i),
@@ -455,7 +455,7 @@ func TestManagerSearchAllDatasourcesConcurrentAccess(t *testing.T) {
 	errors := make([]error, numGoroutines)
 	results := make([]map[string][]core.Block, numGoroutines)
 
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		wg.Add(1)
 		go func(index int) {
 			defer wg.Done()
@@ -672,11 +672,11 @@ func BenchmarkSearchAllDatasourcesParallel(b *testing.B) {
 	now := time.Now()
 
 	testData := make(map[string][]core.Block)
-	for i := 0; i < numDatasources; i++ {
+	for i := range numDatasources {
 		datasourceName := fmt.Sprintf("datasource%d", i)
 		blocks := make([]core.Block, blocksPerDatasource)
 
-		for j := 0; j < blocksPerDatasource; j++ {
+		for j := range blocksPerDatasource {
 			blocks[j] = &mockBlock{
 				id:        fmt.Sprintf("block%d_%d", i, j),
 				text:      fmt.Sprintf("benchmark test content %d programming tutorial", i),
@@ -707,12 +707,12 @@ func TestSearchAllDatasourcesParallelBenefit(t *testing.T) {
 
 	// Create test data with varying amounts per datasource
 	testData := make(map[string][]core.Block)
-	for i := 0; i < numDatasources; i++ {
+	for i := range numDatasources {
 		datasourceName := fmt.Sprintf("slow-datasource%d", i)
 		// Different datasources have different numbers of blocks
 		numBlocks := i + 1
 		blocks := make([]core.Block, numBlocks)
-		for j := 0; j < numBlocks; j++ {
+		for j := range numBlocks {
 			blocks[j] = &mockBlock{
 				id:        fmt.Sprintf("block%d_%d", i, j),
 				text:      "test programming content with delay",
@@ -754,7 +754,7 @@ func TestSearchAllDatasourcesParallelBenefit(t *testing.T) {
 	callErrors := make([]error, numConcurrentCalls)
 
 	concurrentStart := time.Now()
-	for i := 0; i < numConcurrentCalls; i++ {
+	for i := range numConcurrentCalls {
 		wg.Add(1)
 		go func(index int) {
 			defer wg.Done()
@@ -789,7 +789,7 @@ func TestSearchAllDatasourcesSequentialPaging(t *testing.T) {
 	}
 
 	// Fill datasource_a
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		testData["datasource_a"][i] = &mockBlock{
 			id:        fmt.Sprintf("a_block_%d", i),
 			text:      fmt.Sprintf("programming tutorial content a %d", i),
@@ -799,7 +799,7 @@ func TestSearchAllDatasourcesSequentialPaging(t *testing.T) {
 	}
 
 	// Fill datasource_b
-	for i := 0; i < 8; i++ {
+	for i := range 8 {
 		testData["datasource_b"][i] = &mockBlock{
 			id:        fmt.Sprintf("b_block_%d", i),
 			text:      fmt.Sprintf("programming tutorial content b %d", i),
@@ -809,7 +809,7 @@ func TestSearchAllDatasourcesSequentialPaging(t *testing.T) {
 	}
 
 	// Fill datasource_c
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		testData["datasource_c"][i] = &mockBlock{
 			id:        fmt.Sprintf("c_block_%d", i),
 			text:      fmt.Sprintf("programming tutorial content c %d", i),
@@ -949,7 +949,7 @@ func TestPaginationBehaviorDetailed(t *testing.T) {
 	}
 
 	// Fill datasource_a
-	for i := 0; i < 25; i++ {
+	for i := range 25 {
 		testData["datasource_a"][i] = &mockBlock{
 			id:        fmt.Sprintf("a_block_%d", i),
 			text:      fmt.Sprintf("test content a %d", i),
@@ -959,7 +959,7 @@ func TestPaginationBehaviorDetailed(t *testing.T) {
 	}
 
 	// Fill datasource_b
-	for i := 0; i < 15; i++ {
+	for i := range 15 {
 		testData["datasource_b"][i] = &mockBlock{
 			id:        fmt.Sprintf("b_block_%d", i),
 			text:      fmt.Sprintf("test content b %d", i),
@@ -969,7 +969,7 @@ func TestPaginationBehaviorDetailed(t *testing.T) {
 	}
 
 	// Fill datasource_c
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		testData["datasource_c"][i] = &mockBlock{
 			id:        fmt.Sprintf("c_block_%d", i),
 			text:      fmt.Sprintf("test content c %d", i),
@@ -1055,7 +1055,7 @@ func TestBackendPaginationLogic(t *testing.T) {
 	}
 
 	// Fill with test data
-	for i := 0; i < 37; i++ {
+	for i := range 37 {
 		testData["datasource_x"][i] = &mockBlock{
 			id:        fmt.Sprintf("x_block_%d", i),
 			text:      fmt.Sprintf("pagination test content %d", i),
@@ -1118,11 +1118,11 @@ func BenchmarkSearchAllDatasourcesSmall(b *testing.B) {
 	now := time.Now()
 
 	testData := make(map[string][]core.Block)
-	for i := 0; i < numDatasources; i++ {
+	for i := range numDatasources {
 		datasourceName := fmt.Sprintf("datasource%d", i)
 		blocks := make([]core.Block, blocksPerDatasource)
 
-		for j := 0; j < blocksPerDatasource; j++ {
+		for j := range blocksPerDatasource {
 			blocks[j] = &mockBlock{
 				id:        fmt.Sprintf("block%d_%d", i, j),
 				text:      fmt.Sprintf("benchmark test content %d programming tutorial", i),
@@ -1153,11 +1153,11 @@ func BenchmarkSearchAllDatasourcesLarge(b *testing.B) {
 	now := time.Now()
 
 	testData := make(map[string][]core.Block)
-	for i := 0; i < numDatasources; i++ {
+	for i := range numDatasources {
 		datasourceName := fmt.Sprintf("datasource%d", i)
 		blocks := make([]core.Block, blocksPerDatasource)
 
-		for j := 0; j < blocksPerDatasource; j++ {
+		for j := range blocksPerDatasource {
 			blocks[j] = &mockBlock{
 				id:        fmt.Sprintf("block%d_%d", i, j),
 				text:      fmt.Sprintf("benchmark test content %d programming tutorial", i),
@@ -1516,7 +1516,7 @@ func TestSearchDatasourcesPagedPagination(t *testing.T) {
 	}
 
 	// Fill with test data
-	for i := 0; i < 15; i++ {
+	for i := range 15 {
 		testData["datasource_a"][i] = &mockBlock{
 			id:        fmt.Sprintf("a_%d", i),
 			text:      fmt.Sprintf("programming tutorial %d", i),
@@ -1746,7 +1746,7 @@ func TestTimeBasedOrderingPagination(t *testing.T) {
 	}
 
 	// Create blocks with specific timestamps
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		testData["datasource_x"][i] = &mockBlock{
 			id:        fmt.Sprintf("x_%d", i),
 			text:      fmt.Sprintf("content x %d", i),
@@ -1833,7 +1833,7 @@ func BenchmarkSearchSingleDatasource(b *testing.B) {
 		"single_datasource": make([]core.Block, blocksPerDatasource),
 	}
 
-	for j := 0; j < blocksPerDatasource; j++ {
+	for j := range blocksPerDatasource {
 		testData["single_datasource"][j] = &mockBlock{
 			id:        fmt.Sprintf("block_%d", j),
 			text:      fmt.Sprintf("benchmark test content programming tutorial %d", j),

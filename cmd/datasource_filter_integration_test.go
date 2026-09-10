@@ -89,7 +89,7 @@ func TestDatasourceFilteringIntegration(t *testing.T) {
 				text:      blockData.text,
 				createdAt: now.Add(time.Duration(i) * time.Minute),
 				source:    blockData.source,
-				metadata:  make(map[string]interface{}),
+				metadata:  make(map[string]any),
 			}
 
 			err = storage.StoreBlock(block, "mock")
@@ -173,12 +173,12 @@ func TestDatasourceFilteringIntegration(t *testing.T) {
 					t.Errorf("API request failed with status %d", w.Code)
 				}
 
-				var response map[string]interface{}
+				var response map[string]any
 				if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
 					t.Fatalf("Failed to parse API response: %v", err)
 				}
 
-				results, ok := response["results"].(map[string]interface{})
+				results, ok := response["results"].(map[string]any)
 				if !ok {
 					t.Fatal("API results field is not a map")
 				}
@@ -242,12 +242,12 @@ func TestDatasourceFilteringIntegration(t *testing.T) {
 			t.Errorf("Original issue URL failed with status %d", w.Code)
 		}
 
-		var response map[string]interface{}
+		var response map[string]any
 		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
 			t.Fatalf("Failed to parse response: %v", err)
 		}
 
-		results, ok := response["results"].(map[string]interface{})
+		results, ok := response["results"].(map[string]any)
 		if !ok {
 			t.Fatal("Results field is not a map")
 		}

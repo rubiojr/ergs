@@ -7,11 +7,11 @@ import (
 )
 
 type BlockResponse struct {
-	ID        string                 `json:"id"`
-	Text      string                 `json:"text"`
-	Source    string                 `json:"source"`
-	CreatedAt time.Time              `json:"created_at"`
-	Metadata  map[string]interface{} `json:"metadata"`
+	ID        string         `json:"id"`
+	Text      string         `json:"text"`
+	Source    string         `json:"source"`
+	CreatedAt time.Time      `json:"created_at"`
+	Metadata  map[string]any `json:"metadata"`
 }
 
 type ListDatasourcesResponse struct {

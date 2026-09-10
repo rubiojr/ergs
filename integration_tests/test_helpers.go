@@ -25,7 +25,7 @@ func CreateTestConfig(tempDir string) *config.Config {
 		Datasources: map[string]config.DatasourceInfo{
 			"test_soria_gas": {
 				Type: "testrand",
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"count":  10,
 					"prefix": "SORIA",
 					"seed":   12345, // Fixed seed for reproducible tests
@@ -33,7 +33,7 @@ func CreateTestConfig(tempDir string) *config.Config {
 			},
 			"test_madrid_gas": {
 				Type: "testrand",
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"count":  15,
 					"prefix": "MADRID",
 					"seed":   67890, // Different seed for different data
@@ -41,7 +41,7 @@ func CreateTestConfig(tempDir string) *config.Config {
 			},
 			"test_zaragoza_gas": {
 				Type: "timestamp",
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"interval_seconds": 60,
 				},
 			},
@@ -56,7 +56,7 @@ func CreateTestConfigMinimal(tempDir string) *config.Config {
 		Datasources: map[string]config.DatasourceInfo{
 			"test_small_soria": {
 				Type: "testrand",
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"count":  5,
 					"prefix": "SORIA",
 					"seed":   11111, // Fixed seed for reproducible tests
@@ -64,7 +64,7 @@ func CreateTestConfigMinimal(tempDir string) *config.Config {
 			},
 			"test_small_madrid": {
 				Type: "testrand",
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"count":  8,
 					"prefix": "MADRID",
 					"seed":   22222, // Different seed for different data
@@ -133,15 +133,15 @@ func SearchInText(text, searchTerm string) bool {
 
 // toUpper converts string to uppercase without using strings package
 func toUpper(s string) string {
-	result := ""
+	var result strings.Builder
 	for _, r := range s {
 		if r >= 'a' && r <= 'z' {
-			result += string(r - 32)
+			result.WriteString(string(r - 32))
 		} else {
-			result += string(r)
+			result.WriteString(string(r))
 		}
 	}
-	return result
+	return result.String()
 }
 
 // ContainsLocation checks if text contains the specified location keyword
@@ -150,7 +150,7 @@ func ContainsLocation(text, location string) bool {
 }
 
 // CreateDatasourceWithConfig creates a datasource with proper config conversion
-func CreateDatasourceWithConfig(registry *core.Registry, instanceName, dsType string, configMap map[string]interface{}) error {
+func CreateDatasourceWithConfig(registry *core.Registry, instanceName, dsType string, configMap map[string]any) error {
 	// First create with nil config (like main application does)
 	if err := registry.CreateDatasource(instanceName, dsType, nil); err != nil {
 		return err
@@ -179,7 +179,7 @@ func CreateDatasourceWithConfig(registry *core.Registry, instanceName, dsType st
 }
 
 // setTestrandConfig sets the testrand config using the actual Config type
-func setTestrandConfig(ds core.Datasource, configMap map[string]interface{}) error {
+func setTestrandConfig(ds core.Datasource, configMap map[string]any) error {
 	// Extract values with defaults
 	count := 5
 	prefix := "RAND"
@@ -206,7 +206,7 @@ func setTestrandConfig(ds core.Datasource, configMap map[string]interface{}) err
 }
 
 // setTimestampConfig sets the timestamp config using the actual Config type
-func setTimestampConfig(ds core.Datasource, configMap map[string]interface{}) error {
+func setTimestampConfig(ds core.Datasource, configMap map[string]any) error {
 	intervalSeconds := 60
 	if i, ok := configMap["interval_seconds"].(int); ok {
 		intervalSeconds = i

@@ -8,17 +8,17 @@ import (
 func TestFormatMetadata(t *testing.T) {
 	tests := []struct {
 		name     string
-		metadata map[string]interface{}
+		metadata map[string]any
 		expected []string // strings that should be present in output
 	}{
 		{
 			name:     "empty metadata",
-			metadata: map[string]interface{}{},
+			metadata: map[string]any{},
 			expected: []string{},
 		},
 		{
 			name: "string metadata",
-			metadata: map[string]interface{}{
+			metadata: map[string]any{
 				"name": "test-repo",
 				"desc": "A test repository",
 			},
@@ -26,7 +26,7 @@ func TestFormatMetadata(t *testing.T) {
 		},
 		{
 			name: "mixed types metadata",
-			metadata: map[string]interface{}{
+			metadata: map[string]any{
 				"count":  42,
 				"active": true,
 				"score":  3.14,
@@ -36,14 +36,14 @@ func TestFormatMetadata(t *testing.T) {
 		},
 		{
 			name: "long string truncation",
-			metadata: map[string]interface{}{
+			metadata: map[string]any{
 				"long_text": strings.Repeat("a", 150),
 			},
 			expected: []string{"long_text: " + strings.Repeat("a", 97) + "..."},
 		},
 		{
 			name: "complex type formatting",
-			metadata: map[string]interface{}{
+			metadata: map[string]any{
 				"tags":   []string{"tag1", "tag2"},
 				"config": map[string]string{"key": "value"},
 			},
@@ -78,7 +78,7 @@ func TestFormatMetadata(t *testing.T) {
 }
 
 func TestFormatMetadataConsistency(t *testing.T) {
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"repo_name":       "test/repo",
 		"stars":           100,
 		"public":          true,

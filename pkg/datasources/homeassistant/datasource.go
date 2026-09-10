@@ -64,6 +64,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -139,7 +140,7 @@ type Datasource struct {
 }
 
 // NewDatasource constructs a new Home Assistant datasource instance.
-func NewDatasource(instanceName string, config interface{}) (core.Datasource, error) {
+func NewDatasource(instanceName string, config any) (core.Datasource, error) {
 	var haConfig *Config
 	if config == nil {
 		// Registry creates datasource with nil config first; defer validation until SetConfig.
@@ -190,10 +191,10 @@ func (d *Datasource) BlockPrototype() core.Block {
 }
 
 // ConfigType returns a pointer to an empty Config for decoding.
-func (d *Datasource) ConfigType() interface{} { return &Config{} }
+func (d *Datasource) ConfigType() any { return &Config{} }
 
 // SetConfig updates the datasource configuration at runtime.
-func (d *Datasource) SetConfig(config interface{}) error {
+func (d *Datasource) SetConfig(config any) error {
 	cfg, ok := config.(*Config)
 	if !ok {
 		return fmt.Errorf("homeassistant: invalid config type")
@@ -206,13 +207,13 @@ func (d *Datasource) SetConfig(config interface{}) error {
 }
 
 // GetConfig returns the current configuration.
-func (d *Datasource) GetConfig() interface{} { return d.config }
+func (d *Datasource) GetConfig() any { return d.config }
 
 // Close performs cleanup (none needed for now).
 func (d *Datasource) Close() error { return nil }
 
 // Factory creates a new datasource instance (core requirement).
-func (d *Datasource) Factory(instanceName string, config interface{}) (core.Datasource, error) {
+func (d *Datasource) Factory(instanceName string, config any) (core.Datasource, error) {
 	return NewDatasource(instanceName, config)
 }
 
@@ -225,18 +226,18 @@ type haInboundMessage struct {
 
 // haEventEnvelope wraps an event payload.
 type haEventEnvelope struct {
-	EventType string                 `json:"event_type"`
-	Data      map[string]interface{} `json:"data"`
-	Origin    string                 `json:"origin"`
-	TimeFired string                 `json:"time_fired"`
-	Context   haContext              `json:"context"`
+	EventType string         `json:"event_type"`
+	Data      map[string]any `json:"data"`
+	Origin    string         `json:"origin"`
+	TimeFired string         `json:"time_fired"`
+	Context   haContext      `json:"context"`
 }
 
 // haContext contains event context info.
 type haContext struct {
-	ID     string      `json:"id"`
-	UserID interface{} `json:"user_id"`   // nullable
-	Parent interface{} `json:"parent_id"` // nullable
+	ID     string `json:"id"`
+	UserID any    `json:"user_id"`   // nullable
+	Parent any    `json:"parent_id"` // nullable
 }
 
 // authRequiredMsg and authOkMsg types are inferred by Type fields; no dedicated structs needed.
@@ -348,7 +349,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 	subID := 1
 	if len(d.config.EventTypes) == 0 {
 		// Subscribe to all events
-		subAll := map[string]interface{}{
+		subAll := map[string]any{
 			"id":   subID,
 			"type": "subscribe_events",
 		}
@@ -363,7 +364,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 				return ctx.Err()
 			default:
 			}
-			sub := map[string]interface{}{
+			sub := map[string]any{
 				"id":         subID,
 				"type":       "subscribe_events",
 				"event_type": et,
@@ -596,7 +597,7 @@ func (d *Datasource) convertEventToBlock(ev *haEventEnvelope) (core.Block, error
 
 	text := strings.Join(textParts, " ")
 
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"event_type":      eventType,
 		"entity_id":       entityID,
 		"domain":          domain,
@@ -631,12 +632,7 @@ func (d *Datasource) entityAllowed(entityID string) bool {
 		return true
 	}
 	e := strings.ToLower(entityID)
-	for _, allowed := range d.config.EntityIDs {
-		if e == allowed {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(d.config.EntityIDs, e)
 }
 
 // parseHATime attempts to parse Home Assistant's time_fired value.
@@ -690,7 +686,7 @@ type EventBlock struct {
 	text          string
 	createdAt     time.Time
 	source        string
-	metadata      map[string]interface{}
+	metadata      map[string]any
 	eventType     string
 	entityID      string
 	domain        string
@@ -708,7 +704,7 @@ func NewEventBlock(
 	text string,
 	source string,
 	createdAt time.Time,
-	metadata map[string]interface{},
+	metadata map[string]any,
 	eventType, entityID, domain, service, origin, timeFiredRaw, contextID, contextUserID, dataJSON string,
 ) *EventBlock {
 	return &EventBlock{
@@ -731,12 +727,12 @@ func NewEventBlock(
 
 // Interface compliance
 
-func (e *EventBlock) ID() string                       { return e.id }
-func (e *EventBlock) Text() string                     { return e.text }
-func (e *EventBlock) CreatedAt() time.Time             { return e.createdAt }
-func (e *EventBlock) Source() string                   { return e.source }
-func (e *EventBlock) Metadata() map[string]interface{} { return e.metadata }
-func (e *EventBlock) Type() string                     { return "homeassistant" }
+func (e *EventBlock) ID() string               { return e.id }
+func (e *EventBlock) Text() string             { return e.text }
+func (e *EventBlock) CreatedAt() time.Time     { return e.createdAt }
+func (e *EventBlock) Source() string           { return e.source }
+func (e *EventBlock) Metadata() map[string]any { return e.metadata }
+func (e *EventBlock) Type() string             { return "homeassistant" }
 
 // Summary returns a concise one‑liner.
 func (e *EventBlock) Summary() string {
@@ -754,26 +750,26 @@ func (e *EventBlock) Summary() string {
 func (e *EventBlock) PrettyText() string {
 	var b strings.Builder
 	b.WriteString("🏠 Home Assistant Event\n")
-	b.WriteString(fmt.Sprintf("  ID: %s\n", e.id))
-	b.WriteString(fmt.Sprintf("  Time: %s\n", e.createdAt.Format("2006-01-02 15:04:05")))
-	b.WriteString(fmt.Sprintf("  Type: %s\n", e.eventType))
+	fmt.Fprintf(&b, "  ID: %s\n", e.id)
+	fmt.Fprintf(&b, "  Time: %s\n", e.createdAt.Format("2006-01-02 15:04:05"))
+	fmt.Fprintf(&b, "  Type: %s\n", e.eventType)
 	if e.entityID != "" {
-		b.WriteString(fmt.Sprintf("  Entity: %s\n", e.entityID))
+		fmt.Fprintf(&b, "  Entity: %s\n", e.entityID)
 	}
 	if e.domain != "" {
-		b.WriteString(fmt.Sprintf("  Domain: %s\n", e.domain))
+		fmt.Fprintf(&b, "  Domain: %s\n", e.domain)
 	}
 	if e.service != "" {
-		b.WriteString(fmt.Sprintf("  Service: %s\n", e.service))
+		fmt.Fprintf(&b, "  Service: %s\n", e.service)
 	}
 	if e.origin != "" {
-		b.WriteString(fmt.Sprintf("  Origin: %s\n", e.origin))
+		fmt.Fprintf(&b, "  Origin: %s\n", e.origin)
 	}
 	if e.contextID != "" {
-		b.WriteString(fmt.Sprintf("  Context ID: %s\n", e.contextID))
+		fmt.Fprintf(&b, "  Context ID: %s\n", e.contextID)
 	}
 	if e.contextUserID != "" {
-		b.WriteString(fmt.Sprintf("  User ID: %s\n", e.contextUserID))
+		fmt.Fprintf(&b, "  User ID: %s\n", e.contextUserID)
 	}
 
 	// Include truncated data preview

@@ -72,7 +72,7 @@ type Block interface {
 	// Metadata returns structured data for database storage and reconstruction.
 	// Should contain domain-specific data only - the core system automatically
 	// handles source metadata. Keys should use the same names as the datasource Schema().
-	Metadata() map[string]interface{}
+	Metadata() map[string]any
 
 	// PrettyText returns a human-readable formatted version for display.
 	// This is shown to users in search results and when browsing data.
@@ -111,13 +111,13 @@ type Block interface {
 // even if the original datasource is not loaded or has issues.
 // However, domain-specific functionality will not be available.
 type GenericBlock struct {
-	id        string                 // Unique identifier for this block
-	text      string                 // Searchable text content
-	createdAt time.Time              // When this block was created
-	source    string                 // Source datasource instance name
-	dsType    string                 // Datasource type (e.g., "github", "firefox")
-	hostname  string                 // Hostname where this block was created
-	metadata  map[string]interface{} // Structured data from database
+	id        string         // Unique identifier for this block
+	text      string         // Searchable text content
+	createdAt time.Time      // When this block was created
+	source    string         // Source datasource instance name
+	dsType    string         // Datasource type (e.g., "github", "firefox")
+	hostname  string         // Hostname where this block was created
+	metadata  map[string]any // Structured data from database
 }
 
 // Block interface implementation for GenericBlock
@@ -160,7 +160,7 @@ func ToGenericBlockWithAutoHostname(block Block) *GenericBlock {
 }
 
 // Metadata returns the structured data for this block
-func (b *GenericBlock) Metadata() map[string]interface{} { return b.metadata }
+func (b *GenericBlock) Metadata() map[string]any { return b.metadata }
 
 // DSType returns the datasource type for this block
 func (b *GenericBlock) DSType() string { return b.dsType }
@@ -241,12 +241,12 @@ func (b *GenericBlock) Factory(genericBlock *GenericBlock, source string) Block 
 // - source: Datasource instance name (not type)
 // - createdAt: Original creation time of the data
 // - metadata: All structured data needed for persistence
-func NewGenericBlock(id, text, source, dsType string, createdAt time.Time, metadata map[string]interface{}) *GenericBlock {
+func NewGenericBlock(id, text, source, dsType string, createdAt time.Time, metadata map[string]any) *GenericBlock {
 	return NewGenericBlockWithHostname(id, text, source, dsType, "", createdAt, metadata)
 }
 
 // NewGenericBlockWithHostname creates a new GenericBlock with hostname information.
-func NewGenericBlockWithHostname(id, text, source, dsType, hostname string, createdAt time.Time, metadata map[string]interface{}) *GenericBlock {
+func NewGenericBlockWithHostname(id, text, source, dsType, hostname string, createdAt time.Time, metadata map[string]any) *GenericBlock {
 	return &GenericBlock{
 		id:        id,
 		text:      text,
@@ -261,7 +261,7 @@ func NewGenericBlockWithHostname(id, text, source, dsType, hostname string, crea
 // MarshalJSON implements json.Marshaler for GenericBlock.
 // This provides a standard JSON format for importing/exporting blocks.
 func (b *GenericBlock) MarshalJSON() ([]byte, error) {
-	return json.Marshal(map[string]interface{}{
+	return json.Marshal(map[string]any{
 		"id":         b.id,
 		"text":       b.text,
 		"created_at": b.createdAt,
@@ -274,7 +274,7 @@ func (b *GenericBlock) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON implements json.Unmarshaler for GenericBlock.
 // This allows creating GenericBlocks from JSON data (e.g., from import APIs).
 func (b *GenericBlock) UnmarshalJSON(data []byte) error {
-	var raw map[string]interface{}
+	var raw map[string]any
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
@@ -311,9 +311,9 @@ func (b *GenericBlock) UnmarshalJSON(data []byte) error {
 	}
 
 	// Extract metadata (optional)
-	metadata, _ := raw["metadata"].(map[string]interface{})
+	metadata, _ := raw["metadata"].(map[string]any)
 	if metadata == nil {
-		metadata = make(map[string]interface{})
+		metadata = make(map[string]any)
 	}
 
 	// Populate the GenericBlock

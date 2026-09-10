@@ -7,7 +7,6 @@ import (
 	"time"
 
 	_ "github.com/ncruces/go-sqlite3/driver"
-	_ "github.com/ncruces/go-sqlite3/embed"
 	"github.com/rubiojr/ergs/pkg/core"
 )
 
@@ -212,7 +211,7 @@ func (s *GenericStorage) GetBlocksSince(since time.Time) ([]core.Block, error) {
 			return nil, fmt.Errorf("scanning row: %w", err)
 		}
 
-		var metadata map[string]interface{}
+		var metadata map[string]any
 		if err := json.Unmarshal([]byte(metadataStr), &metadata); err != nil {
 			return nil, fmt.Errorf("unmarshaling metadata for block %s: %w", id, err)
 		}
@@ -232,8 +231,8 @@ func (s *GenericStorage) GetBlocksSince(since time.Time) ([]core.Block, error) {
 // GetStats returns statistics about the stored data including total block count,
 // oldest block timestamp, and newest block timestamp. The returned map contains
 // "total_blocks", "oldest_block", and "newest_block" keys.
-func (s *GenericStorage) GetStats() (map[string]interface{}, error) {
-	stats := make(map[string]interface{})
+func (s *GenericStorage) GetStats() (map[string]any, error) {
+	stats := make(map[string]any)
 
 	var totalBlocks int
 	err := s.db.QueryRow("SELECT COUNT(*) FROM blocks").Scan(&totalBlocks)
@@ -273,13 +272,13 @@ func (s *GenericStorage) GetStats() (map[string]interface{}, error) {
 
 // ExecuteQuery executes a SQL query with optional parameters and returns the result rows.
 // The caller is responsible for closing the returned rows.
-func (s *GenericStorage) ExecuteQuery(query string, args ...interface{}) (*sql.Rows, error) {
+func (s *GenericStorage) ExecuteQuery(query string, args ...any) (*sql.Rows, error) {
 	return s.db.Query(query, args...)
 }
 
 // ExecuteStatement executes a SQL statement (INSERT, UPDATE, DELETE) with optional parameters.
 // Returns the result containing information about rows affected.
-func (s *GenericStorage) ExecuteStatement(query string, args ...interface{}) (sql.Result, error) {
+func (s *GenericStorage) ExecuteStatement(query string, args ...any) (sql.Result, error) {
 	return s.db.Exec(query, args...)
 }
 

@@ -349,7 +349,7 @@ func formatBlock(block core.Block, index int) string {
 }
 
 // extractURL extracts URL from block metadata
-func extractURL(metadata map[string]interface{}) string {
+func extractURL(metadata map[string]any) string {
 	// Check common URL field names
 	urlFields := []string{"url", "link", "repo_url"}
 

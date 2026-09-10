@@ -18,7 +18,6 @@ import (
 
 	"github.com/google/uuid"
 	_ "github.com/ncruces/go-sqlite3/driver"
-	_ "github.com/ncruces/go-sqlite3/embed"
 	"github.com/rubiojr/ergs/pkg/config"
 	"github.com/rubiojr/ergs/pkg/core"
 	"github.com/urfave/cli/v3"
@@ -477,7 +476,7 @@ func (s *ImporterServer) handleExportBlocks(w http.ResponseWriter, r *http.Reque
 		log.Printf("Exported and deleted %d blocks", len(blocks))
 	}
 
-	response := map[string]interface{}{
+	response := map[string]any{
 		"blocks": blocks,
 		"count":  len(blocks),
 	}
@@ -486,7 +485,7 @@ func (s *ImporterServer) handleExportBlocks(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *ImporterServer) handleHealth(w http.ResponseWriter, r *http.Request) {
-	health := map[string]interface{}{
+	health := map[string]any{
 		"status":    "ok",
 		"timestamp": time.Now().UTC(),
 		"service":   "importer",
@@ -520,7 +519,7 @@ func (s *ImporterServer) handleStats(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	datasourceStats := make(map[string]interface{})
+	datasourceStats := make(map[string]any)
 	for rows.Next() {
 		var datasource string
 		var count int
@@ -531,14 +530,14 @@ func (s *ImporterServer) handleStats(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		datasourceStats[datasource] = map[string]interface{}{
+		datasourceStats[datasource] = map[string]any{
 			"pending_blocks": count,
 			"oldest_block":   minCreated,
 			"newest_block":   maxCreated,
 		}
 	}
 
-	stats := map[string]interface{}{
+	stats := map[string]any{
 		"total_pending_blocks": totalBlocks,
 		"datasources":          datasourceStats,
 	}
@@ -546,7 +545,7 @@ func (s *ImporterServer) handleStats(w http.ResponseWriter, r *http.Request) {
 	s.writeJSON(w, http.StatusOK, stats)
 }
 
-func (s *ImporterServer) writeJSON(w http.ResponseWriter, status int, data interface{}) {
+func (s *ImporterServer) writeJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 

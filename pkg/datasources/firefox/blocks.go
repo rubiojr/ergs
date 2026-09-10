@@ -12,7 +12,7 @@ type VisitBlock struct {
 	text        string
 	createdAt   time.Time
 	source      string
-	metadata    map[string]interface{}
+	metadata    map[string]any
 	url         string
 	title       string
 	description string
@@ -22,7 +22,7 @@ type VisitBlock struct {
 func NewVisitBlock(id, url, title, description string, visitDate time.Time) *VisitBlock {
 	text := fmt.Sprintf("url=%s title=%s description=%s", url, title, description)
 
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"url":         url,
 		"title":       title,
 		"description": description,
@@ -46,7 +46,7 @@ func NewVisitBlock(id, url, title, description string, visitDate time.Time) *Vis
 func NewVisitBlockWithSource(id, url, title, description string, visitDate time.Time, source string) *VisitBlock {
 	text := fmt.Sprintf("url=%s title=%s description=%s", url, title, description)
 
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"url":         url,
 		"title":       title,
 		"description": description,
@@ -83,7 +83,7 @@ func (v *VisitBlock) Source() string {
 	return v.source
 }
 
-func (v *VisitBlock) Metadata() map[string]interface{} {
+func (v *VisitBlock) Metadata() map[string]any {
 	return v.metadata
 }
 
@@ -154,7 +154,7 @@ func (v *VisitBlock) Factory(genericBlock *core.GenericBlock, source string) cor
 }
 
 // Helper function for safe metadata extraction
-func getStringFromMetadata(metadata map[string]interface{}, key, defaultValue string) string {
+func getStringFromMetadata(metadata map[string]any, key, defaultValue string) string {
 	if value, exists := metadata[key]; exists {
 		if str, ok := value.(string); ok {
 			return str

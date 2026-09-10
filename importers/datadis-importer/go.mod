@@ -1,6 +1,6 @@
 module github.com/rubiojr/ergs/importers/datadis-importer
 
-go 1.24.2
+go 1.27.1
 
 require github.com/rubiojr/ergs v0.0.0
 

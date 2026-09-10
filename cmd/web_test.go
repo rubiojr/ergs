@@ -27,17 +27,17 @@ type mockBlock struct {
 	text      string
 	createdAt time.Time
 	source    string
-	metadata  map[string]interface{}
+	metadata  map[string]any
 }
 
-func (b *mockBlock) ID() string                       { return b.id }
-func (b *mockBlock) Text() string                     { return b.text }
-func (b *mockBlock) CreatedAt() time.Time             { return b.createdAt }
-func (b *mockBlock) Source() string                   { return b.source }
-func (b *mockBlock) Type() string                     { return "mock" }
-func (b *mockBlock) Metadata() map[string]interface{} { return b.metadata }
-func (b *mockBlock) PrettyText() string               { return b.text }
-func (b *mockBlock) Summary() string                  { return b.text }
+func (b *mockBlock) ID() string               { return b.id }
+func (b *mockBlock) Text() string             { return b.text }
+func (b *mockBlock) CreatedAt() time.Time     { return b.createdAt }
+func (b *mockBlock) Source() string           { return b.source }
+func (b *mockBlock) Type() string             { return "mock" }
+func (b *mockBlock) Metadata() map[string]any { return b.metadata }
+func (b *mockBlock) PrettyText() string       { return b.text }
+func (b *mockBlock) Summary() string          { return b.text }
 func (b *mockBlock) Factory(genericBlock *core.GenericBlock, source string) core.Block {
 	return &mockBlock{
 		id:        genericBlock.ID(),
@@ -61,24 +61,24 @@ func setupTestWebServer(t *testing.T) (*WebServer, func()) {
 	}
 
 	// Fill datasource_a
-	for i := 0; i < 15; i++ {
+	for i := range 15 {
 		testData["datasource_a"][i] = &mockBlock{
 			id:        fmt.Sprintf("a_block_%d", i),
 			text:      fmt.Sprintf("test content a %d", i),
 			createdAt: now.Add(time.Duration(i) * time.Minute),
 			source:    "datasource_a",
-			metadata:  map[string]interface{}{"index": i},
+			metadata:  map[string]any{"index": i},
 		}
 	}
 
 	// Fill datasource_b
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		testData["datasource_b"][i] = &mockBlock{
 			id:        fmt.Sprintf("b_block_%d", i),
 			text:      fmt.Sprintf("test content b %d", i),
 			createdAt: now.Add(time.Duration(i) * time.Minute),
 			source:    "datasource_b",
-			metadata:  map[string]interface{}{"index": i},
+			metadata:  map[string]any{"index": i},
 		}
 	}
 
@@ -158,7 +158,7 @@ func TestAPISearchBasic(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse response: %v", err)
@@ -178,7 +178,7 @@ func TestAPISearchBasic(t *testing.T) {
 	}
 
 	// Check that results exist
-	results, ok := response["results"].(map[string]interface{})
+	results, ok := response["results"].(map[string]any)
 	if !ok {
 		t.Fatal("Results should be a map")
 	}
@@ -262,7 +262,7 @@ func TestAPISearchPagination(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse response: %v", err)
@@ -302,7 +302,7 @@ func TestAPISearchPage2(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse response: %v", err)
@@ -499,7 +499,7 @@ func TestAPISearchLastPage(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse response: %v", err)
@@ -536,7 +536,7 @@ func TestAPISearchEmptyResults(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse response: %v", err)
@@ -552,7 +552,7 @@ func TestAPISearchEmptyResults(t *testing.T) {
 		t.Error("Expected has_more to be false for empty results")
 	}
 
-	results, ok := response["results"].(map[string]interface{})
+	results, ok := response["results"].(map[string]any)
 	if !ok {
 		t.Fatal("Results should be a map")
 	}
@@ -591,12 +591,12 @@ func TestAPISearchWithDatasourceFilter(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
 		t.Fatalf("Failed to parse response: %v", err)
 	}
 
-	results, ok := response["results"].(map[string]interface{})
+	results, ok := response["results"].(map[string]any)
 	if !ok {
 		t.Fatal("Results field is not a map")
 	}
@@ -628,12 +628,12 @@ func TestAPISearchWithMultipleDatasourceFilters(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
 		t.Fatalf("Failed to parse response: %v", err)
 	}
 
-	results, ok := response["results"].(map[string]interface{})
+	results, ok := response["results"].(map[string]any)
 	if !ok {
 		t.Fatal("Results field is not a map")
 	}
@@ -665,12 +665,12 @@ func TestAPISearchWithNonexistentDatasourceFilter(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
 		t.Fatalf("Failed to parse response: %v", err)
 	}
 
-	results, ok := response["results"].(map[string]interface{})
+	results, ok := response["results"].(map[string]any)
 	if !ok {
 		t.Fatal("Results field is not a map")
 	}
@@ -704,12 +704,12 @@ func TestAPISearchWithMixedDatasourceFilters(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
 		t.Fatalf("Failed to parse response: %v", err)
 	}
 
-	results, ok := response["results"].(map[string]interface{})
+	results, ok := response["results"].(map[string]any)
 	if !ok {
 		t.Fatal("Results field is not a map")
 	}
@@ -786,7 +786,7 @@ func TestSearchResultsConsistencyBetweenAPIAndWeb(t *testing.T) {
 		t.Errorf("API request failed with status %d", apiW.Code)
 	}
 
-	var apiResponse map[string]interface{}
+	var apiResponse map[string]any
 	if err := json.Unmarshal(apiW.Body.Bytes(), &apiResponse); err != nil {
 		t.Fatalf("Failed to parse API response: %v", err)
 	}
@@ -801,7 +801,7 @@ func TestSearchResultsConsistencyBetweenAPIAndWeb(t *testing.T) {
 	}
 
 	// Both should succeed and the API should only contain the filtered datasource
-	apiResults, ok := apiResponse["results"].(map[string]interface{})
+	apiResults, ok := apiResponse["results"].(map[string]any)
 	if !ok {
 		t.Fatal("API results field is not a map")
 	}
@@ -829,7 +829,7 @@ func TestAPISearchInvalidPagination(t *testing.T) {
 		t.Errorf("Expected status %d (should handle invalid params gracefully), got %d", http.StatusOK, w.Code)
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse response: %v", err)
@@ -858,7 +858,7 @@ func TestAPISearchResponseStructure(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse response: %v", err)
@@ -873,14 +873,14 @@ func TestAPISearchResponseStructure(t *testing.T) {
 	}
 
 	// Check results structure
-	results, ok := response["results"].(map[string]interface{})
+	results, ok := response["results"].(map[string]any)
 	if !ok {
 		t.Fatal("Results should be a map")
 	}
 
 	// Check individual datasource result structure
 	for dsName, dsResults := range results {
-		dsMap, ok := dsResults.(map[string]interface{})
+		dsMap, ok := dsResults.(map[string]any)
 		if !ok {
 			t.Fatalf("Datasource %s results should be a map", dsName)
 		}
@@ -894,13 +894,13 @@ func TestAPISearchResponseStructure(t *testing.T) {
 		}
 
 		// Check blocks structure
-		blocks, ok := dsMap["blocks"].([]interface{})
+		blocks, ok := dsMap["blocks"].([]any)
 		if !ok {
 			t.Fatalf("Blocks in datasource %s should be an array", dsName)
 		}
 
 		if len(blocks) > 0 {
-			block := blocks[0].(map[string]interface{})
+			block := blocks[0].(map[string]any)
 			blockRequiredFields := []string{"id", "text", "source", "created_at", "metadata"}
 			for _, field := range blockRequiredFields {
 				if _, exists := block[field]; !exists {
@@ -1006,14 +1006,14 @@ func TestAPISearchDatasourceAlphabeticalOrder(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse response: %v", err)
 	}
 
 	// Check results structure
-	results, ok := response["results"].(map[string]interface{})
+	results, ok := response["results"].(map[string]any)
 	if !ok {
 		t.Fatal("Results should be a map")
 	}
@@ -1054,13 +1054,13 @@ func TestAPIPaginationAccuracy(t *testing.T) {
 	}
 
 	// Fill with test data
-	for i := 0; i < 43; i++ {
+	for i := range 43 {
 		testData["api_test_ds"][i] = &mockBlock{
 			id:        fmt.Sprintf("api_block_%d", i),
 			text:      fmt.Sprintf("api pagination test content %d", i),
 			createdAt: now.Add(time.Duration(i) * time.Minute),
 			source:    "api_test_ds",
-			metadata:  map[string]interface{}{"index": i},
+			metadata:  map[string]any{"index": i},
 		}
 	}
 
@@ -1133,7 +1133,7 @@ func TestAPIPaginationAccuracy(t *testing.T) {
 				return
 			}
 
-			var response map[string]interface{}
+			var response map[string]any
 			err := json.Unmarshal(w.Body.Bytes(), &response)
 			if err != nil {
 				t.Fatalf("Failed to parse response: %v", err)
@@ -1318,12 +1318,12 @@ func TestAPISearchDateFiltering(t *testing.T) {
 				return
 			}
 
-			var response map[string]interface{}
+			var response map[string]any
 			if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
 				t.Fatalf("Failed to parse JSON response: %v", err)
 			}
 
-			results, ok := response["results"].(map[string]interface{})
+			results, ok := response["results"].(map[string]any)
 			if !ok {
 				t.Fatal("Invalid results format")
 			}
@@ -1341,12 +1341,12 @@ func TestAPISearchDateFiltering(t *testing.T) {
 				t.Fatal("Expected results from test_datasource")
 			}
 
-			dsData, ok := dsResults.(map[string]interface{})
+			dsData, ok := dsResults.(map[string]any)
 			if !ok {
 				t.Fatal("Invalid datasource results format")
 			}
 
-			blocks, ok := dsData["blocks"].([]interface{})
+			blocks, ok := dsData["blocks"].([]any)
 			if !ok {
 				t.Fatal("Invalid blocks format")
 			}
@@ -1357,7 +1357,7 @@ func TestAPISearchDateFiltering(t *testing.T) {
 			}
 
 			for i, expectedID := range tt.expectedBlocks {
-				block, ok := blocks[i].(map[string]interface{})
+				block, ok := blocks[i].(map[string]any)
 				if !ok {
 					t.Fatalf("Invalid block format at index %d", i)
 				}
@@ -1570,14 +1570,14 @@ func TestAPIDatasourcesAlphabeticalOrder(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse response: %v", err)
 	}
 
 	// Check that datasources exist and are in alphabetical order
-	datasources, ok := response["datasources"].([]interface{})
+	datasources, ok := response["datasources"].([]any)
 	if !ok {
 		t.Fatal("Datasources should be an array")
 	}
@@ -1589,7 +1589,7 @@ func TestAPIDatasourcesAlphabeticalOrder(t *testing.T) {
 	// Extract datasource names
 	var names []string
 	for _, ds := range datasources {
-		dsMap := ds.(map[string]interface{})
+		dsMap := ds.(map[string]any)
 		name := dsMap["name"].(string)
 		names = append(names, name)
 	}
@@ -1604,7 +1604,7 @@ func TestAPIDatasourcesAlphabeticalOrder(t *testing.T) {
 	t.Logf("API returned datasources in alphabetical order: %v", names)
 }
 
-func getKeys(m map[string]interface{}) []string {
+func getKeys(m map[string]any) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)

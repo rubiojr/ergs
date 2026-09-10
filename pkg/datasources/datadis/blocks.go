@@ -19,7 +19,7 @@ type ConsumptionBlock struct {
 	obtainMethod string
 	createdAt    time.Time
 	source       string
-	metadata     map[string]interface{}
+	metadata     map[string]any
 
 	// Supply metadata
 	address      string
@@ -50,7 +50,7 @@ func NewConsumptionBlock(
 		consumption, date, hour, cups, address, municipality, province, distributor,
 	)
 
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"cups":          cups,
 		"date":          date,
 		"hour":          hour,
@@ -108,7 +108,7 @@ func (b *ConsumptionBlock) Type() string {
 }
 
 // Metadata returns structured metadata for the block
-func (b *ConsumptionBlock) Metadata() map[string]interface{} {
+func (b *ConsumptionBlock) Metadata() map[string]any {
 	return b.metadata
 }
 
@@ -117,24 +117,24 @@ func (b *ConsumptionBlock) PrettyText() string {
 	var sb strings.Builder
 
 	sb.WriteString("⚡ Electricity Consumption\n")
-	sb.WriteString(fmt.Sprintf("📅 %s at %s:00\n", b.date, b.hour))
-	sb.WriteString(fmt.Sprintf("📊 %.2f kWh\n", b.consumption))
+	fmt.Fprintf(&sb, "📅 %s at %s:00\n", b.date, b.hour)
+	fmt.Fprintf(&sb, "📊 %.2f kWh\n", b.consumption)
 
 	if b.address != "" {
-		sb.WriteString(fmt.Sprintf("📍 %s\n", b.address))
+		fmt.Fprintf(&sb, "📍 %s\n", b.address)
 		if b.municipality != "" && b.province != "" {
-			sb.WriteString(fmt.Sprintf("   %s, %s %s\n", b.municipality, b.province, b.postalCode))
+			fmt.Fprintf(&sb, "   %s, %s %s\n", b.municipality, b.province, b.postalCode)
 		}
 	}
 
 	if b.distributor != "" {
-		sb.WriteString(fmt.Sprintf("🏢 %s\n", b.distributor))
+		fmt.Fprintf(&sb, "🏢 %s\n", b.distributor)
 	}
 
-	sb.WriteString(fmt.Sprintf("🔌 CUPS: %s\n", b.cups))
+	fmt.Fprintf(&sb, "🔌 CUPS: %s\n", b.cups)
 
 	if b.obtainMethod != "" {
-		sb.WriteString(fmt.Sprintf("📝 Method: %s\n", b.obtainMethod))
+		fmt.Fprintf(&sb, "📝 Method: %s\n", b.obtainMethod)
 	}
 
 	// Format metadata using utility function
@@ -233,7 +233,7 @@ func (b *ConsumptionBlock) Distributor() string {
 }
 
 // Helper functions for safe metadata extraction
-func getStringFromMetadata(metadata map[string]interface{}, key, defaultValue string) string {
+func getStringFromMetadata(metadata map[string]any, key, defaultValue string) string {
 	if val, exists := metadata[key]; exists {
 		if strVal, ok := val.(string); ok {
 			return strVal
@@ -242,7 +242,7 @@ func getStringFromMetadata(metadata map[string]interface{}, key, defaultValue st
 	return defaultValue
 }
 
-func getFloatFromMetadata(metadata map[string]interface{}, key string, defaultValue float64) float64 {
+func getFloatFromMetadata(metadata map[string]any, key string, defaultValue float64) float64 {
 	if val, exists := metadata[key]; exists {
 		switch v := val.(type) {
 		case float64:

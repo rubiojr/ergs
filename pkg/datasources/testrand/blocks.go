@@ -67,8 +67,8 @@ func (b *RandomBlock) Type() string {
 }
 
 // Metadata returns additional structured data about this block.
-func (b *RandomBlock) Metadata() map[string]interface{} {
-	return map[string]interface{}{
+func (b *RandomBlock) Metadata() map[string]any {
+	return map[string]any{
 		"block_id":    b.blockID,
 		"random_data": b.randomData,
 		"prefix":      b.prefix,

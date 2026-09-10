@@ -45,7 +45,7 @@ func createDatasourcesFromConfig(registry *core.Registry, cfg *config.Config) er
 }
 
 // convertRawConfigToType converts raw config to the datasource's expected type
-func convertRawConfigToType(ds core.Datasource, rawConfig interface{}) (interface{}, error) {
+func convertRawConfigToType(ds core.Datasource, rawConfig any) (any, error) {
 	// Get the expected config type from the datasource
 	configType := ds.ConfigType()
 

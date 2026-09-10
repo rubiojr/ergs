@@ -30,10 +30,10 @@ type PageData struct {
 
 // DatasourceInfo represents datasource information
 type DatasourceInfo struct {
-	Name   string                 `json:"name"`
-	Type   string                 `json:"type"`
-	Config map[string]interface{} `json:"config,omitempty"`
-	Stats  map[string]interface{} `json:"stats,omitempty"`
+	Name   string         `json:"name"`
+	Type   string         `json:"type"`
+	Config map[string]any `json:"config,omitempty"`
+	Stats  map[string]any `json:"stats,omitempty"`
 }
 
 // WebBlock represents a block for web display
@@ -42,7 +42,7 @@ type WebBlock struct {
 	Text          string
 	Source        string
 	CreatedAt     time.Time
-	Metadata      map[string]interface{}
+	Metadata      map[string]any
 	Links         []string
 	FormattedText string
 }

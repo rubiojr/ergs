@@ -43,15 +43,15 @@ func (m *mockDatasource) Schema() map[string]any {
 	}
 }
 
-func (m *mockDatasource) ConfigType() interface{} {
+func (m *mockDatasource) ConfigType() any {
 	return &mockConfig{}
 }
 
-func (m *mockDatasource) SetConfig(config interface{}) error {
+func (m *mockDatasource) SetConfig(config any) error {
 	return nil
 }
 
-func (m *mockDatasource) GetConfig() interface{} {
+func (m *mockDatasource) GetConfig() any {
 	return &mockConfig{}
 }
 
@@ -59,7 +59,7 @@ func (m *mockDatasource) Close() error {
 	return nil
 }
 
-func (m *mockDatasource) Factory(instanceName string, config interface{}) (core.Datasource, error) {
+func (m *mockDatasource) Factory(instanceName string, config any) (core.Datasource, error) {
 	return &mockDatasource{name: instanceName}, nil
 }
 
@@ -78,17 +78,17 @@ type mockBlock struct {
 	text      string
 	createdAt time.Time
 	source    string
-	metadata  map[string]interface{}
+	metadata  map[string]any
 }
 
-func (b *mockBlock) ID() string                       { return b.id }
-func (b *mockBlock) Text() string                     { return b.text }
-func (b *mockBlock) CreatedAt() time.Time             { return b.createdAt }
-func (b *mockBlock) Source() string                   { return b.source }
-func (b *mockBlock) Type() string                     { return "mock" }
-func (b *mockBlock) Metadata() map[string]interface{} { return b.metadata }
-func (b *mockBlock) PrettyText() string               { return b.text }
-func (b *mockBlock) Summary() string                  { return b.text }
+func (b *mockBlock) ID() string               { return b.id }
+func (b *mockBlock) Text() string             { return b.text }
+func (b *mockBlock) CreatedAt() time.Time     { return b.createdAt }
+func (b *mockBlock) Source() string           { return b.source }
+func (b *mockBlock) Type() string             { return "mock" }
+func (b *mockBlock) Metadata() map[string]any { return b.metadata }
+func (b *mockBlock) PrettyText() string       { return b.text }
+func (b *mockBlock) Summary() string          { return b.text }
 func (b *mockBlock) Factory(genericBlock *core.GenericBlock, source string) core.Block {
 	return &mockBlock{
 		id:        genericBlock.ID(),
@@ -127,14 +127,14 @@ func TestWarehouseStreaming(t *testing.T) {
 			text:      "Test block 1",
 			createdAt: now,
 			source:    "test-datasource",
-			metadata:  map[string]interface{}{"type": "test"},
+			metadata:  map[string]any{"type": "test"},
 		},
 		&mockBlock{
 			id:        "block2",
 			text:      "Test block 2",
 			createdAt: now.Add(time.Minute),
 			source:    "test-datasource",
-			metadata:  map[string]interface{}{"type": "test"},
+			metadata:  map[string]any{"type": "test"},
 		},
 	}
 
@@ -201,14 +201,14 @@ func TestWarehouseStreamingCallback(t *testing.T) {
 			text:      "Stream test block 1",
 			createdAt: now,
 			source:    "test-datasource",
-			metadata:  map[string]interface{}{"type": "stream"},
+			metadata:  map[string]any{"type": "stream"},
 		},
 		&mockBlock{
 			id:        "stream2",
 			text:      "Stream test block 2",
 			createdAt: now.Add(time.Minute),
 			source:    "test-datasource",
-			metadata:  map[string]interface{}{"type": "stream"},
+			metadata:  map[string]any{"type": "stream"},
 		},
 	}
 
@@ -288,14 +288,14 @@ func TestFetchOnceAPIVariations(t *testing.T) {
 			text:      "API test block 1",
 			createdAt: now,
 			source:    "test-datasource",
-			metadata:  map[string]interface{}{"test": "api"},
+			metadata:  map[string]any{"test": "api"},
 		},
 		&mockBlock{
 			id:        "api2",
 			text:      "API test block 2",
 			createdAt: now.Add(time.Minute),
 			source:    "test-datasource",
-			metadata:  map[string]interface{}{"test": "api"},
+			metadata:  map[string]any{"test": "api"},
 		},
 	}
 
@@ -393,7 +393,7 @@ func TestIsDatasourceConfiguredAndDropUnknown(t *testing.T) {
 		text:      "Should be dropped",
 		createdAt: time.Now(),
 		source:    unknown,
-		metadata:  map[string]interface{}{},
+		metadata:  map[string]any{},
 	}
 	if err := wh.storeBlock(unknownBlock); err != nil {
 		t.Fatalf("storeBlock for unknown datasource returned unexpected error: %v", err)
@@ -410,7 +410,7 @@ func TestIsDatasourceConfiguredAndDropUnknown(t *testing.T) {
 		text:      "Should persist",
 		createdAt: time.Now(),
 		source:    dsName,
-		metadata:  map[string]interface{}{},
+		metadata:  map[string]any{},
 	}
 	if err := wh.storeBlock(knownBlock); err != nil {
 		t.Fatalf("storeBlock for known datasource failed: %v", err)

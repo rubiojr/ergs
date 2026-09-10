@@ -18,13 +18,13 @@ import (
 // for each newly stored block. It mirrors the structure produced in
 // pkg/warehouse/event_bridge.go.
 type BridgeBlockEvent struct {
-	Type       string                 `json:"type"`
-	ID         string                 `json:"id"`
-	Datasource string                 `json:"datasource"`
-	DSType     string                 `json:"ds_type"` // Added to allow renderer selection without DB lookup
-	CreatedAt  time.Time              `json:"created_at"`
-	Text       string                 `json:"text"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Type       string         `json:"type"`
+	ID         string         `json:"id"`
+	Datasource string         `json:"datasource"`
+	DSType     string         `json:"ds_type"` // Added to allow renderer selection without DB lookup
+	CreatedAt  time.Time      `json:"created_at"`
+	Text       string         `json:"text"`
+	Metadata   map[string]any `json:"metadata,omitempty"`
 }
 
 // Removed local InternalEvent (now using realtime.InternalEvent)

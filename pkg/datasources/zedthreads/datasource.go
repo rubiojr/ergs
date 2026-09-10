@@ -14,7 +14,6 @@ import (
 
 	"github.com/klauspost/compress/zstd"
 	_ "github.com/ncruces/go-sqlite3/driver"
-	_ "github.com/ncruces/go-sqlite3/embed"
 	"github.com/rubiojr/ergs/pkg/core"
 )
 
@@ -25,7 +24,7 @@ func init() {
 
 type BlockFactory struct{}
 
-func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, source string, metadata map[string]interface{}) core.Block {
+func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, source string, metadata map[string]any) core.Block {
 	summary := getStringFromMetadata(metadata, "summary", "")
 	modelStr := getStringFromMetadata(metadata, "model", "")
 	version := getStringFromMetadata(metadata, "version", "")
@@ -50,7 +49,7 @@ func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, s
 	}
 
 	// Extract token usage from metadata
-	tokenUsage := make(map[string]interface{})
+	tokenUsage := make(map[string]any)
 	for key, value := range metadata {
 		if len(key) > 6 && key[:6] == "token_" {
 			tokenUsage[key[6:]] = value
@@ -99,7 +98,7 @@ type Datasource struct {
 	instanceName string
 }
 
-func NewDatasource(instanceName string, config interface{}) (core.Datasource, error) {
+func NewDatasource(instanceName string, config any) (core.Datasource, error) {
 	var zedConfig *Config
 	if config == nil {
 		zedConfig = &Config{}
@@ -156,11 +155,11 @@ func (d *Datasource) BlockPrototype() core.Block {
 	return &ThreadBlock{}
 }
 
-func (d *Datasource) ConfigType() interface{} {
+func (d *Datasource) ConfigType() any {
 	return &Config{}
 }
 
-func (d *Datasource) SetConfig(config interface{}) error {
+func (d *Datasource) SetConfig(config any) error {
 	if cfg, ok := config.(*Config); ok {
 		d.config = cfg
 		return cfg.Validate()
@@ -168,7 +167,7 @@ func (d *Datasource) SetConfig(config interface{}) error {
 	return fmt.Errorf("invalid config type for Zed threads datasource")
 }
 
-func (d *Datasource) GetConfig() interface{} {
+func (d *Datasource) GetConfig() any {
 	return d.config
 }
 
@@ -388,6 +387,6 @@ func (d *Datasource) Close() error {
 	return nil
 }
 
-func (d *Datasource) Factory(instanceName string, config interface{}) (core.Datasource, error) {
+func (d *Datasource) Factory(instanceName string, config any) (core.Datasource, error) {
 	return NewDatasource(instanceName, config)
 }

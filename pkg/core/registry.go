@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"maps"
 	"sync"
 )
 
@@ -38,9 +39,7 @@ func GetGlobalRegistry() *Registry {
 
 	// Create a new registry and copy all registered prototypes
 	registry := NewRegistry()
-	for name, prototype := range globalRegistry.prototypes {
-		registry.prototypes[name] = prototype
-	}
+	maps.Copy(registry.prototypes, globalRegistry.prototypes)
 	return registry
 }
 
@@ -56,7 +55,7 @@ func (r *Registry) RegisterPrototype(name string, prototype Datasource) error {
 	return nil
 }
 
-func (r *Registry) CreateDatasource(instanceName string, factoryType string, config interface{}) error {
+func (r *Registry) CreateDatasource(instanceName string, factoryType string, config any) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -103,9 +102,7 @@ func (r *Registry) GetAllDatasources() map[string]Datasource {
 	defer r.mu.RUnlock()
 
 	result := make(map[string]Datasource)
-	for name, ds := range r.datasources {
-		result[name] = ds
-	}
+	maps.Copy(result, r.datasources)
 	return result
 }
 

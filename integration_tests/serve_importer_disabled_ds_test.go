@@ -82,12 +82,10 @@ func TestServeImporterDropsUnknownDatasource(t *testing.T) {
 	// Run CLI (serve) in goroutine
 	var runErr error
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		args := []string{"ergs-test", "--config", cfgPath, "serve"}
 		runErr = app.Run(ctx, args)
-	}()
+	})
 
 	// Allow time for initial fetch: importer + timestamp
 	time.Sleep(5 * time.Second)

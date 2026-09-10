@@ -22,11 +22,11 @@ import (
 // - Proper metadata handling for database persistence
 type TimestampBlock struct {
 	// Core Block interface fields - these are required for all blocks
-	id        string                 // Unique identifier for this block
-	text      string                 // Searchable text content
-	createdAt time.Time              // When this block was created
-	source    string                 // Source datasource instance name
-	metadata  map[string]interface{} // Structured data for database storage
+	id        string         // Unique identifier for this block
+	text      string         // Searchable text content
+	createdAt time.Time      // When this block was created
+	source    string         // Source datasource instance name
+	metadata  map[string]any // Structured data for database storage
 
 	// Domain-specific fields - add whatever makes sense for your datasource
 	timestamp time.Time // The actual timestamp this block represents
@@ -59,7 +59,7 @@ func NewTimestampBlockWithSource(timestamp time.Time, source string) *TimestampB
 
 	// Metadata contains all structured data needed for database storage
 	// This must include everything needed to reconstruct the block
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"timestamp": timestamp.Format(time.RFC3339), // ISO 8601 format for parsing
 		"unix":      timestamp.Unix(),               // Integer for easy comparison
 		"source":    source,                         // CRITICAL: Store source for reconstruction
@@ -95,7 +95,7 @@ func (b *TimestampBlock) CreatedAt() time.Time { return b.createdAt }
 func (b *TimestampBlock) Source() string { return b.source }
 
 // Metadata returns structured data for database storage and reconstruction
-func (b *TimestampBlock) Metadata() map[string]interface{} { return b.metadata }
+func (b *TimestampBlock) Metadata() map[string]any { return b.metadata }
 
 func (b *TimestampBlock) Type() string {
 	return "timestamp"
@@ -185,7 +185,7 @@ type BlockFactory struct{}
 //   - text: The searchable text from database
 //   - createdAt: When the block was originally created
 //   - metadata: All structured data stored in database
-func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, source string, metadata map[string]interface{}) core.Block {
+func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, source string, metadata map[string]any) core.Block {
 	// Extract domain-specific data from metadata using safe helper functions
 	timestampStr := getStringFromMetadata(metadata, "timestamp", "")
 	unix := getInt64FromMetadata(metadata, "unix", 0)
@@ -220,7 +220,7 @@ func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, s
 // getStringFromMetadata safely extracts a string value from metadata.
 // Returns defaultValue if the key doesn't exist or isn't a string.
 // This prevents panics when reconstructing blocks from database data.
-func getStringFromMetadata(metadata map[string]interface{}, key, defaultValue string) string {
+func getStringFromMetadata(metadata map[string]any, key, defaultValue string) string {
 	if value, exists := metadata[key]; exists {
 		if str, ok := value.(string); ok {
 			return str
@@ -235,7 +235,7 @@ func getStringFromMetadata(metadata map[string]interface{}, key, defaultValue st
 //
 // This handles the fact that JSON/database storage might convert numbers
 // between different types (int, int64, float64).
-func getInt64FromMetadata(metadata map[string]interface{}, key string, defaultValue int64) int64 {
+func getInt64FromMetadata(metadata map[string]any, key string, defaultValue int64) int64 {
 	if value, exists := metadata[key]; exists {
 		switch v := value.(type) {
 		case int64:

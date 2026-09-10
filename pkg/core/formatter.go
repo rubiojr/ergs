@@ -1,33 +1,37 @@
 package core
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // FormatMetadata formats a metadata map into a pretty-printed string
-func FormatMetadata(metadata map[string]interface{}) string {
+func FormatMetadata(metadata map[string]any) string {
 	if len(metadata) == 0 {
 		return ""
 	}
 
-	metadataInfo := "\n  Metadata:"
+	var metadataInfo strings.Builder
+	metadataInfo.WriteString("\n  Metadata:")
 	for key, value := range metadata {
 		switch v := value.(type) {
 		case string:
 			if len(v) > 100 {
 				v = v[:97] + "..."
 			}
-			metadataInfo += fmt.Sprintf("\n    %s: %s", key, v)
+			fmt.Fprintf(&metadataInfo, "\n    %s: %s", key, v)
 		case bool:
-			metadataInfo += fmt.Sprintf("\n    %s: %v", key, v)
+			fmt.Fprintf(&metadataInfo, "\n    %s: %v", key, v)
 		case int, int64, float64:
-			metadataInfo += fmt.Sprintf("\n    %s: %v", key, v)
+			fmt.Fprintf(&metadataInfo, "\n    %s: %v", key, v)
 		default:
 			valueStr := fmt.Sprintf("%v", v)
 			if len(valueStr) > 100 {
 				valueStr = valueStr[:97] + "..."
 			}
-			metadataInfo += fmt.Sprintf("\n    %s: %s", key, valueStr)
+			fmt.Fprintf(&metadataInfo, "\n    %s: %s", key, valueStr)
 		}
 	}
 
-	return metadataInfo
+	return metadataInfo.String()
 }

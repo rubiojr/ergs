@@ -51,8 +51,8 @@ type DatasourceInfo struct {
 	Type string `toml:"type"`
 	// Interval specifies how often this datasource should be fetched.
 	// If not specified, defaults to 30 minutes.
-	Interval *Duration   `toml:"interval,omitempty"`
-	Config   interface{} `toml:"config"`
+	Interval *Duration `toml:"interval,omitempty"`
+	Config   any       `toml:"config"`
 }
 
 func GetDefaultConfig() (*Config, error) {
@@ -146,7 +146,7 @@ func (c *Config) generateConfigTemplate() (string, error) {
 	return template, nil
 }
 
-func (c *Config) AddDatasource(name, dsType string, dsConfig interface{}) error {
+func (c *Config) AddDatasource(name, dsType string, dsConfig any) error {
 	info := DatasourceInfo{
 		Type:   dsType,
 		Config: dsConfig,
@@ -156,7 +156,7 @@ func (c *Config) AddDatasource(name, dsType string, dsConfig interface{}) error 
 	return nil
 }
 
-func (c *Config) AddDatasourceWithInterval(name, dsType string, dsConfig interface{}, interval *Duration) error {
+func (c *Config) AddDatasourceWithInterval(name, dsType string, dsConfig any, interval *Duration) error {
 	info := DatasourceInfo{
 		Type:     dsType,
 		Interval: interval,
@@ -167,7 +167,7 @@ func (c *Config) AddDatasourceWithInterval(name, dsType string, dsConfig interfa
 	return nil
 }
 
-func (c *Config) GetDatasourceConfig(name string) (string, interface{}, error) {
+func (c *Config) GetDatasourceConfig(name string) (string, any, error) {
 	info, exists := c.Datasources[name]
 	if !exists {
 		return "", nil, fmt.Errorf("datasource %s not found", name)

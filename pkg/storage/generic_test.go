@@ -208,7 +208,7 @@ func TestStoreBlocksUpdatedAtPreservedCreatedAt(t *testing.T) {
 
 	createdAt := time.Now().Add(-1 * time.Hour).UTC().Truncate(time.Second)
 
-	block1 := core.NewGenericBlock("block-1", "original text", "srcA", "testds", createdAt, map[string]interface{}{"v": 1})
+	block1 := core.NewGenericBlock("block-1", "original text", "srcA", "testds", createdAt, map[string]any{"v": 1})
 	if err := st.StoreBlock(block1, "testds"); err != nil {
 		t.Fatalf("StoreBlock initial failed: %v", err)
 	}
@@ -228,7 +228,7 @@ func TestStoreBlocksUpdatedAtPreservedCreatedAt(t *testing.T) {
 
 	time.Sleep(1500 * time.Millisecond) // ensure second-level resolution difference
 
-	block2 := core.NewGenericBlock("block-1", "modified text", "srcA", "testds", createdAt, map[string]interface{}{"v": 2})
+	block2 := core.NewGenericBlock("block-1", "modified text", "srcA", "testds", createdAt, map[string]any{"v": 2})
 	if err := st.StoreBlock(block2, "testds"); err != nil {
 		t.Fatalf("StoreBlock update failed: %v", err)
 	}
@@ -269,7 +269,7 @@ func TestStoreBlocksIngestedAtBehavior(t *testing.T) {
 
 	createdAt := time.Now().Add(-2 * time.Hour).UTC().Truncate(time.Second)
 
-	block1 := core.NewGenericBlock("block-1", "original text", "srcA", "testds", createdAt, map[string]interface{}{"v": 1})
+	block1 := core.NewGenericBlock("block-1", "original text", "srcA", "testds", createdAt, map[string]any{"v": 1})
 	if err := st.StoreBlock(block1, "testds"); err != nil {
 		t.Fatalf("StoreBlock initial failed: %v", err)
 	}
@@ -299,7 +299,7 @@ func TestStoreBlocksIngestedAtBehavior(t *testing.T) {
 
 	time.Sleep(1500 * time.Millisecond) // ensure second-level resolution difference
 
-	block2 := core.NewGenericBlock("block-1", "modified text", "srcA", "testds", createdAt, map[string]interface{}{"v": 2})
+	block2 := core.NewGenericBlock("block-1", "modified text", "srcA", "testds", createdAt, map[string]any{"v": 2})
 	if err := st.StoreBlock(block2, "testds"); err != nil {
 		t.Fatalf("StoreBlock update failed: %v", err)
 	}
@@ -347,7 +347,7 @@ func TestMigrationBackfillIngestedAt(t *testing.T) {
 	createdAt := time.Now().Add(-3 * time.Hour).UTC().Truncate(time.Second)
 	pastUpdatedAt := time.Now().Add(-1 * time.Hour).UTC().Truncate(time.Second)
 
-	block := core.NewGenericBlock("test-block", "test text", "srcA", "testds", createdAt, map[string]interface{}{"v": 1})
+	block := core.NewGenericBlock("test-block", "test text", "srcA", "testds", createdAt, map[string]any{"v": 1})
 	if err := st.StoreBlock(block, "testds"); err != nil {
 		t.Fatalf("StoreBlock failed: %v", err)
 	}

@@ -32,6 +32,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -93,7 +94,7 @@ func parseVTTSubtitles(url string) (string, error) {
 	// Regex to match timestamp line: "00:00:01.000 --> 00:00:03.000"
 	timestampPattern := regexp.MustCompile(`^(\d{2}:\d{2}:\d{2}\.\d{3})\s+-->\s+(\d{2}:\d{2}:\d{2}\.\d{3})`)
 
-	for i := 0; i < len(lines); i++ {
+	for i := range lines {
 		line := strings.TrimSpace(lines[i])
 
 		// Skip empty lines, WEBVTT header, and NOTE lines
@@ -176,13 +177,7 @@ func (c *Config) Validate() error {
 
 	// Validate show ID against available shows
 	availableShows := api.AvailableShows()
-	validShow := false
-	for _, show := range availableShows {
-		if show == c.ShowID {
-			validShow = true
-			break
-		}
-	}
+	validShow := slices.Contains(availableShows, c.ShowID)
 	if !validShow {
 		return fmt.Errorf("invalid show_id: %s (available shows: %v)", c.ShowID, availableShows)
 	}
@@ -213,7 +208,7 @@ type Datasource struct {
 //   - config: Configuration object (can be nil for defaults)
 //
 // Returns the configured datasource or an error if configuration is invalid.
-func NewDatasource(instanceName string, config interface{}) (core.Datasource, error) {
+func NewDatasource(instanceName string, config any) (core.Datasource, error) {
 	var rtveConfig *Config
 
 	// Handle nil config by providing sensible defaults
@@ -272,12 +267,12 @@ func (d *Datasource) BlockPrototype() core.Block {
 }
 
 // ConfigType returns a pointer to an empty config struct.
-func (d *Datasource) ConfigType() interface{} {
+func (d *Datasource) ConfigType() any {
 	return &Config{}
 }
 
 // SetConfig updates the datasource configuration.
-func (d *Datasource) SetConfig(config interface{}) error {
+func (d *Datasource) SetConfig(config any) error {
 	if cfg, ok := config.(*Config); ok {
 		if err := cfg.Validate(); err != nil {
 			return err
@@ -289,7 +284,7 @@ func (d *Datasource) SetConfig(config interface{}) error {
 }
 
 // GetConfig returns the current configuration.
-func (d *Datasource) GetConfig() interface{} {
+func (d *Datasource) GetConfig() any {
 	return d.config
 }
 
@@ -397,6 +392,6 @@ func (d *Datasource) Close() error {
 // Factory creates a new instance of this datasource.
 // This method is part of the core.Datasource interface and is called
 // by the core system when creating datasource instances.
-func (d *Datasource) Factory(instanceName string, config interface{}) (core.Datasource, error) {
+func (d *Datasource) Factory(instanceName string, config any) (core.Datasource, error) {
 	return NewDatasource(instanceName, config)
 }

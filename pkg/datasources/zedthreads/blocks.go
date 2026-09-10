@@ -13,12 +13,12 @@ type ThreadBlock struct {
 	text       string
 	createdAt  time.Time
 	source     string
-	metadata   map[string]interface{}
+	metadata   map[string]any
 	summary    string
 	updatedAt  time.Time
 	messages   []Message
 	model      *Model
-	tokenUsage map[string]interface{}
+	tokenUsage map[string]any
 }
 
 type Message struct {
@@ -40,12 +40,12 @@ type Model struct {
 }
 
 type ThreadData struct {
-	Version    string                 `json:"version"`
-	Summary    string                 `json:"summary"`
-	UpdatedAt  string                 `json:"updated_at"`
-	Messages   []Message              `json:"messages"`
-	Model      *Model                 `json:"model"`
-	TokenUsage map[string]interface{} `json:"cumulative_token_usage"`
+	Version    string         `json:"version"`
+	Summary    string         `json:"summary"`
+	UpdatedAt  string         `json:"updated_at"`
+	Messages   []Message      `json:"messages"`
+	Model      *Model         `json:"model"`
+	TokenUsage map[string]any `json:"cumulative_token_usage"`
 }
 
 func NewThreadBlock(id, summary string, updatedAt time.Time, threadData *ThreadData) *ThreadBlock {
@@ -83,7 +83,7 @@ func NewThreadBlockWithSource(id, summary string, updatedAt time.Time, threadDat
 		}
 	}
 
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"summary":            summary,
 		"updated_at":         updatedAt.Format("2006-01-02 15:04:05"),
 		"model":              getModelString(threadData.Model),
@@ -131,7 +131,7 @@ func (t *ThreadBlock) Source() string {
 	return t.source
 }
 
-func (t *ThreadBlock) Metadata() map[string]interface{} {
+func (t *ThreadBlock) Metadata() map[string]any {
 	return t.metadata
 }
 
@@ -282,7 +282,7 @@ func (t *ThreadBlock) Factory(genericBlock *core.GenericBlock, source string) co
 		updatedAt:  genericBlock.CreatedAt(), // Use creation time as updated time
 		messages:   []Message{},              // Cannot reconstruct full message structure from metadata
 		model:      model,
-		tokenUsage: make(map[string]interface{}),
+		tokenUsage: make(map[string]any),
 	}
 }
 
@@ -300,7 +300,7 @@ func getModelString(model *Model) string {
 }
 
 // Helper functions for safe metadata extraction
-func getStringFromMetadata(metadata map[string]interface{}, key, defaultValue string) string {
+func getStringFromMetadata(metadata map[string]any, key, defaultValue string) string {
 	if value, exists := metadata[key]; exists {
 		if str, ok := value.(string); ok {
 			return str
@@ -309,7 +309,7 @@ func getStringFromMetadata(metadata map[string]interface{}, key, defaultValue st
 	return defaultValue
 }
 
-func getIntFromMetadata(metadata map[string]interface{}, key string, defaultValue int) int {
+func getIntFromMetadata(metadata map[string]any, key string, defaultValue int) int {
 	if value, exists := metadata[key]; exists {
 		switch v := value.(type) {
 		case int:

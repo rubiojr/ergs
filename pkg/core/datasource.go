@@ -99,7 +99,7 @@ type Datasource interface {
 	//
 	// Example:
 	//	return &MyConfig{}
-	ConfigType() interface{}
+	ConfigType() any
 
 	// SetConfig updates the datasource configuration.
 	// Called during initialization and when configuration changes.
@@ -114,11 +114,11 @@ type Datasource interface {
 	//		return nil
 	//	}
 	//	return fmt.Errorf("invalid config type")
-	SetConfig(config interface{}) error
+	SetConfig(config any) error
 
 	// GetConfig returns the current configuration.
 	// Used by the system to inspect or serialize current settings.
-	GetConfig() interface{}
+	GetConfig() any
 
 	// Close performs cleanup when the datasource is no longer needed.
 	// Called during system shutdown or when removing a datasource.
@@ -146,7 +146,7 @@ type Datasource interface {
 	//	func (d *MyDatasource) Factory(instanceName string, config interface{}) (Datasource, error) {
 	//		return NewMyDatasource(instanceName, config)
 	//	}
-	Factory(instanceName string, config interface{}) (Datasource, error)
+	Factory(instanceName string, config any) (Datasource, error)
 }
 
 // DatasourceFactory is the legacy function type, maintained for compatibility.
@@ -154,4 +154,4 @@ type Datasource interface {
 //
 // This type is deprecated and will be removed in a future version.
 // It's kept for backward compatibility during the transition period.
-type DatasourceFactory func(instanceName string, config interface{}) (Datasource, error)
+type DatasourceFactory func(instanceName string, config any) (Datasource, error)

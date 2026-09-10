@@ -13,7 +13,7 @@ type GasStationBlock struct {
 	text      string
 	createdAt time.Time
 	source    string
-	metadata  map[string]interface{}
+	metadata  map[string]any
 
 	// Gas station specific fields
 	stationID  string
@@ -58,7 +58,7 @@ func NewGasStationBlockWithSource(
 	text := fmt.Sprintf("%s %s %s %s %s gasoline95 %s diesel %s",
 		name, address, locality, province, schedule, gasoline95, diesel)
 
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"station_id": stationID,
 		"name":       name,
 		"address":    address,
@@ -102,11 +102,11 @@ func NewGasStationBlockWithSource(
 }
 
 // Implement core.Block interface
-func (b *GasStationBlock) ID() string                       { return b.id }
-func (b *GasStationBlock) Text() string                     { return b.text }
-func (b *GasStationBlock) CreatedAt() time.Time             { return b.createdAt }
-func (b *GasStationBlock) Source() string                   { return b.source }
-func (b *GasStationBlock) Metadata() map[string]interface{} { return b.metadata }
+func (b *GasStationBlock) ID() string               { return b.id }
+func (b *GasStationBlock) Text() string             { return b.text }
+func (b *GasStationBlock) CreatedAt() time.Time     { return b.createdAt }
+func (b *GasStationBlock) Source() string           { return b.source }
+func (b *GasStationBlock) Metadata() map[string]any { return b.metadata }
 
 func (b *GasStationBlock) PrettyText() string {
 	var prices []string
@@ -237,7 +237,7 @@ func (b *GasStationBlock) Factory(genericBlock *core.GenericBlock, source string
 // BlockFactory implements the BlockFactory interface for Gas Stations
 type BlockFactory struct{}
 
-func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, source string, metadata map[string]interface{}) core.Block {
+func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, source string, metadata map[string]any) core.Block {
 	stationID := getStringFromMetadata(metadata, "station_id", "unknown")
 	name := getStringFromMetadata(metadata, "name", "Unknown Station")
 	address := getStringFromMetadata(metadata, "address", "")
@@ -275,7 +275,7 @@ func (f *BlockFactory) CreateFromGeneric(id, text string, createdAt time.Time, s
 }
 
 // Helper functions for safe metadata extraction
-func getStringFromMetadata(metadata map[string]interface{}, key, defaultValue string) string {
+func getStringFromMetadata(metadata map[string]any, key, defaultValue string) string {
 	if value, exists := metadata[key]; exists {
 		if str, ok := value.(string); ok {
 			return str
@@ -284,7 +284,7 @@ func getStringFromMetadata(metadata map[string]interface{}, key, defaultValue st
 	return defaultValue
 }
 
-func getFloatFromMetadata(metadata map[string]interface{}, key string, defaultValue float64) float64 {
+func getFloatFromMetadata(metadata map[string]any, key string, defaultValue float64) float64 {
 	if value, exists := metadata[key]; exists {
 		switch v := value.(type) {
 		case float64:

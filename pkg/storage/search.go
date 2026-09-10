@@ -312,7 +312,7 @@ func (s *SearchService) searchDatasourcesInParallel(datasources []string, query 
 	}
 
 	var results []searchResult
-	for i := 0; i < len(datasources); i++ {
+	for range datasources {
 		results = append(results, <-resultChan)
 	}
 
@@ -322,7 +322,7 @@ func (s *SearchService) searchDatasourcesInParallel(datasources []string, query 
 // executeStorageSearch performs the actual database search with all parameters.
 func (s *SearchService) executeStorageSearch(storage *GenericStorage, query string, limit int, orderByTime bool, startDate, endDate *time.Time) ([]core.Block, error) {
 	var sqlQuery string
-	var args []interface{}
+	var args []any
 
 	if query != "" {
 		// Build the date range conditions with table alias
@@ -354,7 +354,7 @@ func (s *SearchService) executeStorageSearch(storage *GenericStorage, query stri
 			WHERE blocks_fts MATCH ?` + whereClause + `
 			` + orderClause + `
 			LIMIT ?`
-		args = append([]interface{}{escapedQuery}, args...)
+		args = append([]any{escapedQuery}, args...)
 		args = append(args, limit)
 	} else {
 		// Build the date range conditions without table alias
@@ -402,7 +402,7 @@ func (s *SearchService) executeStorageSearch(storage *GenericStorage, query stri
 			return nil, fmt.Errorf("scanning row: %w", err)
 		}
 
-		var metadata map[string]interface{}
+		var metadata map[string]any
 		if err := json.Unmarshal([]byte(metadataStr), &metadata); err != nil {
 			return nil, fmt.Errorf("unmarshaling metadata for block %s: %w", id, err)
 		}

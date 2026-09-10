@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
@@ -55,7 +56,7 @@ func TestMultipleDatasourceIsolation(t *testing.T) {
 	// Create datasources from config
 	for name, dsConfig := range testConfig.Datasources {
 		// Create datasource with proper config using helper function
-		err := CreateDatasourceWithConfig(registry, name, dsConfig.Type, dsConfig.Config.(map[string]interface{}))
+		err := CreateDatasourceWithConfig(registry, name, dsConfig.Type, dsConfig.Config.(map[string]any))
 		if err != nil {
 			t.Fatalf("Failed to create datasource %s: %v", name, err)
 		}
@@ -278,13 +279,7 @@ func TestMultipleDatasourceIsolation(t *testing.T) {
 			// Verify required tables exist
 			requiredTables := []string{"blocks", "blocks_fts", "fetch_metadata"}
 			for _, required := range requiredTables {
-				found := false
-				for _, table := range tables {
-					if table == required {
-						found = true
-						break
-					}
-				}
+				found := slices.Contains(tables, required)
 				if !found {
 					t.Errorf("Required table %s not found in %s database", required, test.Name)
 				}
@@ -311,12 +306,12 @@ func TestDatasourceTypeVsInstanceName(t *testing.T) {
 	testCases := []struct {
 		instanceName string
 		expectedType string
-		config       map[string]interface{}
+		config       map[string]any
 	}{
 		{
 			instanceName: "my_soria_gas",
 			expectedType: "testrand",
-			config: map[string]interface{}{
+			config: map[string]any{
 				"count":  5,
 				"prefix": "SORIA",
 				"seed":   12345,
@@ -325,7 +320,7 @@ func TestDatasourceTypeVsInstanceName(t *testing.T) {
 		{
 			instanceName: "my_madrid_gas",
 			expectedType: "testrand",
-			config: map[string]interface{}{
+			config: map[string]any{
 				"count":  8,
 				"prefix": "MADRID",
 				"seed":   67890,
@@ -377,7 +372,7 @@ func TestBlockSourceMatching(t *testing.T) {
 	dsType := "testrand"
 
 	// Create a testrand datasource
-	config := map[string]interface{}{
+	config := map[string]any{
 		"count":  3,
 		"prefix": "TEST",
 		"seed":   54321,
@@ -445,7 +440,7 @@ func TestIntervalZeroSchemaOnly(t *testing.T) {
 	activeName := "active_testrand"
 
 	// Schema-only datasource (interval 0)
-	err := CreateDatasourceWithConfig(registry, schemaOnlyName, "testrand", map[string]interface{}{
+	err := CreateDatasourceWithConfig(registry, schemaOnlyName, "testrand", map[string]any{
 		"count":  5,
 		"prefix": "SCHEMA_ONLY",
 		"seed":   11111,
@@ -455,7 +450,7 @@ func TestIntervalZeroSchemaOnly(t *testing.T) {
 	}
 
 	// Active datasource (normal interval)
-	err = CreateDatasourceWithConfig(registry, activeName, "testrand", map[string]interface{}{
+	err = CreateDatasourceWithConfig(registry, activeName, "testrand", map[string]any{
 		"count":  3,
 		"prefix": "ACTIVE",
 		"seed":   22222,
@@ -608,13 +603,7 @@ func TestIntervalZeroSchemaOnly(t *testing.T) {
 		// Verify required tables exist even though we never fetched
 		requiredTables := []string{"blocks", "blocks_fts"}
 		for _, required := range requiredTables {
-			found := false
-			for _, table := range tables {
-				if table == required {
-					found = true
-					break
-				}
-			}
+			found := slices.Contains(tables, required)
 			if !found {
 				t.Errorf("Required table %s not found in schema-only database", required)
 			}

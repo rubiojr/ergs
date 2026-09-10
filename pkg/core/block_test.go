@@ -11,16 +11,16 @@ type mockBlock struct {
 	text      string
 	createdAt time.Time
 	source    string
-	metadata  map[string]interface{}
+	metadata  map[string]any
 }
 
-func (m *mockBlock) ID() string                       { return m.id }
-func (m *mockBlock) Text() string                     { return m.text }
-func (m *mockBlock) CreatedAt() time.Time             { return m.createdAt }
-func (m *mockBlock) Source() string                   { return m.source }
-func (m *mockBlock) Type() string                     { return "mock" }
-func (m *mockBlock) Metadata() map[string]interface{} { return m.metadata }
-func (m *mockBlock) Summary() string                  { return fmt.Sprintf("Mock: %s", m.text) }
+func (m *mockBlock) ID() string               { return m.id }
+func (m *mockBlock) Text() string             { return m.text }
+func (m *mockBlock) CreatedAt() time.Time     { return m.createdAt }
+func (m *mockBlock) Source() string           { return m.source }
+func (m *mockBlock) Type() string             { return "mock" }
+func (m *mockBlock) Metadata() map[string]any { return m.metadata }
+func (m *mockBlock) Summary() string          { return fmt.Sprintf("Mock: %s", m.text) }
 func (m *mockBlock) PrettyText() string {
 	// Format metadata using utility function
 	metadataInfo := FormatMetadata(m.metadata)
@@ -46,7 +46,7 @@ func TestBlockInterface(t *testing.T) {
 		text:      "This is a test block",
 		createdAt: now,
 		source:    "test-source",
-		metadata:  map[string]interface{}{"type": "test"},
+		metadata:  map[string]any{"type": "test"},
 	}
 
 	// Test basic interface methods
@@ -92,7 +92,7 @@ func TestBlockInterface(t *testing.T) {
 }
 
 func TestBlockMetadata(t *testing.T) {
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"type":   "test",
 		"count":  42,
 		"active": true,

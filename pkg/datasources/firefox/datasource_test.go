@@ -9,7 +9,6 @@ import (
 	"time"
 
 	_ "github.com/ncruces/go-sqlite3/driver"
-	_ "github.com/ncruces/go-sqlite3/embed"
 	"github.com/rubiojr/ergs/pkg/core"
 )
 
@@ -123,7 +122,7 @@ func TestFirefoxDataFetching(t *testing.T) {
 func TestBlockFactory(t *testing.T) {
 	factory := &BlockFactory{}
 
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"url":         "https://example.com",
 		"title":       "Example Title",
 		"description": "Example Description",

@@ -33,7 +33,7 @@ func TestQuickDatasourceIsolation(t *testing.T) {
 	// Create datasources from config
 	for name, dsConfig := range testConfig.Datasources {
 		// Create datasource with proper config using helper function
-		err := CreateDatasourceWithConfig(registry, name, dsConfig.Type, dsConfig.Config.(map[string]interface{}))
+		err := CreateDatasourceWithConfig(registry, name, dsConfig.Type, dsConfig.Config.(map[string]any))
 		if err != nil {
 			t.Fatalf("Failed to create datasource %s: %v", name, err)
 		}
@@ -184,7 +184,7 @@ func TestDatasourceFactoryInstanceName(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.instanceName, func(t *testing.T) {
 			// Create datasource with proper config
-			config := map[string]interface{}{
+			config := map[string]any{
 				"count":  3,
 				"prefix": "TEST",
 				"seed":   12345,

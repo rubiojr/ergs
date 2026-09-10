@@ -15,7 +15,7 @@ import (
 
 type FirehoseHubAdapter interface {
 	// Broadcast receives a generic event; concrete hub can type-assert as needed.
-	Broadcast(event interface{})
+	Broadcast(event any)
 }
 
 // InternalEvent is now an alias to the shared realtime.InternalEvent type.
@@ -49,7 +49,7 @@ func (s *Server) SetRendererService(r *render.Service) {
 	s.rendererService = r
 }
 
-func (s *Server) writeJSON(w http.ResponseWriter, status int, data interface{}) {
+func (s *Server) writeJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 

@@ -64,7 +64,7 @@ func formatDuration(d time.Duration) string {
 }
 
 // formatStats formats storage statistics for display
-func formatStats(stats map[string]interface{}) {
+func formatStats(stats map[string]any) {
 	// Print summary
 	fmt.Printf("📊 Storage Statistics\n")
 	fmt.Printf("═══════════════════════\n\n")
@@ -98,7 +98,7 @@ func formatStats(stats map[string]interface{}) {
 			fmt.Printf("\n")
 		}
 
-		dsStats, ok := stats[name].(map[string]interface{})
+		dsStats, ok := stats[name].(map[string]any)
 		if !ok {
 			fmt.Printf("❌ %s: No data available\n", name)
 			continue

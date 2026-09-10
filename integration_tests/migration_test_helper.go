@@ -222,16 +222,16 @@ func (h *MigrationTestHelper) InsertTestDataForFTS(database *sql.DB) error {
 
 	for _, data := range testData {
 		var query string
-		var args []interface{}
+		var args []any
 
 		if hasHostname {
 			query = `INSERT INTO blocks (id, text, created_at, source, datasource, metadata, hostname)
 					  VALUES (?, ?, datetime('now'), ?, ?, ?, ?)`
-			args = []interface{}{data.id, data.text, data.source, data.datasource, data.metadata, data.hostname}
+			args = []any{data.id, data.text, data.source, data.datasource, data.metadata, data.hostname}
 		} else {
 			query = `INSERT INTO blocks (id, text, created_at, source, datasource, metadata)
 					  VALUES (?, ?, datetime('now'), ?, ?, ?)`
-			args = []interface{}{data.id, data.text, data.source, data.datasource, data.metadata}
+			args = []any{data.id, data.text, data.source, data.datasource, data.metadata}
 		}
 
 		_, err := database.Exec(query, args...)
