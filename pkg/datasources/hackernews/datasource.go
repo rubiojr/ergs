@@ -223,7 +223,7 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 			// Fetch top-level comments (limit to first 5 to avoid too much data)
 			commentLimit := min(len(item.Kids), 5)
 
-			for i := 0; i < commentLimit; i++ {
+			for i := range commentLimit {
 				select {
 				case <-ctx.Done():
 					return ctx.Err()
