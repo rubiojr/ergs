@@ -12,7 +12,7 @@ require (
 	github.com/klauspost/compress v1.20.0
 	github.com/ncruces/go-sqlite3 v0.35.4
 	github.com/pelletier/go-toml/v2 v2.4.3
-	github.com/rubiojr/gasdb v1.2.3
+	github.com/rubiojr/gasdb v1.2.5
 	github.com/rubiojr/go-datadis v0.1.1
 	github.com/rubiojr/rtve-go v0.2.2
 	github.com/urfave/cli/v3 v3.11.0

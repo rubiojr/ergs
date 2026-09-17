@@ -53,8 +53,8 @@ github.com/pelletier/go-toml/v2 v2.4.3/go.mod h1:2gIqNv+qfxSVS7cM2xJQKtLSTLUE9V8
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/rivo/uniseg v0.4.7 h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=
 github.com/rivo/uniseg v0.4.7/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=
-github.com/rubiojr/gasdb v1.2.3 h1:nI3K5sXNdDRXs9F7k1xB5z2F92Gelxf6ZdYukNhFyb8=
-github.com/rubiojr/gasdb v1.2.3/go.mod h1:ur2yOij6zfySpeeO1gXUO4MCgS55IzfpxDpQVbSLdEE=
+github.com/rubiojr/gasdb v1.2.5 h1:AW1jDO1qOdLQnT7BQGPp1fnE5jVJvvf2HTiFVkcBBD8=
+github.com/rubiojr/gasdb v1.2.5/go.mod h1:ur2yOij6zfySpeeO1gXUO4MCgS55IzfpxDpQVbSLdEE=
 github.com/rubiojr/go-datadis v0.1.1 h1:YOkQsNuo78OXJBAz8YRtd+7+NbsHfu049nxW2Nbv9yI=
 github.com/rubiojr/go-datadis v0.1.1/go.mod h1:GnewTCvlk6fDVS4kgPKRmMjruWZQalbHDNGqyDjVgyY=
 github.com/rubiojr/rtve-go v0.2.2 h1:zT2cOWjOj8JDcaxPVA4MkFyKMHpPGC62kcvR4SDfLlM=
