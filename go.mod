@@ -9,7 +9,7 @@ require (
 	github.com/google/go-github/v91 v91.0.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
-	github.com/klauspost/compress v1.20.0
+	github.com/klauspost/compress v1.20.1
 	github.com/ncruces/go-sqlite3 v0.35.5
 	github.com/pelletier/go-toml/v2 v2.4.3
 	github.com/rubiojr/gasdb v1.2.5
