@@ -27,7 +27,7 @@
                 <span class="dd-date">{{$date}}</span>
                 {{end}}
                 {{if $hour}}
-                <span class="dd-hour">at {{$hour}}:00</span>
+                <span class="dd-hour">{{hourRange (printf "%v" $hour)}}</span>
                 {{end}}
             </div>
 

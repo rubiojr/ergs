@@ -117,7 +117,7 @@ func (b *ConsumptionBlock) PrettyText() string {
 	var sb strings.Builder
 
 	sb.WriteString("⚡ Electricity Consumption\n")
-	fmt.Fprintf(&sb, "📅 %s at %s:00\n", b.date, b.hour)
+	fmt.Fprintf(&sb, "📅 %s %s\n", b.date, HourRange(b.hour))
 	fmt.Fprintf(&sb, "📊 %.2f kWh\n", b.consumption)
 
 	if b.address != "" {
@@ -146,7 +146,7 @@ func (b *ConsumptionBlock) PrettyText() string {
 
 // Summary returns a concise one-line summary of the consumption block
 func (b *ConsumptionBlock) Summary() string {
-	return fmt.Sprintf("⚡ %.2f kWh on %s at %s:00", b.consumption, b.date, b.hour)
+	return fmt.Sprintf("⚡ %.2f kWh on %s %s", b.consumption, b.date, HourRange(b.hour))
 }
 
 // Factory creates a new ConsumptionBlock from a GenericBlock and source
@@ -256,4 +256,15 @@ func getFloatFromMetadata(metadata map[string]any, key string, defaultValue floa
 		}
 	}
 	return defaultValue
+}
+
+// HourRange formats a Datadis time label ("HH:MM" or "HH", the end of the
+// measured hour, "01:00" to "24:00") as the hour it covers, e.g. "16:00–17:00".
+// Labels it can't parse are returned unchanged.
+func HourRange(label string) string {
+	hh, mm, err := parseHourLabel(label)
+	if err != nil || hh == 0 {
+		return label
+	}
+	return fmt.Sprintf("%02d:%02d–%02d:%02d", hh-1, mm, hh, mm)
 }

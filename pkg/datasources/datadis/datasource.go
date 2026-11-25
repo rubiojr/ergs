@@ -3,6 +3,8 @@ package datadis
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/rubiojr/ergs/pkg/log"
@@ -202,6 +204,10 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 
 		l.Debugf("Got %d measurements for supply %s", len(measurements), supply.Cups)
 
+		// Datadis repeats the "02:00" label on the day clocks go back, so
+		// count how many times each date/time label has been seen.
+		seen := make(map[string]int)
+
 		for _, measurement := range measurements {
 			select {
 			case <-ctx.Done():
@@ -209,19 +215,25 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 			default:
 			}
 
-			// Parse the measurement time to get a proper timestamp
-			// Datadis returns date as "YYYY/MM/DD" and time as "HH"
-			measurementTime, err := d.parseMeasurementTime(measurement.Date, measurement.Time)
+			labelKey := measurement.Date + " " + measurement.Time
+			seen[labelKey]++
+			occurrence := seen[labelKey]
+
+			measurementTime, err := parseMeasurementTime(measurement.Date, measurement.Time, occurrence, datadisLocation)
 			if err != nil {
-				l.Warnf("Failed to parse measurement time: %v", err)
-				measurementTime = time.Now()
+				l.Warnf("Skipping measurement for supply %s: %v", supply.Cups, err)
+				continue
 			}
 
-			// Create unique block ID
+			// Create unique block ID. The repeated DST hour gets a suffix so
+			// it doesn't overwrite the first one.
 			blockID := fmt.Sprintf("consumption-%s-%s-%s",
 				supply.Cups,
 				measurement.Date,
 				measurement.Time)
+			if occurrence > 1 {
+				blockID = fmt.Sprintf("%s-%d", blockID, occurrence)
+			}
 
 			block := NewConsumptionBlock(
 				blockID,
@@ -255,19 +267,94 @@ func (d *Datasource) FetchBlocks(ctx context.Context, blockCh chan<- core.Block)
 	return nil
 }
 
-// parseMeasurementTime converts Datadis date and hour to a time.Time
-func (d *Datasource) parseMeasurementTime(date, hour string) (time.Time, error) {
-	// Datadis returns date as "YYYY/MM/DD" and hour as "HH" (00-23)
-	// Combine them into a single timestamp
-	dateTimeStr := fmt.Sprintf("%s %s:00:00", date, hour)
+// datadisLocation is the time zone Datadis reports measurements in.
+var datadisLocation = loadDatadisLocation()
 
-	// Parse with the expected format
-	t, err := time.ParseInLocation("2006/01/02 15:04:05", dateTimeStr, time.Local)
+func loadDatadisLocation() *time.Location {
+	loc, err := time.LoadLocation("Europe/Madrid")
 	if err != nil {
-		return time.Time{}, fmt.Errorf("failed to parse date/time %s: %w", dateTimeStr, err)
+		return time.Local
+	}
+	return loc
+}
+
+// parseMeasurementTime returns the start of the hour a Datadis measurement
+// covers.
+//
+// Datadis labels hourly measurements with date "YYYY/MM/DD" and time "HH:MM",
+// where the time is the wall-clock *end* of the hour, from "01:00" to "24:00":
+// "01:00" is consumption from 00:00 to 00:59, "24:00" from 23:00 to 23:59.
+// On the day clocks go forward "02:00" is missing; on the day they go back
+// "02:00" appears twice, and occurrence (1 or 2) says which one this is.
+// A bare "HH" is accepted too.
+func parseMeasurementTime(date, hourLabel string, occurrence int, loc *time.Location) (time.Time, error) {
+	day, err := time.Parse("2006/01/02", date)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("invalid measurement date %q: %w", date, err)
 	}
 
-	return t, nil
+	hh, mm, err := parseHourLabel(hourLabel)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	// The wall clock the interval ends at; normalising in UTC turns "24:00"
+	// into 00:00 the next day without any DST interference.
+	want := time.Date(day.Year(), day.Month(), day.Day(), hh, mm, 0, 0, time.UTC)
+
+	// A wall-clock time maps to two instants during the hour clocks go back.
+	// Collect every instant near it that shows that wall clock, in order.
+	guess := time.Date(want.Year(), want.Month(), want.Day(), want.Hour(), want.Minute(), 0, 0, loc)
+	var matches []time.Time
+	for _, c := range []time.Time{guess.Add(-time.Hour), guess, guess.Add(time.Hour)} {
+		if sameWallClock(c.In(loc), want) {
+			matches = append(matches, c)
+		}
+	}
+
+	if occurrence < 1 {
+		occurrence = 1
+	}
+	var end time.Time
+	switch {
+	case len(matches) == 0:
+		// A wall-clock time skipped by DST; Datadis shouldn't send it, but
+		// time.Date's normalisation is the best reading of it.
+		end = guess
+	case occurrence > len(matches):
+		return time.Time{}, fmt.Errorf("measurement %s %s seen %d times, expected at most %d",
+			date, hourLabel, occurrence, len(matches))
+	default:
+		end = matches[occurrence-1]
+	}
+
+	return end.Add(-time.Hour), nil
+}
+
+// parseHourLabel parses a Datadis time label, "HH:MM" or "HH", allowing hours
+// up to 24 and only "24:00" at the top.
+func parseHourLabel(label string) (int, int, error) {
+	hourPart, minPart, hasMinutes := strings.Cut(strings.TrimSpace(label), ":")
+	hh, err := strconv.Atoi(hourPart)
+	if err != nil {
+		return 0, 0, fmt.Errorf("invalid measurement time %q", label)
+	}
+	mm := 0
+	if hasMinutes {
+		mm, err = strconv.Atoi(minPart)
+		if err != nil || len(minPart) != 2 {
+			return 0, 0, fmt.Errorf("invalid measurement time %q", label)
+		}
+	}
+	if hh < 0 || hh > 24 || mm < 0 || mm > 59 || (hh == 24 && mm != 0) {
+		return 0, 0, fmt.Errorf("measurement time %q out of range", label)
+	}
+	return hh, mm, nil
+}
+
+func sameWallClock(t, want time.Time) bool {
+	return t.Year() == want.Year() && t.Month() == want.Month() && t.Day() == want.Day() &&
+		t.Hour() == want.Hour() && t.Minute() == want.Minute()
 }
 
 // Close closes the datasource

@@ -39,11 +39,13 @@ The datasource:
 
 ## Block Structure
 
+Each block's timestamp is the start of the measured hour, in the Europe/Madrid time zone. The second `02:00` on the day clocks go back gets a `-2` suffix on its block ID so it doesn't replace the first.
+
 Each consumption measurement creates a block with the following metadata:
 
 - **cups**: The CUPS (Código Universal del Punto de Suministro) identifier
 - **date**: The date of the measurement (YYYY/MM/DD format)
-- **hour**: The hour of the measurement (00-23)
+- **hour**: The time label Datadis gives the measurement, `HH:MM` from `01:00` to `24:00`. It marks the *end* of the measured hour: `01:00` is consumption from 00:00 to 01:00, `24:00` from 23:00 to midnight. On the day clocks go back `02:00` appears twice; on the day they go forward it is missing.
 - **consumption**: The electricity consumption in kWh
 - **obtain_method**: How the measurement was obtained (real, estimated, etc.)
 - **address**: The supply point address
@@ -58,7 +60,7 @@ A typical consumption block looks like:
 
 ```
 ⚡ Electricity Consumption
-📅 2025/01/15 at 14:00
+📅 2025/01/15 13:00–14:00
 📊 1.23 kWh
 📍 Calle Example 123
    Madrid, Madrid 28001

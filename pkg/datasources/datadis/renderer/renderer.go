@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/rubiojr/ergs/pkg/core"
+	"github.com/rubiojr/ergs/pkg/datasources/datadis"
 	"github.com/rubiojr/ergs/pkg/render"
 )
 
@@ -27,7 +28,9 @@ func init() {
 
 // NewDatadisRenderer creates a new Datadis renderer
 func NewDatadisRenderer() *DatadisRenderer {
-	tmpl, err := template.New("datadis").Funcs(render.GetTemplateFuncs()).Parse(datadisTemplate)
+	funcs := render.GetTemplateFuncs()
+	funcs["hourRange"] = datadis.HourRange
+	tmpl, err := template.New("datadis").Funcs(funcs).Parse(datadisTemplate)
 	if err != nil {
 		return nil
 	}
