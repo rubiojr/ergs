@@ -241,8 +241,11 @@ func (s *GenericStorage) GetStats() (map[string]any, error) {
 	}
 	stats["total_blocks"] = totalBlocks
 
+	// MIN and MAX must be separate subqueries: SQLite only resolves a lone
+	// min()/max() aggregate with an index seek. Combined in one SELECT, it
+	// scans the entire created_at index (seconds on multi-GB databases).
 	var oldestBlockStr, newestBlockStr sql.NullString
-	err = s.db.QueryRow("SELECT MIN(created_at), MAX(created_at) FROM blocks").Scan(&oldestBlockStr, &newestBlockStr)
+	err = s.db.QueryRow("SELECT (SELECT MIN(created_at) FROM blocks), (SELECT MAX(created_at) FROM blocks)").Scan(&oldestBlockStr, &newestBlockStr)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, fmt.Errorf("getting block date range: %w", err)
 	}
