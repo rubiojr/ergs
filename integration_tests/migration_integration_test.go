@@ -343,7 +343,8 @@ interval_seconds = 1
 			t.Fatalf("Failed to get hostname: %v", err)
 		}
 
-		searchResults, err := storageManager.SearchBlocks("timestamp", "hostname:"+hostname, 10)
+		// Quote the hostname: unquoted FTS5 treats '-' (e.g. "my-host") as query syntax.
+		searchResults, err := storageManager.SearchBlocks("timestamp", `hostname:"`+hostname+`"`, 10)
 		if err != nil {
 			t.Fatalf("Failed to search blocks: %v", err)
 		}
